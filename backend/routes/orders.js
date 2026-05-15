@@ -1,9 +1,9 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { allQuery, getQuery, runQuery } = require('../database/db');
 const { v4: uuidv4 } = require('uuid');
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { customer_name, customer_phone, phone2, shipping_address, address, customer_city, city, governorate, items, notes, shipping_cost: reqShipping, total_amount } = req.body;
     const finalName = customer_name || req.body.fullName || '';
@@ -17,57 +17,62 @@ router.post('/', (req, res) => {
     const shipping_cost = reqShipping !== undefined ? reqShipping : (itemsTotal >= 900 ? 0 : 100);
     const total = total_amount || (itemsTotal + shipping_cost);
     const id = uuidv4();
-    runQuery(`INSERT INTO orders (id, customer_name, customer_phone, phone2, shipping_address, city, governorate, total_amount, shipping_cost, notes, status, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'cash_on_delivery')`, [id, finalName, finalPhone, phone2 || null, finalAddress, finalCity, governorate || null, total, shipping_cost, notes || null]);
+    await runQuery(`INSERT INTO orders (id, customer_name, customer_phone, phone2, shipping_address, city, governorate, total_amount, shipping_cost, notes, status, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'cash_on_delivery')`,
+      [id, finalName, finalPhone, phone2 || null, finalAddress, finalCity, governorate || null, total, shipping_cost, notes || null]);
     if (items && Array.isArray(items)) {
       for (const item of items) {
-        runQuery(`INSERT INTO order_items (id, order_id, product_id, product_name, quantity, price, size, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [uuidv4(), id, item.product_id, item.product_name || null, item.quantity, item.price, item.size || null, item.price * item.quantity]);
-        try { runQuery('UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {}
+        await runQuery(`INSERT INTO order_items (id, order_id, product_id, product_name, quantity, price, size, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [uuidv4(), id, item.product_id, item.product_name || null, item.quantity, item.price, item.size || null, item.price * item.quantity]);
+        try { await runQuery('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {}
       }
     }
-    const order = getQuery('SELECT * FROM orders WHERE id = ?', [id]);
+    const order = await getQuery('SELECT * FROM orders WHERE id = ?', [id]);
     res.status(201).json({ message: 'Order created successfully', order });
   } catch (error) { console.error('Order creation error:', error); res.status(500).json({ error: error.message }); }
 });
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const orders = allQuery('SELECT * FROM orders ORDER BY created_at DESC');
-    const result = orders.map(o => ({ ...o, items: allQuery('SELECT * FROM order_items WHERE order_id = ?', [o.id]) }));
+    const orders = await allQuery('SELECT * FROM orders ORDER BY created_at DESC');
+    const result = await Promise.all(orders.map(async o => ({ ...o, items: await allQuery('SELECT * FROM order_items WHERE order_id = ?', [o.id]) })));
     res.json(result);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const order = getQuery('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+    const order = await getQuery('SELECT * FROM orders WHERE id = ?', [req.params.id]);
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    const items = allQuery('SELECT * FROM order_items WHERE order_id = ?', [req.params.id]);
+    const items = await allQuery('SELECT * FROM order_items WHERE order_id = ?', [req.params.id]);
     res.json({ ...order, items });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-router.put('/:id/status', (req, res) => {
+router.put('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
     const orderId = req.params.id;
-    const oldOrder = getQuery('SELECT status FROM orders WHERE id = ?', [orderId]);
+    const oldOrder = await getQuery('SELECT status FROM orders WHERE id = ?', [orderId]);
     if (!oldOrder) return res.status(404).json({ error: 'Order not found' });
     if (status === 'cancelled' && oldOrder.status !== 'cancelled') {
-      allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]).forEach(item => { try { runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} });
+      const orderItems = await allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+      for (const item of orderItems) { try { await runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} }
     }
     if (oldOrder.status === 'cancelled' && status !== 'cancelled') {
-      allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]).forEach(item => { try { runQuery('UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} });
+      const orderItems = await allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+      for (const item of orderItems) { try { await runQuery('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} }
     }
-    runQuery('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
-    res.json(getQuery('SELECT * FROM orders WHERE id = ?', [orderId]));
+    await runQuery('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
+    res.json(await getQuery('SELECT * FROM orders WHERE id = ?', [orderId]));
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [req.params.id]).forEach(item => { try { runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} });
-    runQuery('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
-    runQuery('DELETE FROM orders WHERE id = ?', [req.params.id]);
+    const orderItems = await allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [req.params.id]);
+    for (const item of orderItems) { try { await runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} }
+    await runQuery('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
+    await runQuery('DELETE FROM orders WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Order deleted and stock restored' });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
