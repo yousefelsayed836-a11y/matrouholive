@@ -6,24 +6,8 @@ require('dotenv').config();
 const dbDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-// Resolve DB path: env var → /tmp (free tier) → local data dir
-function resolveDbPath() {
-  if (process.env.DB_PATH) return process.env.DB_PATH;
-  if (process.env.NODE_ENV === 'production') {
-    // Try /data first (paid disk), fall back to /tmp
-    try {
-      if (!fs.existsSync('/data')) fs.mkdirSync('/data', { recursive: true });
-      fs.accessSync('/data', fs.constants.W_OK);
-      return '/data/matrouholive.db';
-    } catch {
-      console.log('⚠️  /data not writable, using /tmp/matrouholive.db');
-      return '/tmp/matrouholive.db';
-    }
-  }
-  return path.join(dbDir, 'matrouholive.db');
-}
-
-const dbPath = resolveDbPath();
+// Resolve DB path: env var → local data dir (works on free hosting too)
+const dbPath = process.env.DB_PATH || path.join(dbDir, 'matrouholive.db');
 
 let db = null;
 
