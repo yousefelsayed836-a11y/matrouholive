@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: matrouholive-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        sync: false
+      - key: BASE_URL
+        sync: false
+    disk:
+      name: db-data
+      mountPath: /data
+      sizeGB: 1
