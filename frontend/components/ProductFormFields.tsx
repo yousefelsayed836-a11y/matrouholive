@@ -38,6 +38,17 @@ const ACCENT = "#4B6741";
 export default function ProductFormFields({
   form, onChange, formId, categories, uploadingImage, onUploadImage
 }: ProductFormFieldsProps) {
+  const selectedIds: string[] = Array.isArray(form.category_ids) ? form.category_ids
+    : form.category_id ? [form.category_id] : [];
+
+  const toggleCategory = (id: string) => {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter(x => x !== id)
+      : [...selectedIds, id];
+    onChange("category_ids", next);
+    onChange("category_id", next[0] || "");
+  };
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
@@ -142,18 +153,25 @@ export default function ProductFormFields({
         />
       </div>
 
-      <div>
-        <label style={labelStyle}>Category</label>
-        <select
-          value={form.category_id}
-          onChange={e => onChange("category_id", e.target.value)}
-          style={inputStyle}
-        >
-          <option value="">— No Category —</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name_en}</option>
-          ))}
-        </select>
+      <div style={{ gridColumn: "1 / -1" }}>
+        <label style={labelStyle}>المجموعات (ممكن تختار أكتر من واحدة)</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", border: "1px solid #ddd", borderRadius: 10, background: "#fafafa" }}>
+          {categories.map(cat => {
+            const selected = selectedIds.includes(cat.id);
+            return (
+              <button key={cat.id} type="button" onClick={() => toggleCategory(cat.id)} style={{
+                padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer",
+                fontWeight: 600, fontSize: 13, transition: "all 0.15s",
+                background: selected ? ACCENT : "#e5e7eb",
+                color: selected ? "#fff" : "#555",
+              }}>
+                {selected ? "✓ " : ""}{cat.name_en}
+              </button>
+            );
+          })}
+          {categories.length === 0 && <span style={{ color: "#aaa", fontSize: 13 }}>لا توجد فئات...</span>}
+        </div>
+        {selectedIds.length > 0 && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#888" }}>تم اختيار {selectedIds.length} مجموعة</p>}
       </div>
 
       <div>

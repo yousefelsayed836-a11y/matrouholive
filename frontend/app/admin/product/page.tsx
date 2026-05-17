@@ -10,6 +10,7 @@ interface Product {
   price: number; old_price?: number; stock: number; material?: string; is_active: boolean;
   images?: string[]; main_image?: string; image_url?: string; category_id?: string;
   category_name?: string; water_resistance?: string; size_info?: string; variants?: Variant[];
+  categories?: { id: string; name_en: string }[]; category_ids?: string[];
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
@@ -24,7 +25,7 @@ function getProductImage(p: Product) {
 const emptyForm = {
   name_en: "", name_ar: "", description_en: "", description_ar: "",
   price: "", old_price: "", stock: "", material: "", main_image: "",
-  category_id: "", water_resistance: "", size_info: "", is_active: true,
+  category_id: "", category_ids: [] as string[], water_resistance: "", size_info: "", is_active: true,
   variants: [] as Variant[],
 };
 
@@ -99,7 +100,9 @@ export default function ProductsPage() {
           price: Number(addForm.price), old_price: addForm.old_price ? Number(addForm.old_price) : undefined,
           stock: Number(addForm.stock) || 0, material: addForm.material || undefined,
           main_image: addForm.main_image || undefined, images: addForm.main_image ? [addForm.main_image] : [],
-          category_id: addForm.category_id || undefined, water_resistance: addForm.water_resistance || undefined,
+          category_id: addForm.category_ids[0] || addForm.category_id || undefined,
+          category_ids: addForm.category_ids.length > 0 ? addForm.category_ids : undefined,
+          water_resistance: addForm.water_resistance || undefined,
           size_info: addForm.size_info || undefined, is_active: addForm.is_active,
           variants: addForm.variants || [],
         }),
@@ -129,7 +132,9 @@ export default function ProductsPage() {
           price: Number(fullEditForm.price), old_price: fullEditForm.old_price ? Number(fullEditForm.old_price) : null,
           stock: Number(fullEditForm.stock) || 0, material: fullEditForm.material || undefined,
           main_image: fullEditForm.main_image || undefined, images: fullEditForm.main_image ? [fullEditForm.main_image] : undefined,
-          category_id: fullEditForm.category_id || undefined, water_resistance: fullEditForm.water_resistance || undefined,
+          category_id: fullEditForm.category_ids[0] || fullEditForm.category_id || undefined,
+          category_ids: fullEditForm.category_ids.length > 0 ? fullEditForm.category_ids : undefined,
+          water_resistance: fullEditForm.water_resistance || undefined,
           size_info: fullEditForm.size_info || undefined, is_active: fullEditForm.is_active,
           variants: fullEditForm.variants || [],
         }),
@@ -192,6 +197,7 @@ export default function ProductsPage() {
       stock: String(p.stock || 0), material: p.material || "",
       main_image: p.main_image || p.image_url || "",
       category_id: p.category_id || "",
+      category_ids: p.category_ids || (p.categories?.map(c => c.id)) || (p.category_id ? [p.category_id] : []),
       water_resistance: p.water_resistance || "", size_info: p.size_info || "",
       is_active: p.is_active ?? true,
       variants: (p.variants || []).map(v => ({

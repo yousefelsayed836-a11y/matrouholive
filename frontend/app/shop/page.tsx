@@ -225,18 +225,6 @@ function ShopContent() {
         </div>
       </div>
 
-      {/* فلاتر الأقسام */}
-      <div className="collection-bar">
-        <div className="collection-chips">
-          {COLLECTIONS.map(c => (
-            <button key={c.key} onClick={() => setCollection(c.key)}
-              className={`collection-chip${collectionFilter === c.key ? " active" : ""}`}>
-              <span>{c.icon}</span> {c.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* شريط الفرز */}
       <div className="sort-bar">
         <div className="sort-bar-inner">
@@ -462,18 +450,6 @@ function ShopContent() {
         .shop-hero-title { margin: 0 0 6px; font-size: 28px; font-weight: 900; color: #fff; }
         .shop-hero-sub { margin: 0; font-size: 14px; color: rgba(255,255,255,0.75); }
 
-        /* ===== COLLECTION CHIPS ===== */
-        .collection-bar { background: #fff; border-bottom: 1px solid #e8edd0; padding: 14px 24px; overflow-x: auto; }
-        .collection-chips { display: flex; gap: 10px; align-items: center; max-width: 1300px; margin: 0 auto; min-width: max-content; }
-        .collection-chip {
-          display: flex; align-items: center; gap: 6px;
-          padding: 8px 18px; border-radius: 50px; font-size: 13px; font-weight: 700;
-          border: 2px solid #e8edd0; background: #fff; color: #5a7050;
-          cursor: pointer; transition: all 0.2s; white-space: nowrap;
-          font-family: Cairo, sans-serif;
-        }
-        .collection-chip:hover { border-color: ${GREEN}; color: ${GREEN}; background: #f0f7ea; }
-        .collection-chip.active { background: ${GREEN}; color: #fff; border-color: ${GREEN}; }
 
         /* ===== SORT BAR ===== */
         .sort-bar { background: #f7faf4; border-bottom: 1px solid #e8edd0; padding: 12px 24px; }
