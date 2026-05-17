@@ -40,12 +40,12 @@ const REVIEWS = [
 ];
 
 const CATS = [
-  { slug: "olive-oil",      fa: "fa-wine-bottle", title: "زيت الزيتون",     desc: "زيت بكر ممتاز من أشجار معمرة",        color: "#be9b53" },
-  { slug: "skin-care",      fa: "fa-spa",         title: "العناية بالبشرة", desc: "منتجات طبيعية لجمالك وبشرتك",          color: "#bb8fce" },
-  { slug: "hair-care",      fa: "fa-spa",         title: "العناية بالشعر",  desc: "منتجات طبيعية للعناية بشعرك",          color: "#7dcea0" },
-  { slug: "natural-oils",   fa: "fa-oil-can",     title: "الزيوت الطبيعية", desc: "زيوت طبيعية 100% من أفضل المصادر",    color: "#5499c7" },
-  { slug: "other-products", fa: "fa-gift",        title: "منتجات أخرى",    desc: "اكتشف مجموعة منتجاتنا المميزة",        color: "#f1948a" },
-  { slug: "pickles",        fa: "fa-jar",         title: "المخللات",        desc: "مخللات طبيعية من إنتاجنا الخاص",       color: "#e8a87c" },
+  { slug: "زيت-الزيتون",                    fa: "fa-wine-bottle", title: "زيت الزيتون",          desc: "زيت بكر ممتاز من أشجار معمرة",         color: "#be9b53" },
+  { slug: "العنايه-بالبشره",               fa: "fa-spa",         title: "العناية بالبشرة",      desc: "منتجات طبيعية لجمالك وبشرتك",           color: "#bb8fce" },
+  { slug: "العنايه-بالشعر",                fa: "fa-spa",         title: "العناية بالشعر",       desc: "منتجات طبيعية للعناية بشعرك",           color: "#7dcea0" },
+  { slug: "الزيوت-الطبيعيه",              fa: "fa-oil-can",     title: "الزيوت الطبيعية",      desc: "زيوت طبيعية 100% من أفضل المصادر",     color: "#5499c7" },
+  { slug: "منتجات-اخري",                   fa: "fa-gift",        title: "منتجات أخرى",         desc: "اكتشف مجموعة منتجاتنا المميزة",         color: "#f1948a" },
+  { slug: "مخللات",                         fa: "fa-jar",         title: "المخللات",             desc: "مخللات طبيعية من إنتاجنا الخاص",        color: "#e8a87c" },
 ];
 
 function getImg(p: Product): string {
@@ -72,7 +72,7 @@ export default function HomePage() {
 
   const fetchBestSellers = async () => {
     try {
-      let res = await fetch(`${API_BASE}/products?collection=best-sellers&is_active=true&limit=8`, { cache: "no-store" });
+      let res = await fetch(`${API_BASE}/products?collection=${encodeURIComponent("الا-كثر-مبيعا")}&is_active=true&limit=8`, { cache: "no-store" });
       let data = await res.json();
       let prods = data.products || [];
       if (prods.length < 4) {
@@ -234,17 +234,21 @@ export default function HomePage() {
                 const isAdded = addedId === p.id;
                 return (
                   <div key={p.id} className="prod-card" style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 16px rgba(75,103,65,0.10)", border: "1px solid #e8f0e0" }}>
-                    <div style={{ position: "relative", height: 220, overflow: "hidden", background: CREAM }}>
-                      <img className="prod-img" src={img} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy"
-                        onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent(name.slice(0, 4))}`; }} />
-                      {hasDisc && <span style={{ position: "absolute", top: 10, right: 10, background: "#ef4444", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>-{disc}%</span>}
-                    </div>
-                    <div style={{ padding: "14px 16px 16px" }}>
-                      <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#2a3a20", lineHeight: 1.5, minHeight: 40, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>{name}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        <span style={{ fontSize: 17, fontWeight: 900, color: GREEN }}>{p.price} ج.م</span>
-                        {hasDisc && <span style={{ fontSize: 12, color: "#bbb", textDecoration: "line-through" }}>{p.old_price} ج.م</span>}
+                    <Link href={`/products/slug?id=${p.id}`} style={{ textDecoration: "none", display: "block" }}>
+                      <div style={{ position: "relative", height: 220, overflow: "hidden", background: CREAM }}>
+                        <img className="prod-img" src={img} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy"
+                          onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent(name.slice(0, 4))}`; }} />
+                        {hasDisc && <span style={{ position: "absolute", top: 10, right: 10, background: "#ef4444", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>-{disc}%</span>}
                       </div>
+                      <div style={{ padding: "14px 16px 10px" }}>
+                        <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "#2a3a20", lineHeight: 1.5, minHeight: 40, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>{name}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 17, fontWeight: 900, color: GREEN }}>{p.price} ج.م</span>
+                          {hasDisc && <span style={{ fontSize: 12, color: "#bbb", textDecoration: "line-through" }}>{p.old_price} ج.م</span>}
+                        </div>
+                      </div>
+                    </Link>
+                    <div style={{ padding: "0 16px 16px" }}>
                       <button onClick={() => addToCart(p)} className="btn-green" style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "none", background: isAdded ? "#22c55e" : GREEN, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
                         {isAdded ? "✅ تمت الإضافة!" : "🛒 أضف للسلة"}
                       </button>
