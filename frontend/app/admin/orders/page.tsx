@@ -51,6 +51,8 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [productImages, setProductImages] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -223,6 +225,20 @@ export default function OrdersPage() {
   const getStatusColor = (s: string) => s === "pending" ? "#f59e0b" : s === "completed" || s === "delivered" ? "#22c55e" : s === "cancelled" ? "#ef4444" : "#6b7280";
   const fmt = (n: number) => (n || 0).toLocaleString();
 
+  const filteredOrders = orders.filter(o => {
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q ||
+      o.customer_name?.toLowerCase().includes(q) ||
+      o.customer_phone?.includes(q) ||
+      o.phone2?.includes(q) ||
+      o.id.slice(-6).toLowerCase().includes(q) ||
+      (o.city || "").toLowerCase().includes(q) ||
+      (o.governorate || "").toLowerCase().includes(q) ||
+      (o.shipping_address || o.address || "").toLowerCase().includes(q);
+    const matchStatus = statusFilter === "all" || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
   return (
     <>
       <style jsx global>{`* { box-sizing: border-box; } body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }`}</style>
@@ -241,14 +257,37 @@ export default function OrdersPage() {
 
           {error && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 12, padding: 16, marginBottom: 24, color: "#ef4444", fontWeight: 600 }}>⚠️ {error}</div>}
 
+          {/* Search & Filter */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+            <input
+              type="text"
+              placeholder="🔍 ابحث بالاسم، التليفون، رقم الأوردر، المدينة..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ flex: 1, minWidth: 240, padding: "12px 16px", borderRadius: 12, border: "1.5px solid #ddd", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            />
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              style={{ padding: "12px 16px", borderRadius: 12, border: "1.5px solid #ddd", fontSize: 14, fontWeight: 600, background: "#fff", color: "#333", cursor: "pointer", outline: "none" }}>
+              <option value="all">كل الأوردرات ({orders.length})</option>
+              <option value="pending">⏳ Pending</option>
+              <option value="processing">🔄 Processing</option>
+              <option value="completed">✅ Completed</option>
+              <option value="cancelled">❌ Cancelled</option>
+            </select>
+          </div>
+
           {loading ? (
             <div style={{ textAlign: "center", padding: 60, color: "#888" }}>Loading orders...</div>
-          ) : orders.length === 0 ? (
+          ) : filteredOrders.length === 0 ? (
             <div style={{ textAlign: "center", padding: 60, background: "#fff", borderRadius: 16, color: "#888" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div><p>No orders found</p>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+              <p>{search || statusFilter !== "all" ? "مفيش نتائج للبحث ده" : "No orders found"}</p>
             </div>
           ) : (
             <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div style={{ padding: "10px 16px", background: "#f9fafb", borderBottom: "1px solid #eee", fontSize: 13, color: "#888" }}>
+                عارض {filteredOrders.length} أوردر{orders.length !== filteredOrders.length ? ` من ${orders.length}` : ""}
+              </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#1a1a2e", color: "#fff" }}>
@@ -258,7 +297,7 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(order => (
+                  {filteredOrders.map(order => (
                     <tr key={order.id} style={{ borderBottom: "1px solid #f5f5f5", cursor: "pointer" }}
                       onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = "#f5f9ee"}
                       onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}>
