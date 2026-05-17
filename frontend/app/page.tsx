@@ -267,7 +267,6 @@ export default function HomePage() {
       <section style={{ background: "#fff", padding: "56px 20px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", direction: "rtl" }}>
           <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <span style={{ display: "inline-block", background: "#E8EDD0", color: GREEN, fontWeight: 700, fontSize: 12, letterSpacing: 3, padding: "5px 18px", borderRadius: 20, textTransform: "uppercase", marginBottom: 12 }}>لماذا نحن؟</span>
             <h2 style={{ fontSize: 30, fontWeight: 800, color: "#2a3a20", margin: 0 }}>ما يميزنا</h2>
           </div>
           <div className="feat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20 }}>
