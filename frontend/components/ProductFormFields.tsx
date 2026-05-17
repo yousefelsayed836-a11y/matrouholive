@@ -8,6 +8,14 @@ interface Category {
   slug: string;
 }
 
+export interface Variant {
+  option_name: string;
+  option_value: string;
+  quantity: number;
+  price_override: number | null;
+  sku: string;
+}
+
 interface ProductFormFieldsProps {
   form: any;
   onChange: (field: string, value: any) => void;
@@ -24,6 +32,8 @@ const inputStyle: React.CSSProperties = {
   width: "100%", padding: "10px 14px", borderRadius: 10,
   border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box"
 };
+
+const ACCENT = "#4B6741";
 
 export default function ProductFormFields({
   form, onChange, formId, categories, uploadingImage, onUploadImage
@@ -226,6 +236,108 @@ export default function ProductFormFields({
           {form.is_active ? "● ACTIVE" : "○ DRAFT"}
         </span>
       </div>
+
+      {/* ===== Variants Section ===== */}
+      <div style={{ gridColumn: "1 / -1", borderRadius: 12, border: `1.5px solid #e0ebd6`, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#f0f5eb" }}>
+          <div>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "#2d4a28" }}>🎨 المتغيرات (Variants)</span>
+            <span style={{ marginRight: 8, fontSize: 12, color: "#888" }}>
+              {(form.variants || []).length > 0 ? `${(form.variants || []).length} متغير` : "لا توجد متغيرات"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const v: Variant = { option_name: "", option_value: "", quantity: 1, price_override: null, sku: "" };
+              onChange("variants", [...(form.variants || []), v]);
+            }}
+            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: ACCENT, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+          >
+            + إضافة متغير
+          </button>
+        </div>
+
+        {(form.variants || []).length > 0 && (
+          <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            {/* Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px 100px 90px 36px", gap: 8, padding: "0 4px" }}>
+              {["اسم الخيار", "القيمة", "الكمية", "سعر مخصص", "SKU", ""].map((h, i) => (
+                <span key={i} style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>{h}</span>
+              ))}
+            </div>
+
+            {(form.variants as Variant[]).map((v, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px 100px 90px 36px", gap: 8, alignItems: "center", background: "#fafafa", borderRadius: 8, padding: "8px" }}>
+                <input
+                  value={v.option_name}
+                  onChange={e => {
+                    const updated = [...form.variants];
+                    updated[i] = { ...updated[i], option_name: e.target.value };
+                    onChange("variants", updated);
+                  }}
+                  placeholder="مثال: اللون"
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }}
+                />
+                <input
+                  value={v.option_value}
+                  onChange={e => {
+                    const updated = [...form.variants];
+                    updated[i] = { ...updated[i], option_value: e.target.value };
+                    onChange("variants", updated);
+                  }}
+                  placeholder="مثال: أحمر"
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }}
+                />
+                <input
+                  type="number"
+                  value={v.quantity}
+                  min={0}
+                  onChange={e => {
+                    const updated = [...form.variants];
+                    updated[i] = { ...updated[i], quantity: Number(e.target.value) };
+                    onChange("variants", updated);
+                  }}
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }}
+                />
+                <input
+                  type="number"
+                  value={v.price_override ?? ""}
+                  min={0}
+                  onChange={e => {
+                    const updated = [...form.variants];
+                    updated[i] = { ...updated[i], price_override: e.target.value ? Number(e.target.value) : null };
+                    onChange("variants", updated);
+                  }}
+                  placeholder="اختياري"
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }}
+                />
+                <input
+                  value={v.sku}
+                  onChange={e => {
+                    const updated = [...form.variants];
+                    updated[i] = { ...updated[i], sku: e.target.value };
+                    onChange("variants", updated);
+                  }}
+                  placeholder="SKU"
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = (form.variants as Variant[]).filter((_, j) => j !== i);
+                    onChange("variants", updated);
+                  }}
+                  style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#fee2e2", color: "#ef4444", fontWeight: 700, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

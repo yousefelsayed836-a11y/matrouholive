@@ -4,11 +4,12 @@ import Link from "next/link";
 import ProductFormFields from "@/components/ProductFormFields";
 
 interface Category { id: string; name_en: string; slug: string; }
+interface Variant { option_name: string; option_value: string; quantity: number; price_override: number | null; sku: string; }
 interface Product {
   id: string; name_en: string; name_ar?: string; description_en?: string; description_ar?: string;
   price: number; old_price?: number; stock: number; material?: string; is_active: boolean;
   images?: string[]; main_image?: string; image_url?: string; category_id?: string;
-  category_name?: string; water_resistance?: string; size_info?: string;
+  category_name?: string; water_resistance?: string; size_info?: string; variants?: Variant[];
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
@@ -24,6 +25,7 @@ const emptyForm = {
   name_en: "", name_ar: "", description_en: "", description_ar: "",
   price: "", old_price: "", stock: "", material: "", main_image: "",
   category_id: "", water_resistance: "", size_info: "", is_active: true,
+  variants: [] as Variant[],
 };
 
 export default function ProductsPage() {
@@ -99,6 +101,7 @@ export default function ProductsPage() {
           main_image: addForm.main_image || undefined, images: addForm.main_image ? [addForm.main_image] : [],
           category_id: addForm.category_id || undefined, water_resistance: addForm.water_resistance || undefined,
           size_info: addForm.size_info || undefined, is_active: addForm.is_active,
+          variants: addForm.variants || [],
         }),
       });
       if (res.ok) {
@@ -128,6 +131,7 @@ export default function ProductsPage() {
           main_image: fullEditForm.main_image || undefined, images: fullEditForm.main_image ? [fullEditForm.main_image] : undefined,
           category_id: fullEditForm.category_id || undefined, water_resistance: fullEditForm.water_resistance || undefined,
           size_info: fullEditForm.size_info || undefined, is_active: fullEditForm.is_active,
+          variants: fullEditForm.variants || [],
         }),
       });
       if (res.ok) {
@@ -190,6 +194,10 @@ export default function ProductsPage() {
       category_id: p.category_id || "",
       water_resistance: p.water_resistance || "", size_info: p.size_info || "",
       is_active: p.is_active ?? true,
+      variants: (p.variants || []).map(v => ({
+        option_name: v.option_name, option_value: v.option_value,
+        quantity: v.quantity, price_override: v.price_override, sku: v.sku || "",
+      })),
     });
     setFullEditError("");
   };
