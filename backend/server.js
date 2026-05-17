@@ -12,14 +12,23 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001']
-  : ['*'];
+const allowedOrigins = (() => {
+  const base = [
+    'http://localhost:3000', 'http://localhost:3001',
+    'https://matrouholive.com', 'https://www.matrouholive.com',
+    'https://api.matrouholive.com',
+  ];
+  if (process.env.FRONTEND_URL) {
+    const clean = process.env.FRONTEND_URL.replace(/\/$/, '');
+    if (!base.includes(clean)) base.push(clean);
+  }
+  return base;
+})();
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+    if (allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
