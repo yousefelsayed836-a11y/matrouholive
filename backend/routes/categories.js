@@ -7,6 +7,7 @@ function safeParseJSON(str, fallback) { if (!str) return fallback; try { return 
 router.get('/', async (req, res) => {
   try {
     const cats = await allQuery(`SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, name_ar ASC`);
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json(cats.map(c => parseRow(c)));
   } catch (error) { res.status(500).json({ error: error.message }); }
 });

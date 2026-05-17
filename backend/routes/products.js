@@ -58,7 +58,7 @@ async function insertVariants(productId, variants) {
 
 router.get('/', async (req, res) => {
   try {
-    const { collection, is_active, search, page = 1, limit = 1000 } = req.query;
+    const { collection, is_active, search, page = 1, limit = 100 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = '1=1'; const params = [];
     if (collection) {
@@ -74,6 +74,7 @@ router.get('/', async (req, res) => {
       const cats = await getProductCategories(p.id);
       return { ...parseRow(p), images: safeParseJSON(p.images, []), variants: await getVariants(p.id), categories: cats, category_ids: cats.map(c => c.id) };
     }));
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=30');
     res.json({ success: true, products: parsed, pagination: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / parseInt(limit)) } });
   } catch (error) { console.error('Get products error:', error); res.status(500).json({ error: 'Failed to fetch products', details: error.message }); }
 });

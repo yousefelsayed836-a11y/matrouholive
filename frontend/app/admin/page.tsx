@@ -81,7 +81,9 @@ export default function AdminDashboard() {
     try {
       const fd = new FormData();
       fd.append("image", file);
-      const r = await fetch(`${API_BASE.replace("/api", "")}/api/upload`, { method: "POST", body: fd });
+      const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const r = await fetch(`${BACKEND}/api/upload`, { method: "POST", body: fd });
+      if (!r.ok) throw new Error(`Upload error ${r.status}`);
       const data = await r.json();
       if (!data.url) throw new Error("Upload failed");
       await fetch(`${API_BASE}/settings/favicon`, {

@@ -14,7 +14,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr">
+    <html lang="ar" dir="rtl">
+      <head>
+        <link rel="preconnect" href="https://assets.wuiltstore.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://api.matrouholive.com" />
+      </head>
       <body className={`${inter.className} ${cairo.variable}`} style={{ background: '#fff', margin: 0 }}>
         <CartProvider>
           <Header />
