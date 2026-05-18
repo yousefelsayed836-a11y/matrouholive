@@ -54,19 +54,17 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  const [shippingRates, setShippingRates] = useState<Record<string, number>>({});
-  const [cityMap, setCityMap] = useState<Record<string, string[]>>({});
+  // govName -> { cost, cities: [{name, cost}] }
+  const [govData, setGovData] = useState<Record<string, { cost: number; cities: { name: string; cost: number }[] }>>({});
   const [freeThreshold, setFreeThreshold] = useState(900);
   const [freeShippingEnabled, setFreeShippingEnabled] = useState(true);
 
   useEffect(() => {
-    // Load cart
     try {
       const saved = localStorage.getItem("cart");
       if (saved) setCart(JSON.parse(saved));
     } catch {}
 
-    // Load shipping rates from backend DB (synchronized with admin)
     fetch(`${API_BASE}/settings/shipping_rates`)
       .then(r => r.json())
       .then(d => {
@@ -74,14 +72,14 @@ export default function CheckoutPage() {
           try {
             const parsed = JSON.parse(d.value);
             if (parsed.rates?.length) {
-              const rateMap: Record<string, number> = {};
-              const cities: Record<string, string[]> = {};
+              const map: Record<string, { cost: number; cities: { name: string; cost: number }[] }> = {};
               parsed.rates.forEach((r: any) => {
-                rateMap[r.name] = r.cost;
-                if (r.cities?.length) cities[r.name] = r.cities;
+                const cities = (r.cities || []).map((c: any) =>
+                  typeof c === "string" ? { name: c, cost: r.cost } : c
+                );
+                map[r.name] = { cost: r.cost, cities };
               });
-              setShippingRates(rateMap);
-              setCityMap(cities);
+              setGovData(map);
             }
             if (parsed.freeThreshold) setFreeThreshold(parsed.freeThreshold);
             if (typeof parsed.freeShippingEnabled === "boolean") setFreeShippingEnabled(parsed.freeShippingEnabled);
@@ -92,13 +90,15 @@ export default function CheckoutPage() {
   }, []);
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
-  const govShipping = form.governorate ? (shippingRates[form.governorate] ?? DEFAULT_SHIPPING) : 0;
+  const selectedGov = form.governorate ? govData[form.governorate] : null;
+  const selectedCityObj = selectedGov?.cities.find(c => c.name === form.city);
+  const govShipping = selectedCityObj?.cost ?? selectedGov?.cost ?? DEFAULT_SHIPPING;
   const freeShipping = freeShippingEnabled && subtotal >= freeThreshold;
   const shippingCost = freeShipping ? 0 : (form.governorate ? govShipping : 0);
   const finalTotal = subtotal + shippingCost;
 
   const cities = form.governorate
-    ? (cityMap[form.governorate]?.length ? cityMap[form.governorate] : EGYPT_DATA[form.governorate]?.cities || [])
+    ? (selectedGov?.cities.length ? selectedGov.cities.map(c => c.name) : EGYPT_DATA[form.governorate]?.cities || [])
     : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
