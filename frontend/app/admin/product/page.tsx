@@ -75,11 +75,14 @@ export default function ProductsPage() {
   const uploadImage = async (file: File, setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
-      const fd = new FormData(); fd.append("image", file);
-      const res = await fetch("http://localhost:5000/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.url) setter("main_image", data.url);
-    } catch (e: any) { alert("Upload failed: " + e.message); }
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setter("main_image", dataUrl);
+    } catch (e: any) { alert("فشل تحميل الصورة: " + e.message); }
     finally { setUploadingImage(false); }
   };
 
