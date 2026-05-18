@@ -204,6 +204,9 @@ export default function ShopPage({ collectionSlug, title, breadcrumb }: Props) {
                       <img src={img} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.35s" }} className="pi" loading="lazy"
                         onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent(name.slice(0,3))}`; }} />
                       {hasD && <span style={{ position: "absolute", top: 10, right: 10, background: "#ef4444", color: "#fff", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>-{disc}%</span>}
+                      {collectionSlug === "الزيوت-الطبيعيه" && !name.includes("زيت جوز الهند") && !name.includes("تركيبة زيت زيتون") && (
+                        <span style={{ position: "absolute", bottom: 10, left: 10, background: "#4B6741", color: "#fff", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>60 ملل</span>
+                      )}
                       {oos && <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)", color: "#fff", fontWeight: 800, fontSize: 15 }}>نفذ المخزون</span>}
                       {low && !oos && <span style={{ position: "absolute", bottom: 8, right: 8, background: "#f97316", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800 }}>🔥 آخر {p.stock} قطع</span>}
                     </div>
