@@ -301,7 +301,7 @@ function ShopContent() {
                       {!hasDiscount && <span className="badge-new">جديد</span>}
                     </div>
                     {/* 60ml badge for natural oils */}
-                    {p.category_slug === "الزيوت-الطبيعيه" && !displayName.includes("زيت جوز الهند") && !displayName.includes("تركيبة زيت زيتون") && (
+                    {p.category_slug === "الزيوت-الطبيعيه" && !displayName.includes("جوز الهند") && !displayName.includes("جوز هند") && !displayName.includes("تركيبة زيت زيتون") && (
                       <span className="badge-volume">60 ملل</span>
                     )}
                     {/* wishlist */}
