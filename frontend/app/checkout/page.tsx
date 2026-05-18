@@ -43,7 +43,6 @@ const EGYPT_DATA: Record<string, { nameAr: string; cities: string[] }> = {
 };
 
 const DEFAULT_SHIPPING = 80;
-const STORAGE_KEY = "shipping_rates";
 
 export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -56,6 +55,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [shippingRates, setShippingRates] = useState<Record<string, number>>({});
+  const [cityMap, setCityMap] = useState<Record<string, string[]>>({});
   const [freeThreshold, setFreeThreshold] = useState(900);
 
   useEffect(() => {
@@ -65,19 +65,28 @@ export default function CheckoutPage() {
       if (saved) setCart(JSON.parse(saved));
     } catch {}
 
-    // Load shipping rates from admin settings
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.rates) {
-          const rateMap: Record<string, number> = {};
-          parsed.rates.forEach((r: any) => { rateMap[r.name] = r.cost; });
-          setShippingRates(rateMap);
+    // Load shipping rates from backend DB (synchronized with admin)
+    fetch(`${API_BASE}/settings/shipping_rates`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.value) {
+          try {
+            const parsed = JSON.parse(d.value);
+            if (parsed.rates?.length) {
+              const rateMap: Record<string, number> = {};
+              const cities: Record<string, string[]> = {};
+              parsed.rates.forEach((r: any) => {
+                rateMap[r.name] = r.cost;
+                if (r.cities?.length) cities[r.name] = r.cities;
+              });
+              setShippingRates(rateMap);
+              setCityMap(cities);
+            }
+            if (parsed.freeThreshold) setFreeThreshold(parsed.freeThreshold);
+          } catch {}
         }
-        if (parsed.freeThreshold) setFreeThreshold(parsed.freeThreshold);
-      }
-    } catch {}
+      })
+      .catch(() => {});
   }, []);
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
@@ -86,7 +95,9 @@ export default function CheckoutPage() {
   const shippingCost = freeShipping ? 0 : govShipping;
   const finalTotal = subtotal + shippingCost;
 
-  const cities = form.governorate ? (EGYPT_DATA[form.governorate]?.cities || []) : [];
+  const cities = form.governorate
+    ? (cityMap[form.governorate]?.length ? cityMap[form.governorate] : EGYPT_DATA[form.governorate]?.cities || [])
+    : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
