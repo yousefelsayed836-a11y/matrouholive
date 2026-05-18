@@ -300,6 +300,10 @@ function ShopContent() {
                       {!inStock && <span className="badge-outofstock">نفذ</span>}
                       {!hasDiscount && <span className="badge-new">جديد</span>}
                     </div>
+                    {/* 60ml badge for natural oils */}
+                    {p.category_slug === "الزيوت-الطبيعيه" && !displayName.includes("زيت جوز الهند") && !displayName.includes("تركيبة زيت زيتون") && (
+                      <span className="badge-volume">60 ملل</span>
+                    )}
                     {/* wishlist */}
                     <button className={`wishlist-btn${isWished ? " wished" : ""}`} onClick={e => { e.stopPropagation(); toggleWishlist(p.id); }}>
                       {isWished ? "❤️" : "🤍"}
@@ -506,6 +510,7 @@ function ShopContent() {
         .badge-discount { background: #ef4444; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .badge-outofstock { background: #6b7280; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .badge-new { background: ${GOLD}; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .badge-volume { position: absolute; bottom: 10px; left: 10px; background: #4B6741; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
 
         .wishlist-btn {
           position: absolute; top: 10px; left: 10px; width: 32px; height: 32px;
