@@ -3,6 +3,7 @@ import { Inter, Cairo } from 'next/font/google';
 import './globals.css';
 import Header from '../components/Header';
 import { CartProvider } from '../components/CartContext';
+import FaviconLoader from '../components/FaviconLoader';
 
 const inter = Inter({ subsets: ['latin'] });
 const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo' });
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} ${cairo.variable}`} style={{ background: '#fff', margin: 0 }}>
         <CartProvider>
+          <FaviconLoader />
           <Header />
           <main style={{ minHeight: '100vh', background: '#fff' }}>
             {children}

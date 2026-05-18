@@ -79,22 +79,22 @@ export default function AdminDashboard() {
   const uploadFavicon = async (file: File) => {
     setFaviconUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const r = await fetch(`${BACKEND}/api/upload`, { method: "POST", body: fd });
-      if (!r.ok) throw new Error(`Upload error ${r.status}`);
-      const data = await r.json();
-      if (!data.url) throw new Error("Upload failed");
+      // Convert to base64 and store directly in DB — survives server restarts
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       await fetch(`${API_BASE}/settings/favicon`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: data.url }),
+        body: JSON.stringify({ value: dataUrl }),
       });
-      setFaviconUrl(data.url);
+      setFaviconUrl(dataUrl);
       setFaviconMsg("✅ تم التحديث!");
       const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (link) link.href = data.url;
+      if (link) link.href = dataUrl;
     } catch (e: any) { setFaviconMsg("❌ " + e.message); }
     setFaviconUploading(false);
     setTimeout(() => setFaviconMsg(""), 3000);
