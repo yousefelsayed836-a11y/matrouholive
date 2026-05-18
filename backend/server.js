@@ -7,8 +7,15 @@ const multer = require('multer');
 const fs = require('fs');
 const { initSocket } = require('./config/socket');
 const { initDb } = require('./database/db');
+const cloudinary = require('cloudinary').v2;
 
 dotenv.config();
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Keep the process alive — log errors but don't crash on unhandled rejections
 process.on('uncaughtException', (err) => {
@@ -68,29 +75,27 @@ app.use('/api/settings', require('./routes/settings'));
 const bulkUploadRoutes = require('./routes/admin/bulkUpload');
 app.use('/api/admin/products/bulk-upload', upload.single('csv'), bulkUploadRoutes);
 
-app.post('/api/upload', upload.single('image'), (req, res) => {
+function uploadToCloudinary(buffer) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder: 'matrouholive', resource_type: 'image' },
+      (error, result) => { if (error) reject(error); else resolve(result.secure_url); }
+    ).end(buffer);
+  });
+}
+
+app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    const filename = Date.now() + '-' + req.file.originalname.replace(/\s+/g, '-');
-    fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
-    const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-    res.json({ success: true, url: `${BASE_URL}/uploads/${filename}` });
+    const url = await uploadToCloudinary(req.file.buffer);
+    res.json({ success: true, url });
   } catch (error) { console.error('Upload error:', error); res.status(500).json({ error: 'Upload failed' }); }
 });
 
-app.post('/api/upload/multiple', upload.array('images', 10), (req, res) => {
+app.post('/api/upload/multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No images uploaded' });
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-    const urls = req.files.map(file => {
-      const filename = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
-      fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
-      return `${BASE_URL}/uploads/${filename}`;
-    });
+    const urls = await Promise.all(req.files.map(f => uploadToCloudinary(f.buffer)));
     res.json({ success: true, urls });
   } catch (error) { res.status(500).json({ error: 'Upload failed' }); }
 });

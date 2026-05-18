@@ -97,8 +97,13 @@ export default function ProductsPage() {
   const uploadImage = async (file: File, setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
-      const dataUrl = await compressImage(file, 600, 0.65);
-      setter("main_image", dataUrl);
+      const fd = new FormData();
+      fd.append("image", file);
+      const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${BACKEND}/api/upload`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.url) setter("main_image", data.url);
+      else throw new Error(data.error || "فشل الرفع");
     } catch (e: any) { alert("فشل تحميل الصورة: " + e.message); }
     finally { setUploadingImage(false); }
   };
