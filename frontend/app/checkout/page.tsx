@@ -57,6 +57,7 @@ export default function CheckoutPage() {
   const [shippingRates, setShippingRates] = useState<Record<string, number>>({});
   const [cityMap, setCityMap] = useState<Record<string, string[]>>({});
   const [freeThreshold, setFreeThreshold] = useState(900);
+  const [freeShippingEnabled, setFreeShippingEnabled] = useState(true);
 
   useEffect(() => {
     // Load cart
@@ -83,6 +84,7 @@ export default function CheckoutPage() {
               setCityMap(cities);
             }
             if (parsed.freeThreshold) setFreeThreshold(parsed.freeThreshold);
+            if (typeof parsed.freeShippingEnabled === "boolean") setFreeShippingEnabled(parsed.freeShippingEnabled);
           } catch {}
         }
       })
@@ -90,9 +92,9 @@ export default function CheckoutPage() {
   }, []);
 
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
-  const govShipping = form.governorate ? (shippingRates[form.governorate] ?? DEFAULT_SHIPPING) : DEFAULT_SHIPPING;
-  const freeShipping = subtotal >= freeThreshold;
-  const shippingCost = freeShipping ? 0 : govShipping;
+  const govShipping = form.governorate ? (shippingRates[form.governorate] ?? DEFAULT_SHIPPING) : 0;
+  const freeShipping = freeShippingEnabled && subtotal >= freeThreshold;
+  const shippingCost = freeShipping ? 0 : (form.governorate ? govShipping : 0);
   const finalTotal = subtotal + shippingCost;
 
   const cities = form.governorate

@@ -13,6 +13,7 @@ interface GovRate {
 interface ShippingData {
   rates: GovRate[];
   freeThreshold: number;
+  freeShippingEnabled: boolean;
 }
 
 const DEFAULT_RATES: GovRate[] = [
@@ -53,6 +54,7 @@ export default function ShippingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [freeShippingEnabled, setFreeShippingEnabled] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [newCityInput, setNewCityInput] = useState<Record<string, string>>({});
@@ -66,6 +68,7 @@ export default function ShippingPage() {
             const parsed = JSON.parse(d.value);
             if (parsed.rates?.length) setRates(parsed.rates);
             if (parsed.freeThreshold) setFreeThreshold(parsed.freeThreshold);
+            if (typeof parsed.freeShippingEnabled === "boolean") setFreeShippingEnabled(parsed.freeShippingEnabled);
           } catch {}
         }
       })
@@ -79,7 +82,7 @@ export default function ShippingPage() {
       await fetch(`${API_BASE}/settings/shipping_rates`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: JSON.stringify({ rates, freeThreshold }) }),
+        body: JSON.stringify({ value: JSON.stringify({ rates, freeThreshold, freeShippingEnabled }) }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -131,12 +134,36 @@ export default function ShippingPage() {
             </button>
           </div>
 
-          {/* Free Shipping Threshold */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          {/* Free Shipping Toggle */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
             <div style={{ fontSize: 32 }}>🎁</div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: "#1a1a2e" }}>حد الشحن المجاني</p>
-              <p style={{ margin: "2px 0 0", fontSize: 13, color: "#888" }}>الأوردرات فوق هذا المبلغ تحصل على شحن مجاني</p>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: "#1a1a2e" }}>الشحن المجاني</p>
+              <p style={{ margin: "2px 0 0", fontSize: 13, color: "#888" }}>
+                {freeShippingEnabled ? "مفعّل — الأوردرات فوق الحد تحصل على شحن مجاني" : "موقف — كل الأوردرات تدفع رسوم الشحن"}
+              </p>
+            </div>
+            <button
+              onClick={() => setFreeShippingEnabled(v => !v)}
+              style={{
+                width: 56, height: 28, borderRadius: 14, border: "none", cursor: "pointer", position: "relative",
+                background: freeShippingEnabled ? "#4B6741" : "#ddd", transition: "background 0.2s", flexShrink: 0,
+              }}>
+              <span style={{
+                position: "absolute", top: 3, left: freeShippingEnabled ? 30 : 3,
+                width: 22, height: 22, borderRadius: "50%", background: "#fff",
+                transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+              }} />
+            </button>
+          </div>
+
+          {/* Free Shipping Threshold — only shown when enabled */}
+          {freeShippingEnabled && (
+          <div style={{ background: "#f5f9ee", borderRadius: 16, padding: 20, marginBottom: 20, border: "1.5px solid #c8d9b0", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 24 }}>💰</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>الحد الأدنى للشحن المجاني</p>
+              <p style={{ margin: "2px 0 0", fontSize: 13, color: "#666" }}>الأوردرات بأكثر من هذا المبلغ تحصل على شحن مجاني تلقائياً</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input type="number" value={freeThreshold}
@@ -145,13 +172,14 @@ export default function ShippingPage() {
               <span style={{ fontWeight: 700, color: "#888" }}>EGP</span>
             </div>
           </div>
+          )}
 
           {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
             {[
               { label: "المحافظات", value: rates.length, color: "#4B6741" },
               { label: "متوسط الشحن", value: `${avg} EGP`, color: "#1e40af" },
-              { label: "الشحن المجاني فوق", value: `${freeThreshold} EGP`, color: "#166534" },
+              { label: "الشحن المجاني", value: freeShippingEnabled ? `فوق ${freeThreshold} EGP` : "موقف", color: freeShippingEnabled ? "#166534" : "#ef4444" },
             ].map(s => (
               <div key={s.label} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", textAlign: "center" }}>
                 <p style={{ margin: 0, fontSize: 12, color: "#888" }}>{s.label}</p>
