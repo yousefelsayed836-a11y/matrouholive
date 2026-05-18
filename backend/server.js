@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -9,6 +9,14 @@ const { initSocket } = require('./config/socket');
 const { initDb } = require('./database/db');
 
 dotenv.config();
+
+// Keep the process alive — log errors but don't crash on unhandled rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
 
 const app = express();
 
@@ -110,12 +118,27 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize DB then start server
-initDb().then(() => {
-  server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT} - Matrouh Olive Store`);
-  });
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
+// Retry DB init with exponential backoff before giving up
+async function startWithRetry(retries = 5, delay = 3000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await initDb();
+      server.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT} - Matrouh Olive Store`);
+      });
+      return;
+    } catch (err) {
+      console.error(`DB init attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay / 1000}s...`);
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      } else {
+        console.error('All DB init attempts failed. Exiting.');
+        process.exit(1);
+      }
+    }
+  }
+}
+
+startWithRetry();
