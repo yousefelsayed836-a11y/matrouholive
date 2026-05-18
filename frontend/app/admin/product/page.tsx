@@ -97,7 +97,15 @@ export default function ProductsPage() {
   const uploadImages = async (files: File[], currentImages: string[], setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
-      const urls = await Promise.all(files.map(f => compressImage(f, 600, 0.65)));
+      const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const urls = await Promise.all(files.map(async (file) => {
+        const fd = new FormData();
+        fd.append("image", file);
+        const res = await fetch(`${BACKEND}/api/upload`, { method: "POST", body: fd });
+        const data = await res.json();
+        if (!data.url) throw new Error(data.error || "فشل الرفع");
+        return data.url as string;
+      }));
       const next = [...currentImages, ...urls];
       setter("images", next);
       setter("main_image", next[0] || "");

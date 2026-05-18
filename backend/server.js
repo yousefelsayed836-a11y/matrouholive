@@ -68,31 +68,46 @@ app.use('/api/settings', require('./routes/settings'));
 const bulkUploadRoutes = require('./routes/admin/bulkUpload');
 app.use('/api/admin/products/bulk-upload', upload.single('csv'), bulkUploadRoutes);
 
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    const filename = Date.now() + '-' + req.file.originalname.replace(/\s+/g, '-');
-    fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
-    const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-    res.json({ success: true, url: `${BASE_URL}/uploads/${filename}` });
-  } catch (error) { console.error('Upload error:', error); res.status(500).json({ error: 'Upload failed' }); }
+    const token = process.env.GITHUB_TOKEN;
+    const repo  = process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive';
+    if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
+    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+    const filename = `uploads/${Date.now()}.${ext}`;
+    const content  = req.file.buffer.toString('base64');
+    const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filename}`, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `upload ${filename}`, content }),
+    });
+    if (!ghRes.ok) { const e = await ghRes.json(); throw new Error(e.message || 'GitHub error'); }
+    const url = `https://raw.githubusercontent.com/${repo}/main/${filename}`;
+    res.json({ success: true, url });
+  } catch (error) { console.error('Upload error:', error); res.status(500).json({ error: String(error.message) }); }
 });
 
-app.post('/api/upload/multiple', upload.array('images', 10), (req, res) => {
+app.post('/api/upload/multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No images uploaded' });
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-    const urls = req.files.map(file => {
-      const filename = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
-      fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
-      return `${BASE_URL}/uploads/${filename}`;
-    });
+    const token = process.env.GITHUB_TOKEN;
+    const repo  = process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive';
+    if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
+    const urls = await Promise.all(req.files.map(async (file) => {
+      const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase();
+      const filename = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const content  = file.buffer.toString('base64');
+      const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filename}`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `upload ${filename}`, content }),
+      });
+      if (!ghRes.ok) { const e = await ghRes.json(); throw new Error(e.message); }
+      return `https://raw.githubusercontent.com/${repo}/main/${filename}`;
+    }));
     res.json({ success: true, urls });
-  } catch (error) { res.status(500).json({ error: 'Upload failed' }); }
+  } catch (error) { res.status(500).json({ error: String(error.message) }); }
 });
 
 const clients = new Set();
