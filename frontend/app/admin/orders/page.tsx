@@ -45,6 +45,19 @@ async function fetchProductImage(productId: string): Promise<string | null> {
   } catch { return null; }
 }
 
+interface ShippingRate { name: string; nameAr: string; cost: number; cities: { name: string; cost: number }[]; }
+
+function getShippingRate(rates: ShippingRate[], governorate?: string, city?: string): number {
+  if (!governorate && !city) return 0;
+  const gov = rates.find(r =>
+    r.nameAr === governorate || r.name.toLowerCase() === (governorate || "").toLowerCase() ||
+    r.cities.some(c => c.name.toLowerCase() === (city || "").toLowerCase())
+  );
+  if (!gov) return 0;
+  const cityRate = gov.cities.find(c => c.name.toLowerCase() === (city || "").toLowerCase());
+  return cityRate ? cityRate.cost : gov.cost;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,8 +66,15 @@ export default function OrdersPage() {
   const [productImages, setProductImages] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showFreeReport, setShowFreeReport] = useState(false);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+    fetch(`${API_BASE}/settings/shipping_rates`).then(r => r.json()).then(d => {
+      if (d.value) try { const p = JSON.parse(d.value); if (p.rates) setShippingRates(p.rates); } catch {}
+    }).catch(() => {});
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -247,13 +267,123 @@ export default function OrdersPage() {
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
 
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
             <div>
               <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
               <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>📦 Orders</h1>
             </div>
-            <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 Refresh</button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowFreeReport(true)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>📊 تقرير الشحن المجاني</button>
+              <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 Refresh</button>
+            </div>
           </div>
+
+          {/* Free Shipping Report Modal */}
+          {showFreeReport && (() => {
+            const freeOrders = orders.filter(o => (o.shipping_cost ?? -1) === 0);
+            const govMap: Record<string, { count: number; saved: number }> = {};
+            const cityMap: Record<string, { count: number; saved: number; gov: string }> = {};
+            let totalSaved = 0;
+            freeOrders.forEach(o => {
+              const rate = getShippingRate(shippingRates, o.governorate, o.city);
+              totalSaved += rate;
+              const gov = o.governorate || "غير محدد";
+              const city = o.city || "غير محدد";
+              if (!govMap[gov]) govMap[gov] = { count: 0, saved: 0 };
+              govMap[gov].count++; govMap[gov].saved += rate;
+              const ck = `${city}||${gov}`;
+              if (!cityMap[ck]) cityMap[ck] = { count: 0, saved: 0, gov };
+              cityMap[ck].count++; cityMap[ck].saved += rate;
+            });
+            const govRows = Object.entries(govMap).sort((a, b) => b[1].saved - a[1].saved);
+            const cityRows = Object.entries(cityMap).sort((a, b) => b[1].saved - a[1].saved);
+            return (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowFreeReport(false)}>
+                <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 800, maxHeight: "90vh", overflow: "auto", padding: 28 }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1a1a2e" }}>📊 تقرير الشحن المجاني</h2>
+                    <button onClick={() => setShowFreeReport(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#aaa" }}>×</button>
+                  </div>
+
+                  {/* Summary cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+                    {[
+                      { label: "أوردرات شحن مجاني", value: freeOrders.length, color: "#4B6741" },
+                      { label: "إجمالي الشحن المتنازل عنه", value: `${totalSaved.toLocaleString()} EGP`, color: "#D4AF37" },
+                      { label: "متوسط قيمة الشحن المجاني", value: freeOrders.length ? `${Math.round(totalSaved / freeOrders.length)} EGP` : "—", color: "#1e40af" },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: "#f5f9ee", borderRadius: 12, padding: "14px 16px", textAlign: "center", border: "1.5px solid #e0ebd6" }}>
+                        <p style={{ margin: 0, fontSize: 11, color: "#888", fontFamily: "Cairo, sans-serif" }}>{s.label}</p>
+                        <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {freeOrders.length === 0 ? (
+                    <p style={{ textAlign: "center", color: "#aaa", padding: 30, fontFamily: "Cairo, sans-serif" }}>لا يوجد أوردرات بشحن مجاني حتى الآن</p>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                      {/* Per governorate */}
+                      <div>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "Cairo, sans-serif" }}>📍 حسب المحافظة</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {govRows.map(([gov, data]) => (
+                            <div key={gov} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                              <div>
+                                <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "Cairo, sans-serif" }}>{gov}</span>
+                                <span style={{ fontSize: 11, color: "#888", marginRight: 6 }}>({data.count} أوردر)</span>
+                              </div>
+                              <span style={{ fontWeight: 800, color: "#D4AF37", fontSize: 14 }}>{data.saved.toLocaleString()} EGP</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Per city */}
+                      <div>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "Cairo, sans-serif" }}>🏙️ حسب المدينة</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+                          {cityRows.map(([ck, data]) => {
+                            const city = ck.split("||")[0];
+                            return (
+                              <div key={ck} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                                <div>
+                                  <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "Cairo, sans-serif" }}>{city}</span>
+                                  <span style={{ fontSize: 11, color: "#aaa", marginRight: 4 }}>{data.gov}</span>
+                                  <span style={{ fontSize: 11, color: "#888", marginRight: 4 }}>({data.count})</span>
+                                </div>
+                                <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 14 }}>{data.saved.toLocaleString()} EGP</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Orders list */}
+                  {freeOrders.length > 0 && (
+                    <div>
+                      <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "Cairo, sans-serif" }}>📋 تفاصيل الأوردرات ({freeOrders.length})</h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {freeOrders.map(o => {
+                          const rate = getShippingRate(shippingRates, o.governorate, o.city);
+                          return (
+                            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb", flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 700, color: "#4B6741", fontSize: 13 }}>#{o.id.slice(-6)}</span>
+                              <span style={{ fontSize: 13, color: "#333", flex: 1 }}>{o.customer_name}</span>
+                              <span style={{ fontSize: 12, color: "#888" }}>{o.city}{o.governorate ? ` / ${o.governorate}` : ""}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#D4AF37" }}>وفّر: {rate > 0 ? `${rate} EGP` : "—"}</span>
+                              <span style={{ fontSize: 12, color: "#888" }}>{new Date(o.created_at).toLocaleDateString("ar-EG")}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {error && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 12, padding: 16, marginBottom: 24, color: "#ef4444", fontWeight: 600 }}>⚠️ {error}</div>}
 
