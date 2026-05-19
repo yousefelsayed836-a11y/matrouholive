@@ -171,7 +171,7 @@ export default function CheckoutPage() {
         <p style={{ color: "#555", fontSize: 15, margin: "0 0 24px" }}>شكراً {form.fullName}! سنتواصل معك على {form.phone} لتأكيد الطلب.</p>
         <div style={{ background: "#f5f9ee", borderRadius: 12, padding: "14px 20px", marginBottom: 24, textAlign: "right" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#888", fontSize: 13 }}>المجموع الفرعي</span><span style={{ fontWeight: 600 }}>{subtotal} ج.م</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#888", fontSize: 13 }}>الشحن إلى {form.governorate}</span><span style={{ fontWeight: 600 }}>{shippingCost} ج.م</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#888", fontSize: 13 }}>الشحن إلى {form.governorate}</span><span style={{ fontWeight: 700, color: shippingCost === 0 ? "#166534" : "#333" }}>{shippingCost === 0 ? "مجاني 🎉" : `${shippingCost} ج.م`}</span></div>
           <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #eee", paddingTop: 8, marginTop: 8 }}><span style={{ fontWeight: 700 }}>الإجمالي</span><span style={{ fontWeight: 800, color: "#4B6741", fontSize: 18 }}>{finalTotal} ج.م</span></div>
         </div>
         <Link href="/" style={{ display: "block", padding: "14px 32px", borderRadius: 12, background: "#4B6741", color: "#fff", fontWeight: 700, textDecoration: "none", fontSize: 15 }}>
@@ -242,11 +242,26 @@ export default function CheckoutPage() {
               </div>
 
               {form.governorate && govShipping > 0 && (
-                <div style={{ background: "#E8EDD0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, border: "1px solid #c8d9b0" }}>
-                  <span style={{ fontSize: 18 }}>🚚</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#4B6741", fontFamily: "Cairo, sans-serif" }}>
-                    تكلفة الشحن إلى {form.governorate}: {govShipping} ج.م
+                <div style={{ background: freeShipping ? "#dcfce7" : "#E8EDD0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, border: `1px solid ${freeShipping ? "#86efac" : "#c8d9b0"}` }}>
+                  <span style={{ fontSize: 18 }}>{freeShipping ? "🎉" : "🚚"}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: freeShipping ? "#166534" : "#4B6741", fontFamily: "Cairo, sans-serif" }}>
+                    {freeShipping
+                      ? `شحن مجاني إلى ${form.governorate} 🎁`
+                      : `تكلفة الشحن إلى ${form.governorate}: ${govShipping} ج.م`}
                   </span>
+                </div>
+              )}
+
+              {/* Progress bar when close to free shipping */}
+              {freeShippingEnabled && !freeShipping && subtotal > 0 && (
+                <div style={{ background: "#fff8e1", borderRadius: 10, padding: "10px 14px", border: "1px solid #fde68a" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#92400e", fontFamily: "Cairo, sans-serif" }}>🚚 أضف {(freeThreshold - subtotal).toLocaleString()} ج.م للشحن المجاني!</span>
+                    <span style={{ fontSize: 12, color: "#b45309", fontFamily: "Cairo, sans-serif" }}>{subtotal}/{freeThreshold}</span>
+                  </div>
+                  <div style={{ height: 6, background: "#fde68a", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.min(100, (subtotal / freeThreshold) * 100)}%`, background: "#f59e0b", borderRadius: 3, transition: "width 0.3s" }} />
+                  </div>
                 </div>
               )}
 
@@ -304,7 +319,9 @@ export default function CheckoutPage() {
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
                       <span style={{ color: "#888", fontSize: 14, fontFamily: "Cairo, sans-serif" }}>الشحن {form.governorate ? `(${form.governorate})` : ""}</span>
-                      <span style={{ fontWeight: 600, color: "#333" }}>{shippingCost} ج.م</span>
+                      {freeShipping
+                        ? <span style={{ fontWeight: 700, color: "#166534", fontSize: 14 }}>مجاني 🎉</span>
+                        : <span style={{ fontWeight: 600, color: "#333" }}>{form.governorate ? `${shippingCost} ج.م` : "—"}</span>}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: "2px solid #4B6741" }}>
                       <span style={{ fontWeight: 800, fontSize: 16, fontFamily: "Cairo, sans-serif" }}>الإجمالي</span>
