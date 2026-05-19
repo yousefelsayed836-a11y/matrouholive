@@ -206,12 +206,14 @@ export default function AdminDashboard() {
     <>
       <style jsx global>{`
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f9ee; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f9ee; overflow-x: hidden; }
+        html { overflow-x: hidden; }
         @media (max-width: 640px) {
           .admin-wrap { padding: 12px !important; }
           .admin-nav-grid { grid-template-columns: 1fr 1fr !important; }
           .admin-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
           .admin-recent-row { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+          .admin-pw-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -510,7 +512,7 @@ export default function AdminDashboard() {
                     {changePwMsg}
                   </div>
                 )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                <div className="admin-pw-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                   <div>
                     <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 5 }}>كلمة المرور الحالية</label>
                     <input type="password" value={changePwForm.current} onChange={e => setChangePwForm(f => ({ ...f, current: e.target.value }))}

@@ -44,9 +44,9 @@ const COLLECTIONS = [
 ];
 
 function getProductImage(p: Product): string {
-  const img = p.main_image || (p.images && p.images.find(i => i?.startsWith("http")));
+  const img = p.main_image || (p.images && p.images[0]);
   if (!img) return `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent((p.name_ar || p.name_en)?.slice(0, 6) || "؟؟")}`;
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:")) return img;
   return `http://localhost:5000${img}`;
 }
 

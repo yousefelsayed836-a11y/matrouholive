@@ -40,7 +40,7 @@ function compressImage(file: File, maxDim: number, quality: number): Promise<str
 function getProductImage(p: Product) {
   const img = p.main_image || (p.images && p.images[0]) || p.image_url;
   if (!img) return "https://placehold.co/60x60/4B6741/fff?text=??";
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:")) return img;
   return `http://localhost:5000${img}`;
 }
 
