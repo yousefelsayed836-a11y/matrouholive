@@ -47,6 +47,7 @@ function getProductImage(p: Product) {
 const emptyForm = {
   name_en: "", name_ar: "", description_en: "", description_ar: "",
   price: "", old_price: "", stock: "", material: "", main_image: "",
+  images: [] as string[],
   category_id: "", category_ids: [] as string[], water_resistance: "", size_info: "", is_active: true,
   variants: [] as Variant[],
 };
