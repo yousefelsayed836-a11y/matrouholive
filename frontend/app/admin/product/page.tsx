@@ -15,7 +15,7 @@ interface Product {
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 
-function compressImage(file: File, maxDim: number, quality: number): Promise<string> {
+function compressToBlob(file: File, maxDim: number, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -29,7 +29,7 @@ function compressImage(file: File, maxDim: number, quality: number): Promise<str
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
       };
       img.src = e.target!.result as string;
     };
@@ -98,8 +98,15 @@ export default function ProductsPage() {
   const uploadImages = async (files: File[], currentImages: string[], setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
-      const urls = await Promise.all(files.map(f => compressImage(f, 800, 0.75)));
-      const next = [...currentImages, ...urls];
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        const blob = await compressToBlob(files[i], 800, 0.75);
+        formData.append('images', blob, `img-${Date.now()}-${i}.jpg`);
+      }
+      const res = await fetch(`${API_BASE}/upload/multiple`, { method: 'POST', body: formData });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Upload failed'); }
+      const data = await res.json();
+      const next = [...currentImages, ...(data.urls || [])];
       setter("images", next);
       setter("main_image", next[0] || "");
     } catch (e: any) { alert("فشل تحميل الصورة: " + e.message); }
