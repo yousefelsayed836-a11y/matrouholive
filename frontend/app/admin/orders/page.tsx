@@ -87,7 +87,18 @@ export default function OrdersPage() {
     finally { setLoading(false); }
   };
 
-  // Load product images when order is selected
+  const shareOrder = async (order: Order) => {
+    const items = (order.items || []).map(i => `• ${i.product_name || "منتج"} × ${i.quantity} — ${i.price * i.quantity} EGP`).join("\n");
+    const shipping = (order.shipping_cost ?? 0) === 0 ? "مجاني 🎉" : `${order.shipping_cost} EGP`;
+    const text = `📦 أوردر #${order.id.slice(-6)}\n👤 ${order.customer_name}\n📞 ${order.customer_phone}${order.phone2 ? "\n💬 " + order.phone2 : ""}\n📍 ${order.shipping_address || order.address || ""}\n\n${items}\n\n🚚 شحن: ${shipping}\n💰 الإجمالي: ${fmt(order.total_amount)} EGP\n📌 الحالة: ${order.status}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: `أوردر #${order.id.slice(-6)}`, text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text).catch(() => {});
+      alert("✅ تم نسخ تفاصيل الأوردر!");
+    }
+  };
+
   const openOrder = async (order: Order) => {
     setSelectedOrder(order);
     if (!order.items) return;
@@ -261,19 +272,32 @@ export default function OrdersPage() {
 
   return (
     <>
-      <style jsx global>{`* { box-sizing: border-box; } body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }`}</style>
+      <style jsx global>{`
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; overflow-x: hidden; }
+        html { overflow-x: hidden; }
+        .orders-table { display: block; }
+        .orders-cards { display: none; }
+        @media (max-width: 768px) {
+          .orders-table { display: none !important; }
+          .orders-cards { display: flex !important; flex-direction: column; gap: 12px; }
+          .orders-header-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .orders-header-btns { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+          .orders-header-btns button { flex: 1; font-size: 12px !important; padding: 10px 8px !important; }
+        }
+      `}</style>
 
       <div style={{ minHeight: "100vh", padding: 24 }}>
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
 
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
+          <div className="orders-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 10 }}>
             <div>
               <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
               <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>📦 Orders</h1>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowFreeReport(true)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>📊 تقرير الشحن المجاني</button>
+            <div className="orders-header-btns" style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowFreeReport(true)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>📊 تقرير الشحن</button>
               <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 Refresh</button>
             </div>
           </div>
@@ -479,12 +503,57 @@ export default function OrdersPage() {
                             style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                             🖨️ Print
                           </button>
+                          <button onClick={e => { e.stopPropagation(); shareOrder(order); }}
+                            style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                            📤 Share
+                          </button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Mobile Cards View */}
+          {!loading && filteredOrders.length > 0 && (
+            <div className="orders-cards">
+              {filteredOrders.map(order => (
+                <div key={order.id} style={{ background: "#fff", borderRadius: 16, padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.07)", border: "1.5px solid #e5e7eb" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 16 }}>#{order.id.slice(-6)}</span>
+                    <select value={order.status} onChange={e => updateStatus(order.id, e.target.value)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, fontWeight: 700, color: getStatusColor(order.status), background: "#fff", cursor: "pointer" }}>
+                      <option value="pending">⏳ Pending</option>
+                      <option value="processing">🔄 Processing</option>
+                      <option value="completed">✅ Completed</option>
+                      <option value="cancelled">❌ Cancelled</option>
+                    </select>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 4 }}>{order.customer_name}</div>
+                  <div style={{ fontSize: 13, color: "#555", marginBottom: 2 }}>📞 {order.customer_phone}{order.phone2 ? ` · 💬 ${order.phone2}` : ""}</div>
+                  <div style={{ fontSize: 13, color: "#777", marginBottom: 6 }}>📍 {order.city || ""}{order.governorate ? ` / ${order.governorate}` : ""}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontSize: 13, color: "#888" }}>{new Date(order.created_at).toLocaleDateString("ar-EG")}</span>
+                    <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 17 }}>{fmt(order.total_amount)} EGP</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    <button onClick={() => openOrder(order)}
+                      style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "#1a1a2e", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      👁️ تفاصيل
+                    </button>
+                    <button onClick={() => openOrder(order).then(() => handlePrint(order))}
+                      style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      🖨️ طباعة
+                    </button>
+                    <button onClick={() => shareOrder(order)}
+                      style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      📤 مشاركة
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

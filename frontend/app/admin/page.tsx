@@ -209,11 +209,19 @@ export default function AdminDashboard() {
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f9ee; overflow-x: hidden; }
         html { overflow-x: hidden; }
         @media (max-width: 640px) {
-          .admin-wrap { padding: 12px !important; }
-          .admin-nav-grid { grid-template-columns: 1fr 1fr !important; }
-          .admin-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+          .admin-wrap { padding: 10px !important; }
+          .admin-nav-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+          .admin-nav-grid a { padding: 18px 10px !important; }
+          .admin-nav-grid a div { font-size: 28px !important; }
+          .admin-nav-grid a h2 { font-size: 14px !important; }
+          .admin-nav-grid a span { font-size: 11px !important; }
+          .admin-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+          .admin-stats-grid > div { padding: 14px 12px !important; }
           .admin-recent-row { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
           .admin-pw-grid { grid-template-columns: 1fr !important; }
+          .admin-header { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+          .admin-header img { height: 38px !important; }
+          .admin-header h1 { font-size: 18px !important; }
         }
       `}</style>
 
@@ -221,7 +229,7 @@ export default function AdminDashboard() {
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
 
           {/* Header */}
-          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="admin-header" style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
             <img src="https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png" alt="مطروح أوليفي" style={{ height: 48, objectFit: "contain" }} />
             <div>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#2d4a28" }}>🏠 لوحة تحكم مطروح أوليفي</h1>
