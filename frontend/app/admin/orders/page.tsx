@@ -280,7 +280,7 @@ export default function OrdersPage() {
 
           {/* Free Shipping Report Modal */}
           {showFreeReport && (() => {
-            const freeOrders = orders.filter(o => (o.shipping_cost ?? -1) === 0);
+            const freeOrders = orders.filter(o => (o.shipping_cost ?? -1) === 0 && ["completed", "delivered"].includes((o.status || "").toLowerCase()));
             const govMap: Record<string, { count: number; saved: number }> = {};
             const cityMap: Record<string, { count: number; saved: number; gov: string }> = {};
             let totalSaved = 0;
