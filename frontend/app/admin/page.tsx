@@ -176,6 +176,32 @@ export default function AdminDashboard() {
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+  // Analytics helpers
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - 6);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  function periodStats(from: Date) {
+    const periodOrders = confirmedOrders.filter(o => new Date(o.created_at) >= from);
+    return {
+      count: periodOrders.length,
+      revenue: periodOrders.reduce((s, o) => s + (parseFloat(String(o.total_amount)) || 0), 0),
+    };
+  }
+  const todayStats = periodStats(startOfDay);
+  const weekStats = periodStats(startOfWeek);
+  const monthStats = periodStats(startOfMonth);
+
+  // Last 7 days chart data
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfDay); d.setDate(d.getDate() - (6 - i));
+    const next = new Date(d); next.setDate(d.getDate() + 1);
+    const dayOrders = confirmedOrders.filter(o => { const t = new Date(o.created_at); return t >= d && t < next; });
+    return { label: d.toLocaleDateString("ar-EG", { weekday: "short" }), count: dayOrders.length, revenue: dayOrders.reduce((s, o) => s + (parseFloat(String(o.total_amount)) || 0), 0) };
+  });
+  const maxRevenue = Math.max(...last7.map(d => d.revenue), 1);
+
   if (!authed) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f9ee" }}>
       <div style={{ background: "#fff", borderRadius: 20, padding: 40, boxShadow: "0 4px 24px rgba(75,103,65,0.12)", textAlign: "center", width: 300 }}>
@@ -554,6 +580,40 @@ export default function AdminDashboard() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Analytics */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6", marginBottom: 20 }}>
+            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#2d4a28" }}>📊 تحليلات المبيعات</h3>
+
+            {/* Period cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
+              {[
+                { label: "اليوم", icon: "☀️", ...todayStats },
+                { label: "آخر 7 أيام", icon: "📅", ...weekStats },
+                { label: "هذا الشهر", icon: "🗓️", ...monthStats },
+              ].map(p => (
+                <div key={p.label} style={{ background: "#f5f9ee", borderRadius: 12, padding: "14px 12px", border: "1.5px solid #e0ebd6" }}>
+                  <div style={{ fontSize: 11, color: "#888", fontFamily: "Cairo, sans-serif", marginBottom: 4 }}>{p.icon} {p.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#2d4a28" }}>{p.count}</div>
+                  <div style={{ fontSize: 12, color: "#4B6741", fontWeight: 700 }}>{fmt(p.revenue)} EGP</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 7-day bar chart */}
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 10, fontFamily: "Cairo, sans-serif" }}>إيرادات آخر 7 أيام (الأوردرات المكتملة)</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80 }}>
+                {last7.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <div style={{ fontSize: 9, color: "#4B6741", fontWeight: 700 }}>{d.revenue > 0 ? fmt(d.revenue) : ""}</div>
+                    <div style={{ width: "100%", background: i === 6 ? "#4B6741" : "#c8d9b0", borderRadius: "4px 4px 0 0", height: `${Math.max(4, (d.revenue / maxRevenue) * 56)}px`, transition: "height 0.3s" }} />
+                    <div style={{ fontSize: 9, color: "#888", whiteSpace: "nowrap" }}>{d.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Recent Orders */}

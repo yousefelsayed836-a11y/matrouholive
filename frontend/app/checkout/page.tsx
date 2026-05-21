@@ -9,6 +9,8 @@ interface CartItem {
   size: string;
 }
 
+import { trackInitiateCheckout, trackPurchase } from "@/lib/pixel";
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 
 // كل المحافظات والمدن المصرية
@@ -62,7 +64,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("cart");
-      if (saved) setCart(JSON.parse(saved));
+      if (saved) {
+        const items = JSON.parse(saved);
+        setCart(items);
+        const total = items.reduce((s: number, i: any) => s + i.product.price * i.qty, 0);
+        trackInitiateCheckout(total, items.reduce((s: number, i: any) => s + i.qty, 0));
+      }
     } catch {}
 
     fetch(`${API_BASE}/settings/shipping_rates`)
@@ -147,7 +154,9 @@ export default function CheckoutPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setOrderId(data.order?.id || data.id || "");
+        const oid = data.order?.id || data.id || "";
+        setOrderId(oid);
+        trackPurchase(oid, finalTotal, cart.map(i => ({ id: i.product.id, qty: i.qty, price: i.product.price })));
         localStorage.removeItem("cart");
         window.dispatchEvent(new Event("cartUpdated"));
         setSuccess(true);
