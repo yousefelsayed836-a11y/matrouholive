@@ -107,7 +107,11 @@ export default function OrdersPage() {
   };
   const shareSelected = async () => {
     const selected = filteredOrders.filter(o => selectedIds.has(o.id));
-    const text = selected.map(o => `#${o.id.slice(-6)} — ${o.customer_name} — ${fmt(o.total_amount)} EGP — ${o.status}`).join("\n");
+    const text = selected.map(o => {
+      const items = (o.items || []).map(i => `• ${i.product_name || "منتج"} × ${i.quantity} — ${i.price * i.quantity} EGP`).join("\n");
+      const shipping = (o.shipping_cost ?? 0) === 0 ? "مجاني 🎉" : `${o.shipping_cost} EGP`;
+      return `📦 أوردر #${o.id.slice(-6)}\n👤 ${o.customer_name}\n📞 ${o.customer_phone}${o.phone2 ? "\n💬 " + o.phone2 : ""}\n📍 ${o.shipping_address || o.address || ""}${items ? "\n\n" + items : ""}\n\n🚚 شحن: ${shipping}\n💰 الإجمالي: ${fmt(o.total_amount)} EGP\n📌 الحالة: ${o.status}`;
+    }).join("\n\n" + "─".repeat(30) + "\n\n");
     if (navigator.share) { try { await navigator.share({ title: `${selected.length} أوردرات`, text }); } catch {} }
     else { await navigator.clipboard.writeText(text).catch(() => {}); alert("✅ تم نسخ الأوردرات!"); }
   };
