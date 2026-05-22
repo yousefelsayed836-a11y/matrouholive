@@ -87,6 +87,32 @@ export default function OrdersPage() {
     finally { setLoading(false); }
   };
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+
+  const toggleSelect = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrders.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredOrders.map(o => o.id)));
+  };
+  const applyBulkStatus = async () => {
+    if (!bulkStatus || selectedIds.size === 0) return;
+    await Promise.all([...selectedIds].map(id => updateStatus(id, bulkStatus)));
+    setSelectedIds(new Set());
+    setBulkStatus("");
+  };
+  const shareSelected = async () => {
+    const selected = filteredOrders.filter(o => selectedIds.has(o.id));
+    const text = selected.map(o => `#${o.id.slice(-6)} — ${o.customer_name} — ${fmt(o.total_amount)} EGP — ${o.status}`).join("\n");
+    if (navigator.share) { try { await navigator.share({ title: `${selected.length} أوردرات`, text }); } catch {} }
+    else { await navigator.clipboard.writeText(text).catch(() => {}); alert("✅ تم نسخ الأوردرات!"); }
+  };
+
+
   const shareOrder = async (order: Order) => {
     const items = (order.items || []).map(i => `• ${i.product_name || "منتج"} × ${i.quantity} — ${i.price * i.quantity} EGP`).join("\n");
     const shipping = (order.shipping_cost ?? 0) === 0 ? "مجاني 🎉" : `${order.shipping_cost} EGP`;
@@ -430,6 +456,33 @@ export default function OrdersPage() {
             </select>
           </div>
 
+          {/* Bulk Actions Bar */}
+          {selectedIds.size > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#1a1a2e", borderRadius: 12, marginBottom: 12, flexWrap: "wrap" }}>
+              <span style={{ color: "#E8EDD0", fontWeight: 700, fontSize: 14 }}>✅ {selectedIds.size} أوردر محدد</span>
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
+                style={{ padding: "8px 12px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, background: "#fff", cursor: "pointer", outline: "none" }}>
+                <option value="">— غيّر الحالة —</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="processing">🔄 Processing</option>
+                <option value="completed">✅ Completed</option>
+                <option value="cancelled">❌ Cancelled</option>
+              </select>
+              <button onClick={applyBulkStatus} disabled={!bulkStatus}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: bulkStatus ? "#22c55e" : "#555", color: "#fff", fontWeight: 700, fontSize: 13, cursor: bulkStatus ? "pointer" : "not-allowed" }}>
+                تطبيق
+              </button>
+              <button onClick={shareSelected}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                📤 مشاركة الكل
+              </button>
+              <button onClick={() => setSelectedIds(new Set())}
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", marginRight: "auto" }}>
+                إلغاء
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div style={{ textAlign: "center", padding: 60, color: "#888" }}>Loading orders...</div>
           ) : filteredOrders.length === 0 ? (
@@ -438,13 +491,19 @@ export default function OrdersPage() {
               <p>{search || statusFilter !== "all" ? "مفيش نتائج للبحث ده" : "No orders found"}</p>
             </div>
           ) : (
-            <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+            <div className="orders-table" style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
               <div style={{ padding: "10px 16px", background: "#f9fafb", borderBottom: "1px solid #eee", fontSize: 13, color: "#888" }}>
                 عارض {filteredOrders.length} أوردر{orders.length !== filteredOrders.length ? ` من ${orders.length}` : ""}
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#1a1a2e", color: "#fff" }}>
+                    <th style={{ padding: "14px 10px 14px 14px", width: 40 }}>
+                      <input type="checkbox"
+                        checked={filteredOrders.length > 0 && selectedIds.size === filteredOrders.length}
+                        onChange={toggleSelectAll}
+                        style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#4B6741" }} />
+                    </th>
                     {["ORDER", "CUSTOMER", "PHONE", "ADDRESS", "CITY", "ITEMS", "TOTAL", "STATUS", "ACTIONS"].map(h => (
                       <th key={h} style={{ padding: 14, textAlign: "left", fontSize: 12, fontWeight: 600 }}>{h}</th>
                     ))}
@@ -452,10 +511,15 @@ export default function OrdersPage() {
                 </thead>
                 <tbody>
                   {filteredOrders.map(order => (
-                    <tr key={order.id} style={{ borderBottom: "1px solid #f5f5f5", cursor: "pointer" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = "#f5f9ee"}
-                      onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}>
-                      {/* ✅ Click row to open order detail */}
+                    <tr key={order.id} style={{ borderBottom: "1px solid #f5f5f5", cursor: "pointer", background: selectedIds.has(order.id) ? "#f0f7eb" : "transparent" }}
+                      onMouseEnter={e => { if (!selectedIds.has(order.id)) (e.currentTarget as HTMLTableRowElement).style.background = "#f5f9ee"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = selectedIds.has(order.id) ? "#f0f7eb" : "transparent"; }}>
+                      <td style={{ padding: "14px 10px 14px 14px" }} onClick={e => e.stopPropagation()}>
+                        <input type="checkbox"
+                          checked={selectedIds.has(order.id)}
+                          onChange={() => toggleSelect(order.id)}
+                          style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#4B6741" }} />
+                      </td>
                       <td style={{ padding: 14, fontSize: 14, fontWeight: 700, color: "#4B6741" }} onClick={() => openOrder(order)}>
                         #{order.id.slice(-6)}
                       </td>
@@ -520,9 +584,15 @@ export default function OrdersPage() {
           {!loading && filteredOrders.length > 0 && (
             <div className="orders-cards">
               {filteredOrders.map(order => (
-                <div key={order.id} style={{ background: "#fff", borderRadius: 16, padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.07)", border: "1.5px solid #e5e7eb" }}>
+                <div key={order.id} style={{ background: selectedIds.has(order.id) ? "#f0f7eb" : "#fff", borderRadius: 16, padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.07)", border: `1.5px solid ${selectedIds.has(order.id) ? "#4B6741" : "#e5e7eb"}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 16 }}>#{order.id.slice(-6)}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <input type="checkbox"
+                        checked={selectedIds.has(order.id)}
+                        onChange={() => toggleSelect(order.id)}
+                        style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#4B6741" }} />
+                      <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 16 }}>#{order.id.slice(-6)}</span>
+                    </div>
                     <select value={order.status} onChange={e => updateStatus(order.id, e.target.value)}
                       style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, fontWeight: 700, color: getStatusColor(order.status), background: "#fff", cursor: "pointer" }}>
                       <option value="pending">⏳ Pending</option>
