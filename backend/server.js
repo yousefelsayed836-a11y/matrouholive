@@ -131,6 +131,31 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', store: 'Matrouh Olive', timestamp: new Date().toISOString() });
 });
 
+app.post('/api/test-email', async (req, res) => {
+  try {
+    const { sendOrderEmail } = require('./services/email');
+    await sendOrderEmail({
+      id: 'test-000000000000',
+      customer_name: 'اختبار إيميل',
+      customer_phone: '01000000000',
+      phone2: null,
+      shipping_address: 'شارع الاختبار، مدينة نصر',
+      city: 'القاهرة',
+      governorate: 'القاهرة',
+      total_amount: 1250,
+      shipping_cost: 0,
+      notes: 'هذا إيميل اختبار من لوحة التحكم',
+      status: 'pending',
+    }, [
+      { product_name: 'زيت زيتون بكر 500 مل', quantity: 2, price: 450, total: 900 },
+      { product_name: 'زيت زيتون 250 مل', quantity: 1, price: 350, total: 350 },
+    ]);
+    res.json({ success: true, message: 'تم إرسال الإيميل بنجاح!' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Retry DB init with exponential backoff before giving up

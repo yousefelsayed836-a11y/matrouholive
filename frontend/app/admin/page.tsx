@@ -80,6 +80,8 @@ export default function AdminDashboard() {
   const [featuredMsg, setFeaturedMsg] = useState("");
   const [featuredSearch, setFeaturedSearch] = useState("");
   const [ordersTab, setOrdersTab] = useState<"all" | "pending" | "completed">("all");
+  const [emailTestMsg, setEmailTestMsg] = useState("");
+  const [emailTestLoading, setEmailTestLoading] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -215,10 +217,12 @@ export default function AdminDashboard() {
         .dash-period-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
         .dash-chart-bar { transition: height 0.4s ease; border-radius: 4px 4px 0 0; }
         @media (max-width: 900px) { .dash-stats-grid { grid-template-columns: repeat(2,1fr); } }
+        @media (max-width: 900px) { .dash-settings-grid { grid-template-columns: 1fr 1fr !important; } }
         @media (max-width: 600px) {
           .dash-stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
           .dash-period-grid { grid-template-columns: 1fr; }
           .dash-pw-grid { grid-template-columns: 1fr !important; }
+          .dash-settings-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -337,7 +341,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Settings ────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+      <div className="dash-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, marginBottom: 24 }}>
         {/* Favicon */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
           <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>🖼️ أيقونة التاب (Favicon)</h3>
@@ -379,6 +383,37 @@ export default function AdminDashboard() {
               {typeof window !== "undefined" ? window.location.origin : "https://matrouholive.com"}/api/fb-feed
             </code>
           </div>
+        </div>
+
+        {/* Email Test */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>📧 اختبار الإيميل</h3>
+          <p style={{ margin: "0 0 16px", fontSize: 13, color: "#888", direction: "rtl", lineHeight: 1.6 }}>
+            اضغط الزرار عشان يتبعتلك إيميل تجريبي على <strong>yousefelsayed836@gmail.com</strong> وتتأكد إن الإشعارات شغّالة.
+          </p>
+          <button
+            onClick={async () => {
+              setEmailTestLoading(true);
+              setEmailTestMsg("");
+              try {
+                const res = await fetch(`${API_BASE.replace("/api", "")}/api/test-email`, { method: "POST" });
+                const data = await res.json();
+                setEmailTestMsg(data.success ? "✅ " + data.message : "❌ " + data.message);
+              } catch (e: any) {
+                setEmailTestMsg("❌ فشل الاتصال بالسيرفر");
+              }
+              setEmailTestLoading(false);
+            }}
+            disabled={emailTestLoading}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: emailTestLoading ? "#9ca3af" : "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: emailTestLoading ? "not-allowed" : "pointer", direction: "rtl" }}
+          >
+            {emailTestLoading ? "⏳ جاري الإرسال..." : "📤 إرسال إيميل تجريبي"}
+          </button>
+          {emailTestMsg && (
+            <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: emailTestMsg.includes("✅") ? "#dcfce7" : "#fee2e2", color: emailTestMsg.includes("✅") ? "#166534" : "#991b1b", fontSize: 13, fontWeight: 600, direction: "rtl" }}>
+              {emailTestMsg}
+            </div>
+          )}
         </div>
       </div>
 
