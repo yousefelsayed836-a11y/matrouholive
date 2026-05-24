@@ -1,6 +1,6 @@
 const { Resend } = require('resend');
 
-const resend = new Resend('re_fDJXD7dM_GPbSHeTPCfsRezHsPeD4d3BN');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const STATUS_LABELS = {
   pending: 'قيد الانتظار',
