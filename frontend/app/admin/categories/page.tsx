@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 const API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -109,14 +108,12 @@ export default function AdminCategories() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f9ee", padding: 20 }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
-            <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 13 }}>← لوحة التحكم</Link>
-            <h1 style={{ margin: "4px 0 0", fontSize: 22, fontWeight: 800, color: "#2d4a28" }}>🗂️ الفئات</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#2d4a28", direction: "rtl" }}>🗂️ الفئات</h1>
           </div>
           <button onClick={startAdd} style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
             + إضافة فئة
@@ -205,7 +202,6 @@ export default function AdminCategories() {
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 }

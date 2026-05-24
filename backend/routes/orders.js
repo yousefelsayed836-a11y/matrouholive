@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { allQuery, getQuery, runQuery } = require('../database/db');
 const { v4: uuidv4 } = require('uuid');
+const { sendOrderEmail } = require('../services/email');
 
 router.post('/', async (req, res) => {
   try {
@@ -27,6 +28,9 @@ router.post('/', async (req, res) => {
       }
     }
     const order = await getQuery('SELECT * FROM orders WHERE id = ?', [id]);
+    // fire-and-forget email notification
+    const emailItems = items || [];
+    sendOrderEmail({ id, customer_name: finalName, customer_phone: finalPhone, phone2: phone2 || null, shipping_address: finalAddress, city: finalCity, governorate: governorate || null, total_amount: total, shipping_cost, notes: notes || null, status: 'pending' }, emailItems).catch(e => console.error('Email error:', e));
     res.status(201).json({ message: 'Order created successfully', order });
   } catch (error) { console.error('Order creation error:', error); res.status(500).json({ error: error.message }); }
 });

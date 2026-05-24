@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 interface CityRate {
   name: string;
@@ -140,16 +139,12 @@ export default function ShippingPage() {
 
   return (
     <>
-      <style jsx global>{`* { box-sizing: border-box; } body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }`}</style>
-
-      <div style={{ minHeight: "100vh", padding: 24 }}>
-        <div style={{ maxWidth: 980, margin: "0 auto" }}>
+      <div>
 
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
             <div>
-              <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
-              <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>🚚 أسعار الشحن</h1>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>🚚 أسعار الشحن</h1>
               <p style={{ margin: "4px 0 0", color: "#888", fontSize: 13 }}>عدّل سعر كل محافظة أو كل مدينة على حدة — يُحفظ في DB ويظهر للعملاء فوراً</p>
             </div>
             <button onClick={save} disabled={saving}
@@ -284,7 +279,6 @@ export default function ShippingPage() {
               {saved ? "✅ تم الحفظ!" : saving ? "جاري الحفظ..." : "💾 حفظ كل التغييرات"}
             </button>
           </div>
-        </div>
       </div>
     </>
   );

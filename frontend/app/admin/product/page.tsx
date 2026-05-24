@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import ProductFormFields from "@/components/ProductFormFields";
 
 interface Category { id: string; name_en: string; slug: string; }
@@ -248,13 +247,10 @@ export default function ProductsPage() {
 
   return (
     <>
-      <style jsx global>{`* { box-sizing: border-box; } body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }`}</style>
-      <div style={{ minHeight: "100vh", padding: "24px" }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
             <div>
-              <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
-              <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>🛍️ Product Management</h1>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>🛍️ إدارة المنتجات</h1>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <button onClick={() => { setAddForm({ ...emptyForm }); setAddError(""); setShowAddModal(true); }}
@@ -384,7 +380,6 @@ export default function ProductsPage() {
               )}
             </div>
           )}
-        </div>
       </div>
 
       {/* ADD MODAL */}

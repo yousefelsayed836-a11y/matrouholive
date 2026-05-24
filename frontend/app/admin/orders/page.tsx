@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 interface OrderItem {
   product_id: string;
@@ -303,9 +302,6 @@ export default function OrdersPage() {
   return (
     <>
       <style jsx global>{`
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; overflow-x: hidden; }
-        html { overflow-x: hidden; }
         .orders-table { display: block; }
         .orders-cards { display: none; }
         @media (max-width: 768px) {
@@ -317,14 +313,12 @@ export default function OrdersPage() {
         }
       `}</style>
 
-      <div style={{ minHeight: "100vh", padding: 24 }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div>
 
           {/* Header */}
           <div className="orders-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 10 }}>
             <div>
-              <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
-              <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>📦 Orders</h1>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>📦 الطلبات</h1>
             </div>
             <div className="orders-header-btns" style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setShowFreeReport(true)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>📊 تقرير الشحن</button>
@@ -630,7 +624,6 @@ export default function OrdersPage() {
               ))}
             </div>
           )}
-        </div>
       </div>
 
       {/* ✅ Order Detail Modal */}
