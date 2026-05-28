@@ -334,55 +334,60 @@ export default function HomePage() {
       {/* ══ HERO SLIDESHOW ══ */}
       {(() => {
         const HERO_H = isMobile ? "60vw" : 580;
-        const slides = visibleSlides.length > 0 ? visibleSlides : [{ id:"default", desktop: HERO_BANNER, show:"both" as const, pos:"center center" }];
-        const activeIdx = slides.length > 0 ? safeHeroIdx % slides.length : 0;
+        const slides = visibleSlides.length > 0
+          ? visibleSlides
+          : [{ id:"default", desktop: HERO_BANNER, show:"both" as const, pos:"center center" }];
+        const activeIdx = safeHeroIdx % slides.length;
         return (
-          <section style={{ position:"relative", overflow:"hidden", background:"#111",
-            height: HERO_H, minHeight: isMobile ? 220 : 380 }}>
-            {slides.map((slide, i) => {
-              const isActive = i === activeIdx;
-              const src = isMobile && slide.mobile ? slide.mobile : slide.desktop;
-              const pos = isMobile && slide.mobile ? (slide.mobilePos||"center center") : (slide.pos||"center center");
-              return (
-                <div key={slide.id} style={{
-                  position:"absolute", inset:0,
-                  opacity: isActive ? (heroAnim ? 1 : 0) : 0,
-                  transition:"opacity .55s ease",
-                  zIndex: isActive ? 1 : 0,
-                }}>
-                  <img src={src} alt="مطروح أوليفي"
-                    style={{ width:"100%", height:"100%", display:"block", objectFit:"cover", objectPosition: pos }} />
-                </div>
-              );
-            })}
-
-            {/* Gradient overlay */}
-            <div style={{ position:"absolute",inset:0,zIndex:2,pointerEvents:"none",
-              background:"linear-gradient(105deg,rgba(45,43,39,.48) 0%,rgba(45,43,39,.1) 55%,transparent 100%)" }} />
-
-            {/* Shop Now button */}
-            <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}>
-              <Link href="/shop" className="btn-gold"
-                style={{ display:"inline-block",background:AU,color:"#fff",padding:"14px 44px",borderRadius:50,
-                  textDecoration:"none",fontWeight:800,fontSize:16,letterSpacing:.5,
-                  boxShadow:"0 8px 28px rgba(189,154,82,.55)" }}>
-                تسوق الآن
-              </Link>
+      <section style={{ position:"relative", overflow:"hidden", background:"#1a1a1a",
+        height: HERO_H, minHeight: isMobile ? 200 : 360 }}>
+        {slides.map((slide, i) => {
+          const isActive = i === activeIdx;
+          const src = isMobile && slide.mobile ? slide.mobile : slide.desktop;
+          const pos = isMobile && slide.mobile ? (slide.mobilePos||"center center") : (slide.pos||"center center");
+          return (
+            <div key={slide.id} style={{
+              position: "absolute", inset: 0,
+              opacity: isActive ? (heroAnim ? 1 : 0) : 0,
+              transition: "opacity .55s ease",
+              pointerEvents: "none",
+              zIndex: isActive ? 1 : 0,
+            }}>
+              <img src={src} alt="مطروح أوليفي"
+                style={{ width:"100%", height:"100%", display:"block",
+                  objectFit:"cover", objectPosition: pos }} />
             </div>
+          );
+        })}
 
-            {/* Slide dots — only navigation, no full-section click */}
-            {slides.length > 1 && (
-              <div style={{ position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",
-                zIndex:4,display:"flex",gap:8 }}>
-                {slides.map((_,i) => (
-                  <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
-                    style={{ width: i===activeIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
-                      background: i===activeIdx ? AU : "rgba(255,255,255,.5)",
-                      transition:"width .3s ease,background .3s ease", padding:0 }} />
-                ))}
-              </div>
-            )}
-          </section>
+        {/* Gradient overlay */}
+        <div style={{ position:"absolute",inset:0,zIndex:2,
+          background:"linear-gradient(105deg,rgba(45,43,39,.52) 0%,rgba(45,43,39,.12) 55%,transparent 100%)",
+          pointerEvents:"none" }} />
+
+        {/* Shop Now button */}
+        <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}>
+          <Link href="/shop" className="btn-gold"
+            style={{ display:"inline-block",background:AU,color:"#fff",padding:"14px 44px",borderRadius:50,
+              textDecoration:"none",fontWeight:800,fontSize:16,letterSpacing:.5,
+              boxShadow:"0 8px 28px rgba(189,154,82,.55)" }}>
+            تسوق الآن
+          </Link>
+        </div>
+
+        {/* Slide dots */}
+        {slides.length > 1 && (
+          <div style={{ position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",
+            zIndex:4,display:"flex",gap:8 }}>
+            {slides.map((_,i) => (
+              <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
+                style={{ width: i===activeIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
+                  background: i===activeIdx ? AU : "rgba(255,255,255,.5)",
+                  transition:"width .3s ease,background .3s ease", padding:0 }} />
+            ))}
+          </div>
+        )}
+      </section>
         );
       })()}
 
