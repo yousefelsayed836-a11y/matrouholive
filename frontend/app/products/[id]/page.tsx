@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
@@ -32,7 +32,8 @@ function getImg(product: Product): string[] {
   return unique.length > 0 ? unique : [`https://placehold.co/600x600/4f7032/fff?text=${encodeURIComponent((product.name_ar || product.name_en || "").slice(0, 4))}`];
 }
 
-export default function ProductPage({ params }: { params: { id: string } }) {
+export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -42,8 +43,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    if (!params.id) { setError("لم يتم تحديد المنتج"); setLoading(false); return; }
-    fetch(`${API_BASE}/products/${params.id}`, { cache: "no-store" })
+    if (!id) { setError("لم يتم تحديد المنتج"); setLoading(false); return; }
+    fetch(`${API_BASE}/products/${id}`, { cache: "no-store" })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         setProduct(data.product);
@@ -51,7 +52,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         setLoading(false);
       })
       .catch(() => { setError("المنتج غير موجود"); setLoading(false); });
-  }, [params.id]);
+  }, [id]);
 
   const addToCart = () => {
     if (!product) return;
