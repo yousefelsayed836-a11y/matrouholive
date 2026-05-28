@@ -77,6 +77,8 @@ export default function AdminDashboard() {
   const [heroMsg, setHeroMsg] = useState("");
   const [heroUploading, setHeroUploading] = useState(false);
 
+  const [githubStatus, setGithubStatus] = useState<"loading"|"connected"|"disconnected">("loading");
+
   // Site settings
   const [siteSettings, setSiteSettings] = useState({
     name: "مطروح أوليفي", whatsapp: "", address: "", announcement: "",
@@ -100,6 +102,7 @@ export default function AdminDashboard() {
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
+    fetch("/api/upload").then(r => r.json()).then(d => setGithubStatus(d.connected ? "connected" : "disconnected")).catch(() => setGithubStatus("disconnected"));
     fetch(`${API_BASE}/settings/favicon`).then(r => r.json()).then(d => { if (d.value) setFaviconUrl(d.value); }).catch(() => {});
     fetch(`${API_BASE}/settings/site_settings`).then(r => r.json()).then(d => {
       if (d.value) try { setSiteSettings(s => ({ ...s, ...JSON.parse(d.value) })); } catch {}
@@ -385,9 +388,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── GitHub Status ────────────────────────────────────────── */}
-      {(() => {
-        const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
-        const connected = !!(token && token.length > 10);
+      {githubStatus !== "loading" && (() => {
+        const connected = githubStatus === "connected";
         return (
           <div style={{ marginBottom: 20, padding: "14px 20px", borderRadius: 14,
             background: connected ? "#f0fdf4" : "#fff7ed",
@@ -404,9 +406,9 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: 12, color: "#9a3412", marginTop: 3, lineHeight: 1.6 }}>
                   روح Vercel → Settings → Environment Variables → أضف{" "}
                   <code style={{ background: "#fee2e2", padding: "1px 6px", borderRadius: 4, fontSize: 11, fontFamily: "monospace" }}>
-                    NEXT_PUBLIC_GITHUB_TOKEN
+                    GITHUB_TOKEN
                   </code>
-                  {" "}بالقيمة بتاعته، ثم اعمل Redeploy
+                  {" "}بالقيمة بتاعته (مش NEXT_PUBLIC)، ثم اعمل Redeploy
                 </div>
               )}
             </div>

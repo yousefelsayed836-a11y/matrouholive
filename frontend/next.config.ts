@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "matrouholive.onrender.com", pathname: "/uploads/**" },
       { protocol: "https", hostname: "api.matrouholive.com", pathname: "/uploads/**" },
       { protocol: "https", hostname: "placehold.co" },
+      { protocol: "https", hostname: "raw.githubusercontent.com" },
     ],
   },
 };
