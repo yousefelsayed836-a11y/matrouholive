@@ -384,6 +384,41 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* ── GitHub Status ────────────────────────────────────────── */}
+      {(() => {
+        const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+        const connected = !!(token && token.length > 10);
+        return (
+          <div style={{ marginBottom: 20, padding: "14px 20px", borderRadius: 14,
+            background: connected ? "#f0fdf4" : "#fff7ed",
+            border: `1.5px solid ${connected ? "#86efac" : "#fed7aa"}`,
+            display: "flex", alignItems: "center", gap: 12, direction: "rtl" }}>
+            <div style={{ width: 12, height: 12, borderRadius: "50%", flexShrink: 0,
+              background: connected ? "#22c55e" : "#f97316",
+              boxShadow: `0 0 0 3px ${connected ? "rgba(34,197,94,.2)" : "rgba(249,115,22,.2)"}` }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: connected ? "#166534" : "#9a3412" }}>
+                {connected ? "متصل بـ GitHub — الصور بترفع مباشرة" : "GitHub غير متصل — الصور مش هترفع"}
+              </div>
+              {!connected && (
+                <div style={{ fontSize: 12, color: "#9a3412", marginTop: 3, lineHeight: 1.6 }}>
+                  روح Vercel → Settings → Environment Variables → أضف{" "}
+                  <code style={{ background: "#fee2e2", padding: "1px 6px", borderRadius: 4, fontSize: 11, fontFamily: "monospace" }}>
+                    NEXT_PUBLIC_GITHUB_TOKEN
+                  </code>
+                  {" "}بالقيمة بتاعته، ثم اعمل Redeploy
+                </div>
+              )}
+            </div>
+            {connected && (
+              <div style={{ fontSize: 12, color: "#166534", background: "#dcfce7", padding: "4px 12px", borderRadius: 20, fontWeight: 600, whiteSpace: "nowrap" }}>
+                repo: yousefelsayed836-a11y/matrouholive
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── Settings ────────────────────────────────────────────── */}
       <div className="dash-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, marginBottom: 24 }}>
         {/* Favicon */}
