@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -19,6 +20,7 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const app = express();
+app.use(compression());
 
 const allowedOrigins = (() => {
   const base = [
@@ -154,6 +156,46 @@ app.post('/api/test-email', async (req, res) => {
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
+});
+
+// One-time migration: upload base64 images from DB to GitHub and replace with URLs
+app.post('/api/admin/migrate-images', async (req, res) => {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive';
+  if (!token) return res.status(400).json({ error: 'GITHUB_TOKEN not set — add it to Render env vars first' });
+  const { allQuery, runQuery } = require('./database/db');
+  const products = await allQuery('SELECT id, main_image, images FROM products');
+  let migrated = 0, skipped = 0, errors = [];
+  for (const p of products) {
+    let images = [];
+    try { images = JSON.parse(p.images || '[]'); } catch { images = []; }
+    const allImgs = [...new Set([p.main_image, ...images].filter(Boolean))];
+    const hasBase64 = allImgs.some(i => i.startsWith('data:'));
+    if (!hasBase64) { skipped++; continue; }
+    const newUrls = [];
+    for (const img of images) {
+      if (!img.startsWith('data:')) { newUrls.push(img); continue; }
+      try {
+        const matches = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) { newUrls.push(img); continue; }
+        const ext = matches[1].split('/')[1] || 'jpg';
+        const filename = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filename}`, {
+          method: 'PUT',
+          headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `migrate ${filename}`, content: matches[2] }),
+        });
+        if (!ghRes.ok) throw new Error((await ghRes.json()).message);
+        newUrls.push(`https://raw.githubusercontent.com/${repo}/main/${filename}`);
+      } catch (e) { newUrls.push(img); errors.push(`${p.id}: ${e.message}`); }
+    }
+    const newMain = p.main_image && p.main_image.startsWith('data:')
+      ? newUrls[0] || p.main_image
+      : p.main_image;
+    await runQuery('UPDATE products SET images = ?, main_image = ? WHERE id = ?', [JSON.stringify(newUrls), newMain, p.id]);
+    migrated++;
+  }
+  res.json({ success: true, migrated, skipped, errors });
 });
 
 const PORT = process.env.PORT || 5000;
