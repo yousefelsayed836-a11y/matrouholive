@@ -69,6 +69,7 @@ const CARD_GAP = 20;
 export default function HomePage() {
   const [siteSettings, setSiteSettings] = useState({ name:"مطروح أوليفي", whatsapp:"", address:"", announcement:"" });
   const [heroSlides, setHeroSlides]     = useState<HeroSlide[]>([{ id: "default", desktop: HERO_BANNER, show: "both" }]);
+  const [isMobile, setIsMobile]         = useState(false);
   const [heroIdx, setHeroIdx]           = useState(0);
   const [heroAnim, setHeroAnim]         = useState(true);
   const [bestSellers, setBestSellers]   = useState<Product[]>([]);
@@ -134,6 +135,14 @@ export default function HomePage() {
     })();
   }, []);
 
+  /* detect mobile for hero slide filtering */
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   /* hero advances only on manual tap — no auto-advance */
 
   /* auto-advance review every 5s */
@@ -149,6 +158,17 @@ export default function HomePage() {
   }, [reviews.length]);
 
   /* scroll bestsellers carousel */
+  /* slides visible on current device */
+  const visibleSlides = heroSlides.filter(s => isMobile ? s.show !== "desktop" : s.show !== "mobile");
+  const heroTotal = visibleSlides.length;
+  const safeHeroIdx = heroTotal > 0 ? heroIdx % heroTotal : 0;
+
+  const goHeroNext = () => {
+    if (heroTotal <= 1) return;
+    setHeroAnim(false);
+    setTimeout(() => { setHeroIdx(i => (i + 1) % heroTotal); setHeroAnim(true); }, 300);
+  };
+
   const visibleCards = typeof window !== "undefined" ? Math.floor((window.innerWidth - 80) / (CARD_W + CARD_GAP)) || 2 : 4;
   const maxIdx = Math.max(0, bestSellers.length - visibleCards);
 
@@ -273,11 +293,6 @@ export default function HomePage() {
         .btn-outline { transition:all .2s; }
         .btn-outline:hover { background:${GL}!important;color:${DK}!important;transform:translateY(-2px); }
 
-        /* Hero image visibility by device */
-        .hero-img-desktop { display:block; }
-        .hero-img-mobile  { display:none; }
-        /* Slides visibility by show setting */
-        .hero-hide-desktop { display:none!important; }
 
         /* Stats – desktop */
         .stats-section { padding:26px 24px; }
@@ -305,10 +320,6 @@ export default function HomePage() {
           .about-flex { flex-direction:column!important;text-align:center!important; }
           .about-img  { width:130px!important;height:130px!important; }
           .hero-cta   { bottom:8%!important;right:50%!important;transform:translateX(50%)!important; }
-          .hero-img-desktop { display:none!important; }
-          .hero-img-mobile  { display:block!important; }
-          .hero-hide-desktop { display:flex!important; }
-          .hero-hide-mobile  { display:none!important; }
         }
       `}</style>
 
@@ -321,42 +332,39 @@ export default function HomePage() {
       )}
 
       {/* ══ HERO SLIDESHOW ══ */}
-      <section style={{ position:"relative",lineHeight:0,overflow:"hidden",background:"#1a1a1a" }}>
-        {heroSlides.map((slide, i) => {
-          const isActive = i === heroIdx;
-          // show="desktop" → hide on mobile; show="mobile" → hide on desktop
-          const desktopHideClass = slide.show === "mobile" ? " hero-hide-desktop" : "";
-          const mobileHideClass  = slide.show === "desktop" ? " hero-hide-mobile" : "";
-          const slideClass = `hero-slide${desktopHideClass}${mobileHideClass}`;
+      <section style={{ position:"relative",lineHeight:0,overflow:"hidden",background:"#1a1a1a",
+        cursor: heroTotal > 1 ? "pointer" : "default" }}
+        onClick={goHeroNext}>
+        {visibleSlides.map((slide, i) => {
+          const isActive = i === safeHeroIdx;
           return (
-            <div key={slide.id} className={slideClass} style={{
+            <div key={slide.id} style={{
               position: i === 0 ? "relative" : "absolute",
               inset: 0, lineHeight: 0,
               opacity: isActive ? (heroAnim ? 1 : 0) : 0,
-              transition: "opacity .6s ease",
-              pointerEvents: isActive ? "auto" : "none",
+              transition: "opacity .55s ease",
+              pointerEvents: "none",
               zIndex: isActive ? 1 : 0,
             }}>
-              {/* Desktop image (hidden on mobile if mobile-specific image exists) */}
-              <img src={slide.desktop} alt="مطروح أوليفي"
-                style={{ width:"100%", display:"block", maxHeight:620, objectFit:"cover", objectPosition:"center top" }}
-                className={slide.mobile ? "hero-img-desktop" : ""} />
-              {/* Mobile-only portrait image */}
-              {slide.mobile && (
-                <img src={slide.mobile} alt="مطروح أوليفي"
-                  style={{ width:"100%", display:"block", maxHeight:600, objectFit:"cover", objectPosition:"center top" }}
-                  className="hero-img-mobile" />
-              )}
+              {/* On mobile: show mobile image if exists, else desktop. On desktop: always desktop */}
+              <img
+                src={isMobile && slide.mobile ? slide.mobile : slide.desktop}
+                alt="مطروح أوليفي"
+                style={{ width:"100%", display:"block", maxHeight: isMobile ? 600 : 620,
+                  objectFit:"cover", objectPosition:"center top" }}
+              />
             </div>
           );
         })}
 
         {/* Gradient overlay */}
         <div style={{ position:"absolute",inset:0,zIndex:2,
-          background:"linear-gradient(105deg,rgba(45,43,39,.52) 0%,rgba(45,43,39,.12) 55%,transparent 100%)" }} />
+          background:"linear-gradient(105deg,rgba(45,43,39,.52) 0%,rgba(45,43,39,.12) 55%,transparent 100%)",
+          pointerEvents:"none" }} />
 
         {/* Shop Now button */}
-        <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}>
+        <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}
+          onClick={e => e.stopPropagation()}>
           <Link href="/shop" className="btn-gold"
             style={{ display:"inline-block",background:AU,color:"#fff",padding:"14px 44px",borderRadius:50,
               textDecoration:"none",fontWeight:800,fontSize:16,letterSpacing:.5,
@@ -366,13 +374,14 @@ export default function HomePage() {
         </div>
 
         {/* Slide dots */}
-        {heroSlides.length > 1 && (
+        {heroTotal > 1 && (
           <div style={{ position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",
-            zIndex:4,display:"flex",gap:8 }}>
-            {heroSlides.map((_,i) => (
+            zIndex:4,display:"flex",gap:8 }}
+            onClick={e => e.stopPropagation()}>
+            {visibleSlides.map((_,i) => (
               <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
-                style={{ width: i===heroIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
-                  background: i===heroIdx ? AU : "rgba(255,255,255,.5)",
+                style={{ width: i===safeHeroIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
+                  background: i===safeHeroIdx ? AU : "rgba(255,255,255,.5)",
                   transition:"width .3s ease,background .3s ease", padding:0 }} />
             ))}
           </div>
