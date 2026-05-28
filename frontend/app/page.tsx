@@ -134,18 +134,7 @@ export default function HomePage() {
     })();
   }, []);
 
-  /* auto-advance hero every 5s */
-  useEffect(() => {
-    if (heroSlides.length <= 1) return;
-    const t = setInterval(() => {
-      setHeroAnim(false);
-      setTimeout(() => {
-        setHeroIdx(i => (i + 1) % heroSlides.length);
-        setHeroAnim(true);
-      }, 400);
-    }, 5000);
-    return () => clearInterval(t);
-  }, [heroSlides.length]);
+  /* hero advances only on manual tap — no auto-advance */
 
   /* auto-advance review every 5s */
   useEffect(() => {
@@ -290,12 +279,7 @@ export default function HomePage() {
         /* Slides visibility by show setting */
         .hero-hide-desktop { display:none!important; }
 
-        @media (max-width:1100px) {
-          .cat-grid { grid-template-columns:repeat(3,1fr)!important; }
-        }
-        @media (max-width:540px) {
-          .stats-grid { grid-template-columns:repeat(2,1fr)!important; }
-        }
+        @media (max-width:1100px) { .cat-grid { grid-template-columns:repeat(3,1fr)!important; } }
         @media (max-width:640px)  {
           .cat-grid { grid-template-columns:repeat(2,1fr)!important;gap:12px!important; }
           .about-flex { flex-direction:column!important;text-align:center!important; }
@@ -376,23 +360,23 @@ export default function HomePage() {
       </section>
 
       {/* ══ STATS ══ */}
-      <section style={{ background:`linear-gradient(135deg,${GD} 0%,${G} 100%)`,padding:"22px 24px" }}>
+      <section style={{ background:`linear-gradient(135deg,${GD} 0%,${G} 100%)`,padding:"14px 12px",overflowX:"hidden" }}>
         <div ref={stats.ref} className={`anim-up stats-grid${stats.vis?" vis":""}`}
-          style={{ maxWidth:1100,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,direction:"rtl" }}>
+          style={{ maxWidth:1100,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,direction:"rtl" }}>
           {[
             { icon:"fa-seedling", num:"100%",      label:"طبيعي نقي" },
             { icon:"fa-users",    num:"+10,000",   label:"عميل سعيد" },
             { icon:"fa-award",    num:"بكر ممتاز", label:"أعلى درجة جودة" },
             { icon:"fa-truck",    num:"سريع",      label:"توصيل لكل محافظة" },
           ].map((s,i) => (
-            <div key={i} style={{ textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:6,
+            <div key={i} className="stat-item" style={{ textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:3,
               opacity:stats.vis?1:0,animation:stats.vis?`fadeUp .5s ease ${i*.1}s both`:"none" }}>
-              <div style={{ width:44,height:44,borderRadius:"50%",background:"rgba(215,247,179,.18)",
+              <div style={{ width:34,height:34,borderRadius:"50%",background:"rgba(215,247,179,.18)",
                 display:"flex",alignItems:"center",justifyContent:"center" }}>
-                <i className={`fas ${s.icon}`} style={{ fontSize:18,color:GL }} />
+                <i className={`fas ${s.icon}`} style={{ fontSize:14,color:GL }} />
               </div>
-              <div style={{ fontSize:18,fontWeight:900,color:AU }}>{s.num}</div>
-              <div style={{ fontSize:12,color:"#c8e6a0" }}>{s.label}</div>
+              <div className="stat-num" style={{ fontSize:14,fontWeight:900,color:AU,lineHeight:1.2 }}>{s.num}</div>
+              <div className="stat-label" style={{ fontSize:10,color:"#c8e6a0",lineHeight:1.3 }}>{s.label}</div>
             </div>
           ))}
         </div>
