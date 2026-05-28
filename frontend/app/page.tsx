@@ -260,15 +260,27 @@ export default function HomePage() {
         .anim-l   { opacity:0;transform:translateX(-32px);transition:opacity .6s ease,transform .6s ease; }
         .anim-l.vis { opacity:1;transform:translateX(0); }
 
-        .cat-card { transition:transform .32s cubic-bezier(.23,1,.32,1),box-shadow .32s; }
-        .cat-card:hover { transform:translateY(-10px) scale(1.04)!important;box-shadow:0 22px 52px rgba(0,0,0,.22)!important; }
+        .cat-card { transition:box-shadow .32s; }
         .cat-card .cat-ico { transition:transform .32s; }
-        .cat-card:hover .cat-ico { transform:scale(1.18) rotate(-5deg); }
 
-        .prod-card { transition:transform .25s ease,box-shadow .25s ease; }
-        .prod-card:hover { transform:translateY(-6px)!important;box-shadow:0 16px 38px rgba(79,112,50,.2)!important; }
+        .prod-card { transition:box-shadow .25s ease; }
         .prod-img  { transition:transform .42s ease; }
-        .prod-card:hover .prod-img { transform:scale(1.08); }
+
+        /* hover effects — desktop/mouse only (no ghost-click on mobile) */
+        @media (hover: hover) {
+          .cat-card { transition:transform .32s cubic-bezier(.23,1,.32,1),box-shadow .32s; }
+          .cat-card:hover { transform:translateY(-10px) scale(1.04)!important;box-shadow:0 22px 52px rgba(0,0,0,.22)!important; }
+          .cat-card:hover .cat-ico { transform:scale(1.18) rotate(-5deg); }
+
+          .prod-card { transition:transform .25s ease,box-shadow .25s ease; }
+          .prod-card:hover { transform:translateY(-6px)!important;box-shadow:0 16px 38px rgba(79,112,50,.2)!important; }
+          .prod-card:hover .prod-img { transform:scale(1.08); }
+
+          .arr-btn:hover { background:rgba(255,255,255,.28);transform:scale(1.1); }
+          .btn-primary:hover { background:${GD}!important;transform:translateY(-2px);box-shadow:0 8px 22px rgba(79,112,50,.38)!important; }
+          .btn-gold:hover { background:#9e7d3a!important;transform:translateY(-2px);box-shadow:0 8px 22px rgba(189,154,82,.45)!important; }
+          .btn-outline:hover { background:${GL}!important;color:${DK}!important;transform:translateY(-2px); }
+        }
 
         /* bestsellers scroller */
         .bs-scroll { display:flex;gap:${CARD_GAP}px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px; }
@@ -280,18 +292,14 @@ export default function HomePage() {
           background:rgba(255,255,255,.12);color:#fff;font-size:18px;cursor:pointer;
           display:flex;align-items:center;justify-content:center;
           transition:background .2s,transform .15s;backdrop-filter:blur(4px); }
-        .arr-btn:hover { background:rgba(255,255,255,.28);transform:scale(1.1); }
         .arr-btn:disabled { opacity:.28;cursor:default;transform:none; }
 
         /* review card */
         .rev-visible { animation:revFade .35s ease both; }
 
         .btn-primary { transition:background .2s,transform .15s,box-shadow .2s; }
-        .btn-primary:hover { background:${GD}!important;transform:translateY(-2px);box-shadow:0 8px 22px rgba(79,112,50,.38)!important; }
         .btn-gold { transition:background .2s,transform .15s,box-shadow .2s; }
-        .btn-gold:hover { background:#9e7d3a!important;transform:translateY(-2px);box-shadow:0 8px 22px rgba(189,154,82,.45)!important; }
         .btn-outline { transition:all .2s; }
-        .btn-outline:hover { background:${GL}!important;color:${DK}!important;transform:translateY(-2px); }
 
 
         /* Stats – desktop */
@@ -333,14 +341,14 @@ export default function HomePage() {
 
       {/* ══ HERO SLIDESHOW ══ */}
       {(() => {
-        const HERO_H = isMobile ? "60vw" : 580;
+        const HERO_H = isMobile ? "80vw" : 580;
         const slides = visibleSlides.length > 0
           ? visibleSlides
           : [{ id:"default", desktop: HERO_BANNER, show:"both" as const, pos:"center center" }];
         const activeIdx = safeHeroIdx % slides.length;
         return (
       <section style={{ position:"relative", overflow:"hidden", background:"#1a1a1a",
-        height: HERO_H, minHeight: isMobile ? 200 : 360 }}>
+        height: HERO_H, minHeight: isMobile ? 260 : 360 }}>
         {slides.map((slide, i) => {
           const isActive = i === activeIdx;
           const src = isMobile && slide.mobile ? slide.mobile : slide.desktop;

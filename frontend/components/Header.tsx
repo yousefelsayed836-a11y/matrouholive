@@ -52,13 +52,8 @@ export default function Header() {
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showEidBanner, setShowEidBanner] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout>(undefined);
-
-  useEffect(() => {
-    if (!localStorage.getItem('eid_adha_banner_v1')) setShowEidBanner(true);
-  }, []);
 
   const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
 
@@ -290,28 +285,6 @@ export default function Header() {
         )}
       </header>
 
-      {/* Eid Popup */}
-      {showEidBanner && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
-          onClick={() => { localStorage.setItem('eid_adha_banner_v1', '1'); setShowEidBanner(false); }}>
-          <div style={{ background: "#fff", borderRadius: 24, padding: "36px 28px", maxWidth: 400, width: "100%", textAlign: "center", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", position: "relative", fontFamily: "Cairo, sans-serif" }}
-            onClick={e => e.stopPropagation()}>
-            <button onClick={() => { localStorage.setItem('eid_adha_banner_v1', '1'); setShowEidBanner(false); }}
-              style={{ position: "absolute", top: 14, left: 14, background: "#f5f5f5", border: "none", borderRadius: "50%", width: 30, height: 30, fontSize: 18, cursor: "pointer", color: "#888", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-            <div style={{ fontSize: 52, marginBottom: 10 }}>🎊</div>
-            <h2 style={{ color: C.greenDark, margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>بمناسبة عيد الأضحى المبارك</h2>
-            <div style={{ background: `linear-gradient(135deg,${C.green},${C.greenDark})`, borderRadius: 16, padding: "16px 20px", margin: "16px 0" }}>
-              <p style={{ color: C.light, margin: 0, fontSize: 18, fontWeight: 800 }}>🚚 شحن مجاني</p>
-              <p style={{ color: "#fff", margin: "6px 0 0", fontSize: 15, fontWeight: 700 }}>لأي أوردر يتخطى 1000 جنيه!</p>
-            </div>
-            <p style={{ color: "#888", margin: "0 0 20px", fontSize: 13 }}>⏳ العرض ساري لفترة محدودة — لا تفوّتك الفرصة!</p>
-            <button onClick={() => { localStorage.setItem('eid_adha_banner_v1', '1'); setShowEidBanner(false); router.push('/shop'); }}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 30, border: "none", background: `linear-gradient(135deg,${C.green},${C.greenDark})`, color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>
-              🛒 تسوق الآن
-            </button>
-          </div>
-        </div>
-      )}
 
       <style jsx global>{`
         @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }

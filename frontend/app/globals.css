@@ -53,6 +53,9 @@ html { scroll-behavior: smooth; }
 button:focus-visible { outline: 2px solid #4f7032; outline-offset: 2px; }
 input:focus { outline: none; }
 
+/* Prevent 300ms tap delay and ghost-click on touch devices */
+a, button, [role="button"] { touch-action: manipulation; }
+
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
