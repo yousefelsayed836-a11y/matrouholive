@@ -25,6 +25,9 @@ router.post('/', async (req, res) => {
         await runQuery(`INSERT INTO order_items (id, order_id, product_id, product_name, quantity, price, size, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [uuidv4(), id, item.product_id, item.product_name || null, item.quantity, item.price, item.size || null, item.price * item.quantity]);
         try { await runQuery('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {}
+        if (item.size) {
+          try { await runQuery('UPDATE product_variants SET quantity = GREATEST(0, quantity - ?) WHERE product_id = ? AND option_value = ?', [item.quantity, item.product_id, item.size]); } catch(e) {}
+        }
       }
     }
     const order = await getQuery('SELECT * FROM orders WHERE id = ?', [id]);
@@ -59,12 +62,22 @@ router.put('/:id/status', async (req, res) => {
     const oldOrder = await getQuery('SELECT status FROM orders WHERE id = ?', [orderId]);
     if (!oldOrder) return res.status(404).json({ error: 'Order not found' });
     if (status === 'cancelled' && oldOrder.status !== 'cancelled') {
-      const orderItems = await allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
-      for (const item of orderItems) { try { await runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} }
+      const orderItems = await allQuery('SELECT product_id, quantity, size FROM order_items WHERE order_id = ?', [orderId]);
+      for (const item of orderItems) {
+        try { await runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {}
+        if (item.size) {
+          try { await runQuery('UPDATE product_variants SET quantity = quantity + ? WHERE product_id = ? AND option_value = ?', [item.quantity, item.product_id, item.size]); } catch(e) {}
+        }
+      }
     }
     if (oldOrder.status === 'cancelled' && status !== 'cancelled') {
-      const orderItems = await allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
-      for (const item of orderItems) { try { await runQuery('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} }
+      const orderItems = await allQuery('SELECT product_id, quantity, size FROM order_items WHERE order_id = ?', [orderId]);
+      for (const item of orderItems) {
+        try { await runQuery('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {}
+        if (item.size) {
+          try { await runQuery('UPDATE product_variants SET quantity = GREATEST(0, quantity - ?) WHERE product_id = ? AND option_value = ?', [item.quantity, item.product_id, item.size]); } catch(e) {}
+        }
+      }
     }
     await runQuery('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
     res.json(await getQuery('SELECT * FROM orders WHERE id = ?', [orderId]));
@@ -73,8 +86,13 @@ router.put('/:id/status', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const orderItems = await allQuery('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [req.params.id]);
-    for (const item of orderItems) { try { await runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {} }
+    const orderItems = await allQuery('SELECT product_id, quantity, size FROM order_items WHERE order_id = ?', [req.params.id]);
+    for (const item of orderItems) {
+      try { await runQuery('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]); } catch(e) {}
+      if (item.size) {
+        try { await runQuery('UPDATE product_variants SET quantity = quantity + ? WHERE product_id = ? AND option_value = ?', [item.quantity, item.product_id, item.size]); } catch(e) {}
+      }
+    }
     await runQuery('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
     await runQuery('DELETE FROM orders WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Order deleted and stock restored' });
