@@ -4,12 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const HERO_BANNER = "https://assets.wuiltstore.com/cmesintt84hgm01ksersa5djl_1.png";
-// Hero slides: [desktop_image, mobile_image (portrait, shown on mobile only)]
-// Add your uploaded image URLs here:
-const HERO_SLIDES: { desktop: string; mobile?: string }[] = [
-  { desktop: HERO_BANNER },
-  { desktop: "REPLACE_WITH_LANDSCAPE_URL", mobile: "REPLACE_WITH_PORTRAIT_URL" },
-];
 const LOGO      = "https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png";
 const API_BASE  = (process.env.NEXT_PUBLIC_API_URL || "https://api.matrouholive.com") + "/api";
 
@@ -30,6 +24,7 @@ interface CartItem {
   qty: number; size: string;
 }
 interface Review { id?: number; name: string; text: string; stars?: number; }
+interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; }
 
 const FALLBACK_REVIEWS: Review[] = [
   { name: "أحمد محمود",  text: "والله زيت الزيتون بتاعهم تحفة! ريحته حلوة جداً والطعم أصلي" },
@@ -72,6 +67,7 @@ const CARD_W = 270;
 const CARD_GAP = 20;
 
 export default function HomePage() {
+  const [heroSlides, setHeroSlides]     = useState<HeroSlide[]>([{ id: "default", desktop: HERO_BANNER, show: "both" }]);
   const [heroIdx, setHeroIdx]           = useState(0);
   const [heroAnim, setHeroAnim]         = useState(true);
   const [bestSellers, setBestSellers]   = useState<Product[]>([]);
@@ -93,8 +89,19 @@ export default function HomePage() {
   const about  = useVisible(0.1);
   const rvw    = useVisible(0.1);
 
-  /* fetch products + reviews on mount */
+  /* fetch products + reviews + hero slides on mount */
   useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/settings/hero_slides`);
+        const d = await r.json();
+        if (d.value) {
+          const slides: HeroSlide[] = JSON.parse(d.value);
+          if (slides.length > 0) setHeroSlides(slides);
+        }
+      } catch {}
+    })();
+
     (async () => {
       try {
         let r = await fetch(`${API_BASE}/products?collection=${encodeURIComponent("الا-كثر-مبيعا")}&is_active=true&limit=12`);
@@ -120,24 +127,16 @@ export default function HomePage() {
 
   /* auto-advance hero every 5s */
   useEffect(() => {
-    if (HERO_SLIDES.length <= 1) return;
+    if (heroSlides.length <= 1) return;
     const t = setInterval(() => {
       setHeroAnim(false);
       setTimeout(() => {
-        setHeroIdx(i => (i + 1) % HERO_SLIDES.length);
+        setHeroIdx(i => (i + 1) % heroSlides.length);
         setHeroAnim(true);
       }, 400);
     }, 5000);
     return () => clearInterval(t);
-  }, []);
-
-  const goHero = (dir: 1 | -1) => {
-    setHeroAnim(false);
-    setTimeout(() => {
-      setHeroIdx(i => (i + dir + HERO_SLIDES.length) % HERO_SLIDES.length);
-      setHeroAnim(true);
-    }, 300);
-  };
+  }, [heroSlides.length]);
 
   /* auto-advance review every 5s */
   useEffect(() => {
@@ -276,9 +275,11 @@ export default function HomePage() {
         .btn-outline { transition:all .2s; }
         .btn-outline:hover { background:${GL}!important;color:${DK}!important;transform:translateY(-2px); }
 
-        /* Hero: show desktop image on desktop, mobile image on mobile */
+        /* Hero image visibility by device */
         .hero-img-desktop { display:block; }
         .hero-img-mobile  { display:none; }
+        /* Slides visibility by show setting */
+        .hero-hide-desktop { display:none!important; }
 
         @media (max-width:1100px) { .cat-grid { grid-template-columns:repeat(3,1fr)!important; } }
         @media (max-width:640px)  {
@@ -288,15 +289,21 @@ export default function HomePage() {
           .hero-cta   { bottom:8%!important;right:50%!important;transform:translateX(50%)!important; }
           .hero-img-desktop { display:none!important; }
           .hero-img-mobile  { display:block!important; }
+          .hero-hide-desktop { display:flex!important; }
+          .hero-hide-mobile  { display:none!important; }
         }
       `}</style>
 
       {/* ══ HERO SLIDESHOW ══ */}
       <section style={{ position:"relative",lineHeight:0,overflow:"hidden",background:"#1a1a1a" }}>
-        {HERO_SLIDES.map((slide, i) => {
+        {heroSlides.map((slide, i) => {
           const isActive = i === heroIdx;
+          // show="desktop" → hide on mobile; show="mobile" → hide on desktop
+          const desktopHideClass = slide.show === "mobile" ? " hero-hide-desktop" : "";
+          const mobileHideClass  = slide.show === "desktop" ? " hero-hide-mobile" : "";
+          const slideClass = `hero-slide${desktopHideClass}${mobileHideClass}`;
           return (
-            <div key={i} style={{
+            <div key={slide.id} className={slideClass} style={{
               position: i === 0 ? "relative" : "absolute",
               inset: 0, lineHeight: 0,
               opacity: isActive ? (heroAnim ? 1 : 0) : 0,
@@ -304,11 +311,9 @@ export default function HomePage() {
               pointerEvents: isActive ? "auto" : "none",
               zIndex: isActive ? 1 : 0,
             }}>
-              {/* Desktop image */}
+              {/* Desktop image (hidden on mobile if mobile-specific image exists) */}
               <img src={slide.desktop} alt="مطروح أوليفي"
-                style={{ width:"100%", display:"block", maxHeight:620,
-                  objectFit:"cover", objectPosition:"center top",
-                  ...(slide.mobile ? { display: undefined } : {}) }}
+                style={{ width:"100%", display:"block", maxHeight:620, objectFit:"cover", objectPosition:"center top" }}
                 className={slide.mobile ? "hero-img-desktop" : ""} />
               {/* Mobile-only portrait image */}
               {slide.mobile && (
@@ -335,10 +340,10 @@ export default function HomePage() {
         </div>
 
         {/* Slide dots */}
-        {HERO_SLIDES.length > 1 && (
+        {heroSlides.length > 1 && (
           <div style={{ position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",
             zIndex:4,display:"flex",gap:8 }}>
-            {HERO_SLIDES.map((_,i) => (
+            {heroSlides.map((_,i) => (
               <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
                 style={{ width: i===heroIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
                   background: i===heroIdx ? AU : "rgba(255,255,255,.5)",
