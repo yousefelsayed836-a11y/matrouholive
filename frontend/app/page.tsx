@@ -6,10 +6,10 @@ import Link from "next/link";
 const HERO_BANNER = "https://assets.wuiltstore.com/cmesintt84hgm01ksersa5djl_1.png";
 const LOGO = "https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png";
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
-const GREEN = "#4B6741";
-const GREEN_DARK = "#3A5232";
-const CREAM = "#E8EDD0";
-const GOLD = "#D4AF37";
+const GREEN = "#4f7032";
+const GREEN_DARK = "#3d5828";
+const CREAM = "#d7f7b3";
+const GOLD = "#bd9a52";
 
 interface Product {
   id: string; name_en: string; name_ar?: string;
@@ -129,10 +129,10 @@ export default function HomePage() {
         .prod-card:hover .prod-img { transform: scale(1.07); }
 
         .feat-card { transition: transform .3s, box-shadow .3s; border: 2px solid transparent; }
-        .feat-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(75,103,65,0.16) !important; border-color: #c8d9b0; }
+        .feat-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(75,103,65,0.16) !important; border-color: #c8e6a0; }
 
         .btn-green { transition: background .2s, transform .15s, box-shadow .2s; }
-        .btn-green:hover { background: #3A5232 !important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(75,103,65,0.35) !important; }
+        .btn-green:hover { background: #3d5828 !important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(75,103,65,0.35) !important; }
         .btn-gold  { transition: background .2s, transform .15s, box-shadow .2s; }
         .btn-gold:hover { background: #b8941f !important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,175,55,0.4) !important; }
 
@@ -178,25 +178,25 @@ export default function HomePage() {
             <div key={i} style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <span style={{ fontSize: 22 }}>{s.icon}</span>
               <div style={{ fontSize: 18, fontWeight: 900, color: GOLD }}>{s.num}</div>
-              <div style={{ fontSize: 12, color: "#c8d9b0" }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: "#c8e6a0" }}>{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ══════════════ الأقسام ══════════════ */}
-      <section style={{ background: "#fff", padding: "56px 20px" }}>
+      <section style={{ background: "#f1f7c9", padding: "56px 20px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", direction: "rtl" }}>
           {/* العنوان */}
           <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <span style={{ display: "inline-block", background: "#E8EDD0", color: GREEN, fontWeight: 700, fontSize: 12, letterSpacing: 3, padding: "5px 18px", borderRadius: 20, textTransform: "uppercase", marginBottom: 12 }}>تسوق حسب القسم</span>
+            <span style={{ display: "inline-block", background: "#d7f7b3", color: GREEN, fontWeight: 700, fontSize: 12, letterSpacing: 3, padding: "5px 18px", borderRadius: 20, textTransform: "uppercase", marginBottom: 12 }}>تسوق حسب القسم</span>
             <h2 style={{ fontSize: 30, fontWeight: 800, color: "#2a3a20", margin: 0 }}>منتجات مطروح أوليفي</h2>
           </div>
 
           <div className="cat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 20 }}>
             {CATS.map((cat, i) => (
               <Link key={i} href={`/shop?collection=${cat.slug}`} className="cat-card" style={{
-                background: "#fff",
+                background: "#f1f7c9",
                 borderRadius: 15,
                 padding: "28px 16px 22px",
                 display: "flex", flexDirection: "column", alignItems: "center",
@@ -218,7 +218,7 @@ export default function HomePage() {
 
       {/* ══════════════ الأكثر مبيعاً ══════════════ */}
       {bestSellers.length > 0 && (
-        <section style={{ background: "#f5f9ee", padding: "56px 20px" }}>
+        <section style={{ background: "#f1f7c9", padding: "56px 20px" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", direction: "rtl" }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <span style={{ display: "inline-block", background: CREAM, color: GREEN, fontWeight: 700, fontSize: 12, letterSpacing: 3, padding: "5px 18px", borderRadius: 20, textTransform: "uppercase", marginBottom: 12 }}>المنتجات المميزة</span>
@@ -268,7 +268,7 @@ export default function HomePage() {
       )}
 
       {/* ══════════════ مميزاتنا ══════════════ */}
-      <section style={{ background: "#fff", padding: "56px 20px" }}>
+      <section style={{ background: "#f1f7c9", padding: "56px 20px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", direction: "rtl" }}>
           <div style={{ textAlign: "center", marginBottom: 40 }}>
             <h2 style={{ fontSize: 30, fontWeight: 800, color: "#2a3a20", margin: 0 }}>ما يميزنا</h2>
@@ -293,7 +293,7 @@ export default function HomePage() {
       {/* ══════════════ من نحن ══════════════ */}
       <section style={{ background: `linear-gradient(135deg, ${CREAM} 0%, #dde8c4 100%)`, padding: "56px 20px" }}>
         <div className="about-flex" style={{ maxWidth: 920, margin: "0 auto", display: "flex", alignItems: "center", gap: 52, direction: "rtl" }}>
-          <div className="about-logo" style={{ flex: "0 0 auto", width: 190, height: 190, background: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: `4px solid ${GOLD}`, overflow: "hidden", boxShadow: "0 8px 32px rgba(212,175,55,0.25)" }}>
+          <div className="about-logo" style={{ flex: "0 0 auto", width: 190, height: 190, background: "#f1f7c9", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: `4px solid ${GOLD}`, overflow: "hidden", boxShadow: "0 8px 32px rgba(212,175,55,0.25)" }}>
             <img src={LOGO} alt="مطروح أوليفي" style={{ width: "88%", height: "88%", objectFit: "contain" }} />
           </div>
           <div style={{ flex: 1 }}>
@@ -305,7 +305,7 @@ export default function HomePage() {
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {["صدق", "أمانة", "خبرة", "جودة"].map(tag => (
-                <span key={tag} style={{ padding: "7px 20px", borderRadius: 50, background: "#fff", color: GREEN, fontSize: 13, fontWeight: 800, border: `2px solid ${GREEN}` }}>{tag}</span>
+                <span key={tag} style={{ padding: "7px 20px", borderRadius: 50, background: "#f1f7c9", color: GREEN, fontSize: 13, fontWeight: 800, border: `2px solid ${GREEN}` }}>{tag}</span>
               ))}
             </div>
           </div>
@@ -313,11 +313,11 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════ آراء العملاء ══════════════ */}
-      <section style={{ background: "#fff", padding: "56px 20px", textAlign: "center" }}>
-        <span style={{ display: "inline-block", background: "#E8EDD0", color: GREEN, fontWeight: 700, fontSize: 12, letterSpacing: 3, padding: "5px 18px", borderRadius: 20, textTransform: "uppercase", marginBottom: 14 }}>آراء العملاء</span>
+      <section style={{ background: "#f1f7c9", padding: "56px 20px", textAlign: "center" }}>
+        <span style={{ display: "inline-block", background: "#d7f7b3", color: GREEN, fontWeight: 700, fontSize: 12, letterSpacing: 3, padding: "5px 18px", borderRadius: 20, textTransform: "uppercase", marginBottom: 14 }}>آراء العملاء</span>
         <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 36, color: "#2a3a20" }}>ماذا يقول عملاؤنا</h2>
 
-        <div style={{ background: "linear-gradient(135deg,#f5f9ee,#fff)", border: `2px solid ${CREAM}`, width: 420, maxWidth: "92%", margin: "0 auto", padding: 36, borderRadius: 24, boxShadow: "0 8px 40px rgba(75,103,65,0.12)", minHeight: 210, direction: "rtl" }}>
+        <div style={{ background: "linear-gradient(135deg,#f1f7c9,#fff)", border: `2px solid ${CREAM}`, width: 420, maxWidth: "92%", margin: "0 auto", padding: 36, borderRadius: 24, boxShadow: "0 8px 40px rgba(75,103,65,0.12)", minHeight: 210, direction: "rtl" }}>
           <div style={{ color: GOLD, fontSize: 24, marginBottom: 16, letterSpacing: 4 }}>{"★".repeat(allReviews[currentReview].stars)}</div>
           <p style={{ fontSize: 15, color: "#444", marginBottom: 20, lineHeight: 1.9, fontStyle: "italic" }}>"{allReviews[currentReview].text}"</p>
           <div style={{ fontSize: 14, color: GREEN, fontWeight: 800 }}>— {allReviews[currentReview].name}</div>
@@ -326,7 +326,7 @@ export default function HomePage() {
         {/* dots */}
         <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 8 }}>
           {allReviews.map((_, i) => (
-            <button key={i} onClick={() => setCurrentReview(i)} style={{ width: i === currentReview ? 24 : 8, height: 8, borderRadius: 4, border: "none", cursor: "pointer", background: i === currentReview ? GREEN : "#c8d9b0", transition: "all .3s", padding: 0 }} />
+            <button key={i} onClick={() => setCurrentReview(i)} style={{ width: i === currentReview ? 24 : 8, height: 8, borderRadius: 4, border: "none", cursor: "pointer", background: i === currentReview ? GREEN : "#c8e6a0", transition: "all .3s", padding: 0 }} />
           ))}
         </div>
 
@@ -337,9 +337,9 @@ export default function HomePage() {
             ✍️ أضف تقييمك
           </button>
           {showForm && (
-            <div style={{ maxWidth: 440, margin: "20px auto 0", padding: 28, borderRadius: 20, border: `1px solid ${CREAM}`, background: "#f5f9ee", boxShadow: "0 4px 24px rgba(75,103,65,0.1)", direction: "rtl" }}>
-              <textarea value={newReview.text} onChange={e => setNewReview(p => ({ ...p, text: e.target.value }))} placeholder="شاركنا تجربتك..." rows={3} style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #c8d9b0", fontSize: 14, resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: 10, background: "#fff" }} />
-              <input value={newReview.name} onChange={e => setNewReview(p => ({ ...p, name: e.target.value }))} placeholder="اسمك" style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #c8d9b0", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 14, background: "#fff" }} />
+            <div style={{ maxWidth: 440, margin: "20px auto 0", padding: 28, borderRadius: 20, border: `1px solid ${CREAM}`, background: "#f1f7c9", boxShadow: "0 4px 24px rgba(75,103,65,0.1)", direction: "rtl" }}>
+              <textarea value={newReview.text} onChange={e => setNewReview(p => ({ ...p, text: e.target.value }))} placeholder="شاركنا تجربتك..." rows={3} style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #c8e6a0", fontSize: 14, resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: 10, background: "#f1f7c9" }} />
+              <input value={newReview.name} onChange={e => setNewReview(p => ({ ...p, name: e.target.value }))} placeholder="اسمك" style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid #c8e6a0", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 14, background: "#f1f7c9" }} />
               <button onClick={submitReview} className="btn-green" style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: GREEN, color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 15 }}>إرسال التقييم ✓</button>
             </div>
           )}

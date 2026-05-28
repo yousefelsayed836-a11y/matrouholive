@@ -28,10 +28,10 @@ interface CartItem {
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
-const GREEN = "#4B6741";
-const GREEN_DARK = "#3A5232";
-const CREAM = "#E8EDD0";
-const GOLD = "#D4AF37";
+const GREEN = "#4f7032";
+const GREEN_DARK = "#3d5828";
+const CREAM = "#d7f7b3";
+const GOLD = "#bd9a52";
 
 const COLLECTIONS = [
   { key: "", label: "الكل", icon: "✨" },
@@ -142,7 +142,7 @@ function ShopContent() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f7faf4", fontFamily: "'Cairo', sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Cairo', sans-serif", direction: "rtl" }}>
 
       {/* زر السلة العائم */}
       <button onClick={() => setShowCart(true)} className="cart-fab" aria-label="سلة التسوق">
@@ -314,7 +314,7 @@ function ShopContent() {
                   <div className="product-info">
                     {p.category_name_ar && <span className="product-category">{p.category_name_ar}</span>}
                     <h3 className="product-name" onClick={() => openProduct(p)}>{displayName}</h3>
-                    <div style={{ color: "#D4AF37", fontSize: 13, letterSpacing: 1, marginBottom: 8 }}>★★★★★</div>
+                    <div style={{ color: "#bd9a52", fontSize: 13, letterSpacing: 1, marginBottom: 8 }}>★★★★★</div>
                     <div className="product-price-row">
                       <span className="product-price">{p.price} ج.م</span>
                       {hasDiscount && <span className="product-old-price">{p.old_price} ج.م</span>}
@@ -483,7 +483,7 @@ function ShopContent() {
           transition: transform 0.25s, box-shadow 0.25s;
           display: flex; flex-direction: column;
         }
-        .product-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(75,103,65,0.18); border-color: #c8d9b0; }
+        .product-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(75,103,65,0.18); border-color: #c8e6a0; }
 
         .product-img-wrap {
           position: relative; aspect-ratio: 1; overflow: hidden;
@@ -510,7 +510,7 @@ function ShopContent() {
         .badge-discount { background: #ef4444; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .badge-outofstock { background: #6b7280; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .badge-new { background: ${GOLD}; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-        .badge-volume { position: absolute; bottom: 10px; left: 10px; background: #4B6741; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+        .badge-volume { position: absolute; bottom: 10px; left: 10px; background: #4f7032; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
 
         .wishlist-btn {
           position: absolute; top: 10px; left: 10px; width: 32px; height: 32px;
@@ -536,7 +536,7 @@ function ShopContent() {
         .product-old-price { font-size: 12px; color: #bbb; text-decoration: line-through; }
 
         .product-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-        .qty-control { display: flex; align-items: center; border: 1.5px solid #c8d9b0; border-radius: 8px; overflow: hidden; }
+        .qty-control { display: flex; align-items: center; border: 1.5px solid #c8e6a0; border-radius: 8px; overflow: hidden; }
         .qty-ctrl-btn {
           width: 30px; height: 34px; border: none; background: #fff;
           cursor: pointer; font-size: 16px; font-weight: 700; color: ${GREEN};

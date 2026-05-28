@@ -19,10 +19,21 @@ interface Product {
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 const LOGO = "https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png";
 
+// Brand colors
+const C = {
+  green: "#4f7032",
+  greenDark: "#3d5828",
+  cream: "#f1f7c9",
+  light: "#d7f7b3",
+  border: "#c8e6a0",
+  gold: "#bd9a52",
+  dark: "#2d2b27",
+};
+
 function getImg(p: Product) {
   const img = p.main_image || (p.images && p.images[0]);
   if (!img) return null;
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:")) return img;
   return `http://localhost:5000${img}`;
 }
 
@@ -83,10 +94,7 @@ export default function Header() {
     if (!q.trim()) { setResults([]); setShowDropdown(false); return; }
     setSearching(true);
     try {
-      const res = await fetch(
-        `${API_BASE}/products?search=${encodeURIComponent(q)}&is_active=true&limit=8`,
-        { cache: "no-store" }
-      );
+      const res = await fetch(`${API_BASE}/products?search=${encodeURIComponent(q)}&is_active=true&limit=8`, { cache: "no-store" });
       const data = await res.json();
       setResults(data.products || []);
       setShowDropdown(true);
@@ -114,14 +122,7 @@ export default function Header() {
   return (
     <>
       {/* شريط إعلانات */}
-      <div style={{
-        background: "#4B6741",
-        overflow: "hidden",
-        padding: "8px 0",
-        position: "sticky",
-        top: 0,
-        zIndex: 101,
-      }}>
+      <div style={{ background: C.green, overflow: "hidden", padding: "8px 0", position: "sticky", top: 0, zIndex: 101 }}>
         <div style={{ display: "flex", width: "200%", animation: "tickerScroll 26s linear infinite" }}>
           {[1, 2].map(k => (
             <div key={k} style={{ flex: "0 0 50%", display: "flex", justifyContent: "space-around" }}>
@@ -132,7 +133,7 @@ export default function Header() {
                 "🫒 زيت زيتون بكر ممتاز من مطروح",
                 "✨ صدق .. أمانة .. خبرة",
               ].map((t, i) => (
-                <span key={i} style={{ color: "#E8EDD0", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", padding: "0 40px", fontFamily: "Cairo, sans-serif" }}>
+                <span key={i} style={{ color: C.light, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", padding: "0 40px", fontFamily: "Cairo, sans-serif" }}>
                   {t}
                 </span>
               ))}
@@ -143,38 +144,30 @@ export default function Header() {
 
       {/* الهيدر */}
       <header style={{
-        position: "sticky",
-        top: "36px",
-        zIndex: 100,
+        position: "sticky", top: "36px", zIndex: 100,
         background: "#fff",
-        borderBottom: "1px solid #d8e4c4",
-        boxShadow: "0 2px 12px rgba(75,103,65,0.08)",
+        borderBottom: `1px solid ${C.border}`,
+        boxShadow: "0 2px 16px rgba(79,112,50,0.1)",
         padding: "8px 24px",
       }}>
         <div className="header-inner" style={{ maxWidth: 1300, margin: "0 auto", display: "flex", alignItems: "center", gap: 16, direction: "rtl" }}>
 
           {/* اللوجو */}
           <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
-            <img
-              src={LOGO}
-              alt="مطروح أوليفي"
-              className="header-logo"
-              style={{ height: 52, width: "auto", display: "block" }}
-            />
+            <img src={LOGO} alt="مطروح أوليفي" className="header-logo" style={{ height: 52, width: "auto", display: "block" }} />
           </Link>
 
-          {/* روابط تنقل - ديسكتوب */}
+          {/* روابط تنقل */}
           <nav style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }} className="desktop-nav">
             {NAV_LINKS.map(item => (
               <Link key={item.href} href={item.href} style={{
                 padding: "7px 16px", borderRadius: 20, textDecoration: "none",
                 fontSize: 14, fontWeight: 600, whiteSpace: "nowrap",
-                color: pathname === item.href ? "#fff" : "#4B6741",
-                background: pathname === item.href ? "#4B6741" : "transparent",
-                transition: "all 0.2s",
-                fontFamily: "Cairo, sans-serif",
+                color: pathname === item.href ? "#fff" : C.green,
+                background: pathname === item.href ? C.green : "transparent",
+                transition: "all 0.2s", fontFamily: "Cairo, sans-serif",
               }}
-                onMouseEnter={e => { if (pathname !== item.href) (e.currentTarget as HTMLAnchorElement).style.background = "#E8EDD0"; }}
+                onMouseEnter={e => { if (pathname !== item.href) (e.currentTarget as HTMLAnchorElement).style.background = C.light; }}
                 onMouseLeave={e => { if (pathname !== item.href) (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}>
                 {item.label}
               </Link>
@@ -184,27 +177,27 @@ export default function Header() {
           {/* البحث */}
           <div ref={searchRef} className="header-search" style={{ flex: 1, maxWidth: 480, position: "relative" }}>
             <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15, color: "#4B6741", pointerEvents: "none" }}>🔍</span>
+              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15, color: C.green, pointerEvents: "none" }}>🔍</span>
               <input
-                type="text"
-                value={query}
+                type="text" value={query}
                 onChange={e => handleInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => query && setShowDropdown(true)}
                 placeholder="ابحث عن منتج..."
                 style={{
                   width: "100%", padding: "9px 40px 9px 36px",
-                  borderRadius: 30, border: "1.5px solid #c8d9b0",
-                  fontSize: 14, outline: "none", background: "#f8fbf4",
-                  color: "#333", boxSizing: "border-box",
+                  borderRadius: 30, border: `1.5px solid ${C.border}`,
+                  fontSize: 14, outline: "none", background: C.cream,
+                  color: C.dark, boxSizing: "border-box",
                   direction: "rtl", fontFamily: "Cairo, sans-serif",
+                  transition: "border-color 0.2s, box-shadow 0.2s",
                 }}
                 onFocusCapture={e => {
-                  (e.target as HTMLInputElement).style.borderColor = "#4B6741";
-                  (e.target as HTMLInputElement).style.boxShadow = "0 0 0 3px rgba(75,103,65,0.12)";
+                  (e.target as HTMLInputElement).style.borderColor = C.green;
+                  (e.target as HTMLInputElement).style.boxShadow = `0 0 0 3px rgba(79,112,50,0.12)`;
                 }}
                 onBlurCapture={e => {
-                  (e.target as HTMLInputElement).style.borderColor = "#c8d9b0";
+                  (e.target as HTMLInputElement).style.borderColor = C.border;
                   (e.target as HTMLInputElement).style.boxShadow = "none";
                 }}
               />
@@ -217,7 +210,7 @@ export default function Header() {
             </div>
 
             {showDropdown && query && (
-              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0, background: "#fff", borderRadius: 16, border: "1px solid #c8d9b0", boxShadow: "0 12px 40px rgba(75,103,65,0.15)", zIndex: 200, overflow: "hidden", maxHeight: 400, overflowY: "auto" }}>
+              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0, background: "#fff", borderRadius: 16, border: `1px solid ${C.border}`, boxShadow: "0 12px 40px rgba(79,112,50,0.15)", zIndex: 200, overflow: "hidden", maxHeight: 400, overflowY: "auto" }}>
                 {results.length === 0 ? (
                   <div style={{ padding: 20, textAlign: "center", color: "#bbb", fontSize: 14, fontFamily: "Cairo, sans-serif" }}>
                     لا توجد نتائج لـ "<strong>{query}</strong>"
@@ -227,23 +220,23 @@ export default function Header() {
                     {results.map(p => (
                       <Link key={p.id} href={`/products/slug?id=${p.id}`}
                         onClick={() => { setShowDropdown(false); setQuery(""); }}
-                        style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid #f0f5e8", color: "inherit", transition: "background 0.15s", direction: "rtl" }}
-                        onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "#f5f9ee"}
+                        style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: `1px solid ${C.cream}`, color: "inherit", direction: "rtl" }}
+                        onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = C.cream}
                         onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "transparent"}>
-                        <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#E8EDD0" }}>
+                        <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.light }}>
                           {getImg(p) ? (
                             <img src={getImg(p)!} alt={p.name_en} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>🫒</div>}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "#2a3a20", fontFamily: "Cairo, sans-serif" }}>{p.name_ar || p.name_en}</div>
-                          {(p.category_name_ar || p.category_name) && <div style={{ fontSize: 12, color: "#4B6741", fontFamily: "Cairo, sans-serif" }}>{p.category_name_ar || p.category_name}</div>}
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.dark, fontFamily: "Cairo, sans-serif" }}>{p.name_ar || p.name_en}</div>
+                          {(p.category_name_ar || p.category_name) && <div style={{ fontSize: 12, color: C.green, fontFamily: "Cairo, sans-serif" }}>{p.category_name_ar || p.category_name}</div>}
                         </div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "#4B6741", flexShrink: 0 }}>{p.price} ج.م</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.green, flexShrink: 0 }}>{p.price} ج.م</div>
                       </Link>
                     ))}
                     <button onClick={() => { setShowDropdown(false); router.push(`/shop?search=${encodeURIComponent(query)}`); }}
-                      style={{ width: "100%", padding: 12, background: "#fff", border: "none", color: "#4B6741", fontSize: 13, fontWeight: 700, cursor: "pointer", borderTop: "1px solid #c8d9b0", fontFamily: "Cairo, sans-serif" }}>
+                      style={{ width: "100%", padding: 12, background: "#fff", border: "none", color: C.green, fontSize: 13, fontWeight: 700, cursor: "pointer", borderTop: `1px solid ${C.border}`, fontFamily: "Cairo, sans-serif" }}>
                       عرض كل النتائج →
                     </button>
                   </>
@@ -254,45 +247,42 @@ export default function Header() {
 
           {/* أيقونات اليمين */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            {/* سوشيال */}
             <div className="social-icons" style={{ display: "flex", gap: 6 }}>
               {[
                 { icon: "📘", label: "Facebook" },
                 { icon: "📷", label: "Instagram" },
                 { icon: "💬", label: "WhatsApp" },
               ].map(s => (
-                <a key={s.label} href="#" title={s.label} style={{ width: 32, height: 32, borderRadius: "50%", background: "#E8EDD0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, textDecoration: "none", transition: "background 0.2s" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "#c8d9b0"}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "#E8EDD0"}>
+                <a key={s.label} href="#" title={s.label}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: C.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, textDecoration: "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = C.border}
+                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = C.light}>
                   {s.icon}
                 </a>
               ))}
             </div>
 
-            {/* كارت */}
             <Link href="/cart" style={{ position: "relative", textDecoration: "none", fontSize: 22, padding: "4px 8px" }}>
               🛒
               {cartCount > 0 && (
-                <span style={{ position: "absolute", top: 0, right: 0, background: "#4B6741", color: "#fff", width: 18, height: 18, borderRadius: "50%", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ position: "absolute", top: 0, right: 0, background: C.green, color: "#fff", width: 18, height: 18, borderRadius: "50%", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {cartCount > 9 ? "9+" : cartCount}
                 </span>
               )}
             </Link>
 
-            {/* موبايل هامبرجر */}
             <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{ display: "none", background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#4B6741" }}>
+              style={{ display: "none", background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.green }}>
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
           </div>
         </div>
 
-        {/* موبايل قائمة */}
         {mobileMenuOpen && (
-          <div style={{ background: "#fff", borderTop: "1px solid #E8EDD0", padding: "12px 24px", direction: "rtl" }}>
+          <div style={{ background: "#fff", borderTop: `1px solid ${C.border}`, padding: "12px 24px", direction: "rtl" }}>
             {NAV_LINKS.map(item => (
               <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}
-                style={{ display: "block", padding: "10px 0", fontSize: 15, fontWeight: 600, color: pathname === item.href ? "#4B6741" : "#333", textDecoration: "none", borderBottom: "1px solid #E8EDD0", fontFamily: "Cairo, sans-serif" }}>
+                style={{ display: "block", padding: "10px 0", fontSize: 15, fontWeight: 600, color: pathname === item.href ? C.green : C.dark, textDecoration: "none", borderBottom: `1px solid ${C.cream}`, fontFamily: "Cairo, sans-serif" }}>
                 {item.label}
               </Link>
             ))}
@@ -300,7 +290,7 @@ export default function Header() {
         )}
       </header>
 
-      {/* Eid Al-Adha Free Shipping Popup */}
+      {/* Eid Popup */}
       {showEidBanner && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
           onClick={() => { localStorage.setItem('eid_adha_banner_v1', '1'); setShowEidBanner(false); }}>
@@ -309,14 +299,14 @@ export default function Header() {
             <button onClick={() => { localStorage.setItem('eid_adha_banner_v1', '1'); setShowEidBanner(false); }}
               style={{ position: "absolute", top: 14, left: 14, background: "#f5f5f5", border: "none", borderRadius: "50%", width: 30, height: 30, fontSize: 18, cursor: "pointer", color: "#888", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
             <div style={{ fontSize: 52, marginBottom: 10 }}>🎊</div>
-            <h2 style={{ color: "#2d4a28", margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>بمناسبة عيد الأضحى المبارك</h2>
-            <div style={{ background: "linear-gradient(135deg,#4B6741,#3A5232)", borderRadius: 16, padding: "16px 20px", margin: "16px 0" }}>
-              <p style={{ color: "#E8EDD0", margin: 0, fontSize: 18, fontWeight: 800 }}>🚚 شحن مجاني</p>
+            <h2 style={{ color: C.greenDark, margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>بمناسبة عيد الأضحى المبارك</h2>
+            <div style={{ background: `linear-gradient(135deg,${C.green},${C.greenDark})`, borderRadius: 16, padding: "16px 20px", margin: "16px 0" }}>
+              <p style={{ color: C.light, margin: 0, fontSize: 18, fontWeight: 800 }}>🚚 شحن مجاني</p>
               <p style={{ color: "#fff", margin: "6px 0 0", fontSize: 15, fontWeight: 700 }}>لأي أوردر يتخطى 1000 جنيه!</p>
             </div>
             <p style={{ color: "#888", margin: "0 0 20px", fontSize: 13 }}>⏳ العرض ساري لفترة محدودة — لا تفوّتك الفرصة!</p>
             <button onClick={() => { localStorage.setItem('eid_adha_banner_v1', '1'); setShowEidBanner(false); router.push('/shop'); }}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 30, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>
+              style={{ width: "100%", padding: "13px 0", borderRadius: 30, border: "none", background: `linear-gradient(135deg,${C.green},${C.greenDark})`, color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>
               🛒 تسوق الآن
             </button>
           </div>
@@ -331,9 +321,9 @@ export default function Header() {
           .mobile-menu-btn { display: flex !important; }
         }
         @media (max-width: 600px) {
-          .header-inner    { gap: 8px !important; padding: 6px 12px !important; }
-          .header-logo     { height: 40px !important; }
-          .header-search   { min-width: 0 !important; flex: 1 !important; max-width: 100% !important; }
+          .header-inner  { gap: 8px !important; padding: 6px 12px !important; }
+          .header-logo   { height: 40px !important; }
+          .header-search { min-width: 0 !important; flex: 1 !important; max-width: 100% !important; }
           .header-search input { font-size: 13px !important; padding: 8px 36px 8px 28px !important; }
         }
       `}</style>

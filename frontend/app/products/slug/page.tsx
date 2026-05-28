@@ -6,9 +6,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
-const GREEN = "#4B6741";
-const CREAM = "#E8EDD0";
-const GOLD = "#D4AF37";
+const GREEN = "#4f7032";
+const CREAM = "#d7f7b3";
+const GOLD = "#bd9a52";
 
 interface Product {
   id: string;
@@ -100,7 +100,7 @@ function ProductContent() {
   const name = product.name_ar || product.name_en;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f9ee", fontFamily: "Cairo, sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "Cairo, sans-serif", direction: "rtl" }}>
       <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');`}</style>
 
       {/* مسار التنقل */}
@@ -179,7 +179,7 @@ function ProductContent() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto" }}>
               <button onClick={addToCart} disabled={!inStock}
                 style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: inStock ? GREEN : "#ccc", color: "#fff", fontSize: 16, fontWeight: 700, cursor: inStock ? "pointer" : "not-allowed", fontFamily: "Cairo, sans-serif", transition: "all 0.2s" }}
-                onMouseEnter={e => { if (inStock) (e.currentTarget as HTMLButtonElement).style.background = "#3A5232"; }}
+                onMouseEnter={e => { if (inStock) (e.currentTarget as HTMLButtonElement).style.background = "#3d5828"; }}
                 onMouseLeave={e => { if (inStock) (e.currentTarget as HTMLButtonElement).style.background = GREEN; }}>
                 {added ? "✅ تمت الإضافة!" : inStock ? "🛒 أضف للسلة" : "نفد المخزون"}
               </button>

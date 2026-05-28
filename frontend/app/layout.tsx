@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             src="https://www.facebook.com/tr?id=1441876790405084&ev=PageView&noscript=1" />
         </noscript>
       </head>
-      <body className={`${inter.className} ${cairo.variable}`} style={{ background: '#fff', margin: 0 }}>
+      <body className={`${inter.className} ${cairo.variable}`} style={{ background: '#f1f7c9', margin: 0 }}>
         <Script id="fb-pixel" strategy="afterInteractive">{`
           !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
           n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartProvider>
           <FaviconLoader />
           <Header />
-          <main style={{ minHeight: '100vh', background: '#fff' }}>
+          <main style={{ minHeight: '100vh', background: '#f1f7c9' }}>
             {children}
           </main>
         </CartProvider>

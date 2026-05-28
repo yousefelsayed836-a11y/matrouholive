@@ -97,19 +97,42 @@ export default function ProductsPage() {
   const uploadImages = async (files: File[], currentImages: string[], setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
+      // Try GitHub upload first
       const formData = new FormData();
       for (let i = 0; i < files.length; i++) {
         const blob = await compressToBlob(files[i], 800, 0.75);
         formData.append('images', blob, `img-${Date.now()}-${i}.jpg`);
       }
       const res = await fetch(`${API_BASE}/upload/multiple`, { method: 'POST', body: formData });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Upload failed'); }
-      const data = await res.json();
-      const next = [...currentImages, ...(data.urls || [])];
+      if (res.ok) {
+        const data = await res.json();
+        const next = [...currentImages, ...(data.urls || [])];
+        setter("images", next);
+        setter("main_image", next[0] || "");
+        return;
+      }
+    } catch {}
+    // Fallback: store as base64 data URLs
+    try {
+      const dataUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const blob = await compressToBlob(files[i], 800, 0.75);
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target!.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        dataUrls.push(dataUrl);
+      }
+      const next = [...currentImages, ...dataUrls];
       setter("images", next);
       setter("main_image", next[0] || "");
-    } catch (e: any) { alert("فشل تحميل الصورة: " + e.message); }
-    finally { setUploadingImage(false); }
+    } catch (e: any) {
+      alert("فشل تحميل الصورة: " + e.message);
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   // ✅ FIXED: handlers defined OUTSIDE render, stable references = no re-render focus loss
