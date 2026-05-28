@@ -67,6 +67,7 @@ const CARD_W = 270;
 const CARD_GAP = 20;
 
 export default function HomePage() {
+  const [siteSettings, setSiteSettings] = useState({ name:"مطروح أوليفي", whatsapp:"", address:"", announcement:"" });
   const [heroSlides, setHeroSlides]     = useState<HeroSlide[]>([{ id: "default", desktop: HERO_BANNER, show: "both" }]);
   const [heroIdx, setHeroIdx]           = useState(0);
   const [heroAnim, setHeroAnim]         = useState(true);
@@ -99,6 +100,14 @@ export default function HomePage() {
           const slides: HeroSlide[] = JSON.parse(d.value);
           if (slides.length > 0) setHeroSlides(slides);
         }
+      } catch {}
+    })();
+
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/settings/site_settings`);
+        const d = await r.json();
+        if (d.value) setSiteSettings(s => ({ ...s, ...JSON.parse(d.value) }));
       } catch {}
     })();
 
@@ -293,6 +302,14 @@ export default function HomePage() {
           .hero-hide-mobile  { display:none!important; }
         }
       `}</style>
+
+      {/* ══ ANNOUNCEMENT BAR ══ */}
+      {siteSettings.announcement && (
+        <div style={{ background:GD, color:"#fff", textAlign:"center", padding:"9px 20px",
+          fontSize:13, fontWeight:600, direction:"rtl", letterSpacing:.3 }}>
+          {siteSettings.announcement}
+        </div>
+      )}
 
       {/* ══ HERO SLIDESHOW ══ */}
       <section style={{ position:"relative",lineHeight:0,overflow:"hidden",background:"#1a1a1a" }}>

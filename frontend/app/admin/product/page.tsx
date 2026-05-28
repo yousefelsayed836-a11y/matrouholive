@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import ProductFormFields from "@/components/ProductFormFields";
+import { uploadToGitHub } from "../../../lib/uploadToGitHub";
 
 interface Category { id: string; name_en: string; slug: string; }
 interface Variant { option_name: string; option_value: string; quantity: number; price_override: number | null; sku: string; }
@@ -14,27 +15,6 @@ interface Product {
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 
-function compressToBlob(file: File, maxDim: number, quality: number): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
-      };
-      img.src = e.target!.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 function getProductImage(p: Product) {
   const img = p.main_image || (p.images && p.images[0]) || p.image_url;
@@ -97,39 +77,16 @@ export default function ProductsPage() {
   const uploadImages = async (files: File[], currentImages: string[], setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
-      // Try GitHub upload first
-      const formData = new FormData();
+      const urls: string[] = [];
       for (let i = 0; i < files.length; i++) {
-        const blob = await compressToBlob(files[i], 800, 0.75);
-        formData.append('images', blob, `img-${Date.now()}-${i}.jpg`);
+        const url = await uploadToGitHub(files[i], 900, 0.82);
+        urls.push(url);
       }
-      const res = await fetch(`${API_BASE}/upload/multiple`, { method: 'POST', body: formData });
-      if (res.ok) {
-        const data = await res.json();
-        const next = [...currentImages, ...(data.urls || [])];
-        setter("images", next);
-        setter("main_image", next[0] || "");
-        return;
-      }
-    } catch {}
-    // Fallback: store as base64 data URLs
-    try {
-      const dataUrls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const blob = await compressToBlob(files[i], 800, 0.75);
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = e => resolve(e.target!.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        dataUrls.push(dataUrl);
-      }
-      const next = [...currentImages, ...dataUrls];
+      const next = [...currentImages, ...urls];
       setter("images", next);
-      setter("main_image", next[0] || "");
+      if (!currentImages.length) setter("main_image", next[0] || "");
     } catch (e: any) {
-      alert("فشل تحميل الصورة: " + e.message);
+      alert("فشل رفع الصورة: " + e.message);
     } finally {
       setUploadingImage(false);
     }

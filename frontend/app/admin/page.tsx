@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { uploadToGitHub } from "../../lib/uploadToGitHub";
 import Link from "next/link";
 
 interface Order {
@@ -76,6 +77,12 @@ export default function AdminDashboard() {
   const [heroMsg, setHeroMsg] = useState("");
   const [heroUploading, setHeroUploading] = useState(false);
 
+  // Site settings
+  const [siteSettings, setSiteSettings] = useState({
+    name: "مطروح أوليفي", whatsapp: "", address: "", announcement: "",
+  });
+  const [siteSettingsMsg, setSiteSettingsMsg] = useState("");
+
   const [faviconUrl, setFaviconUrl] = useState("");
   const [faviconUploading, setFaviconUploading] = useState(false);
   const [faviconMsg, setFaviconMsg] = useState("");
@@ -94,6 +101,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetch(`${API_BASE}/settings/favicon`).then(r => r.json()).then(d => { if (d.value) setFaviconUrl(d.value); }).catch(() => {});
+    fetch(`${API_BASE}/settings/site_settings`).then(r => r.json()).then(d => {
+      if (d.value) try { setSiteSettings(s => ({ ...s, ...JSON.parse(d.value) })); } catch {}
+    }).catch(() => {});
     fetch(`${API_BASE}/settings/hero_slides`).then(r => r.json()).then(d => {
       if (d.value) try { setHeroSlides(JSON.parse(d.value)); } catch {}
     }).catch(() => {});
@@ -129,11 +139,8 @@ export default function AdminDashboard() {
   const uploadHeroImage = async (file: File, targetSlideId: string | null, field: "desktop" | "mobile") => {
     setHeroUploading(true); setHeroMsg("");
     try {
-      const formData = new FormData(); formData.append("image", file);
-      const res = await fetch(`${API_ROOT}/api/upload`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!data.url) throw new Error(data.error || "فشل الرفع");
-      const url: string = data.url;
+      const maxDim = field === "desktop" ? 1400 : 900;
+      const url = await uploadToGitHub(file, maxDim, 0.82);
       let updated: HeroSlide[];
       if (targetSlideId) {
         updated = heroSlides.map(s => s.id === targetSlideId ? { ...s, [field]: url } : s);
@@ -451,6 +458,41 @@ export default function AdminDashboard() {
               {emailTestMsg}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Site Settings ────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb", marginBottom: 24 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>إعدادات الموقع</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, direction: "rtl" }}>
+          {([
+            ["name",         "اسم الموقع / المتجر",          "مطروح أوليفي"],
+            ["whatsapp",     "رقم واتساب (للتواصل)",          "01xxxxxxxxx"],
+            ["address",      "العنوان",                       "مطروح، مصر"],
+            ["announcement", "إعلان في أعلى الموقع (اتركه فاضي للإخفاء)", "مثال: شحن مجاني فوق 500 ج"],
+          ] as const).map(([key, label, placeholder]) => (
+            <div key={key} style={{ ...(key === "announcement" ? { gridColumn: "1 / -1" } : {}) }}>
+              <label style={{ display: "block", fontSize: 11, color: "#888", marginBottom: 5, fontWeight: 600 }}>{label}</label>
+              <input
+                value={siteSettings[key]}
+                onChange={e => setSiteSettings(s => ({ ...s, [key]: e.target.value }))}
+                placeholder={placeholder}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, direction: "rtl" }}>
+          <button onClick={async () => {
+            try {
+              await fetch(`${API_BASE}/settings/site_settings`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: JSON.stringify(siteSettings) }) });
+              setSiteSettingsMsg("✅ تم الحفظ!");
+            } catch { setSiteSettingsMsg("❌ فشل"); }
+            setTimeout(() => setSiteSettingsMsg(""), 3000);
+          }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            حفظ الإعدادات
+          </button>
+          {siteSettingsMsg && <span style={{ fontSize: 13, fontWeight: 600, color: siteSettingsMsg.includes("✅") ? "#166534" : "#991b1b" }}>{siteSettingsMsg}</span>}
         </div>
       </div>
 
