@@ -4,6 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const HERO_BANNER = "https://assets.wuiltstore.com/cmesintt84hgm01ksersa5djl_1.png";
+// Hero slides: [desktop_image, mobile_image (portrait, shown on mobile only)]
+// Add your uploaded image URLs here:
+const HERO_SLIDES: { desktop: string; mobile?: string }[] = [
+  { desktop: HERO_BANNER },
+  { desktop: "REPLACE_WITH_LANDSCAPE_URL", mobile: "REPLACE_WITH_PORTRAIT_URL" },
+];
 const LOGO      = "https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png";
 const API_BASE  = (process.env.NEXT_PUBLIC_API_URL || "https://api.matrouholive.com") + "/api";
 
@@ -66,6 +72,8 @@ const CARD_W = 270;
 const CARD_GAP = 20;
 
 export default function HomePage() {
+  const [heroIdx, setHeroIdx]           = useState(0);
+  const [heroAnim, setHeroAnim]         = useState(true);
   const [bestSellers, setBestSellers]   = useState<Product[]>([]);
   const [addedId, setAddedId]           = useState<string | null>(null);
   const [scrollIdx, setScrollIdx]       = useState(0);        // current first visible card
@@ -109,6 +117,27 @@ export default function HomePage() {
       } catch {}
     })();
   }, []);
+
+  /* auto-advance hero every 5s */
+  useEffect(() => {
+    if (HERO_SLIDES.length <= 1) return;
+    const t = setInterval(() => {
+      setHeroAnim(false);
+      setTimeout(() => {
+        setHeroIdx(i => (i + 1) % HERO_SLIDES.length);
+        setHeroAnim(true);
+      }, 400);
+    }, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const goHero = (dir: 1 | -1) => {
+    setHeroAnim(false);
+    setTimeout(() => {
+      setHeroIdx(i => (i + dir + HERO_SLIDES.length) % HERO_SLIDES.length);
+      setHeroAnim(true);
+    }, 300);
+  };
 
   /* auto-advance review every 5s */
   useEffect(() => {
@@ -247,22 +276,56 @@ export default function HomePage() {
         .btn-outline { transition:all .2s; }
         .btn-outline:hover { background:${GL}!important;color:${DK}!important;transform:translateY(-2px); }
 
+        /* Hero: show desktop image on desktop, mobile image on mobile */
+        .hero-img-desktop { display:block; }
+        .hero-img-mobile  { display:none; }
+
         @media (max-width:1100px) { .cat-grid { grid-template-columns:repeat(3,1fr)!important; } }
         @media (max-width:640px)  {
           .cat-grid { grid-template-columns:repeat(2,1fr)!important;gap:12px!important; }
           .about-flex { flex-direction:column!important;text-align:center!important; }
           .about-img  { width:130px!important;height:130px!important; }
           .hero-cta   { bottom:8%!important;right:50%!important;transform:translateX(50%)!important; }
+          .hero-img-desktop { display:none!important; }
+          .hero-img-mobile  { display:block!important; }
         }
       `}</style>
 
-      {/* ══ HERO ══ */}
-      <section style={{ position:"relative",lineHeight:0,overflow:"hidden" }}>
-        <img src={HERO_BANNER} alt="مطروح أوليفي"
-          style={{ width:"100%",display:"block",maxHeight:620,objectFit:"cover",objectPosition:"center top" }} />
-        <div style={{ position:"absolute",inset:0,
-          background:"linear-gradient(105deg,rgba(45,43,39,.5) 0%,rgba(45,43,39,.1) 55%,transparent 100%)" }} />
-        <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",animation:"fadeUp .9s ease .3s both" }}>
+      {/* ══ HERO SLIDESHOW ══ */}
+      <section style={{ position:"relative",lineHeight:0,overflow:"hidden",background:"#1a1a1a" }}>
+        {HERO_SLIDES.map((slide, i) => {
+          const isActive = i === heroIdx;
+          return (
+            <div key={i} style={{
+              position: i === 0 ? "relative" : "absolute",
+              inset: 0, lineHeight: 0,
+              opacity: isActive ? (heroAnim ? 1 : 0) : 0,
+              transition: "opacity .6s ease",
+              pointerEvents: isActive ? "auto" : "none",
+              zIndex: isActive ? 1 : 0,
+            }}>
+              {/* Desktop image */}
+              <img src={slide.desktop} alt="مطروح أوليفي"
+                style={{ width:"100%", display:"block", maxHeight:620,
+                  objectFit:"cover", objectPosition:"center top",
+                  ...(slide.mobile ? { display: undefined } : {}) }}
+                className={slide.mobile ? "hero-img-desktop" : ""} />
+              {/* Mobile-only portrait image */}
+              {slide.mobile && (
+                <img src={slide.mobile} alt="مطروح أوليفي"
+                  style={{ width:"100%", display:"block", maxHeight:600, objectFit:"cover", objectPosition:"center top" }}
+                  className="hero-img-mobile" />
+              )}
+            </div>
+          );
+        })}
+
+        {/* Gradient overlay */}
+        <div style={{ position:"absolute",inset:0,zIndex:2,
+          background:"linear-gradient(105deg,rgba(45,43,39,.52) 0%,rgba(45,43,39,.12) 55%,transparent 100%)" }} />
+
+        {/* Shop Now button */}
+        <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}>
           <Link href="/shop" className="btn-gold"
             style={{ display:"inline-block",background:AU,color:"#fff",padding:"14px 44px",borderRadius:50,
               textDecoration:"none",fontWeight:800,fontSize:16,letterSpacing:.5,
@@ -270,6 +333,19 @@ export default function HomePage() {
             تسوق الآن
           </Link>
         </div>
+
+        {/* Slide dots */}
+        {HERO_SLIDES.length > 1 && (
+          <div style={{ position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",
+            zIndex:4,display:"flex",gap:8 }}>
+            {HERO_SLIDES.map((_,i) => (
+              <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
+                style={{ width: i===heroIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
+                  background: i===heroIdx ? AU : "rgba(255,255,255,.5)",
+                  transition:"width .3s ease,background .3s ease", padding:0 }} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ══ STATS ══ */}
