@@ -290,7 +290,12 @@ export default function HomePage() {
         /* Slides visibility by show setting */
         .hero-hide-desktop { display:none!important; }
 
-        @media (max-width:1100px) { .cat-grid { grid-template-columns:repeat(3,1fr)!important; } }
+        @media (max-width:1100px) {
+          .cat-grid { grid-template-columns:repeat(3,1fr)!important; }
+        }
+        @media (max-width:540px) {
+          .stats-grid { grid-template-columns:repeat(2,1fr)!important; }
+        }
         @media (max-width:640px)  {
           .cat-grid { grid-template-columns:repeat(2,1fr)!important;gap:12px!important; }
           .about-flex { flex-direction:column!important;text-align:center!important; }
@@ -372,8 +377,8 @@ export default function HomePage() {
 
       {/* ══ STATS ══ */}
       <section style={{ background:`linear-gradient(135deg,${GD} 0%,${G} 100%)`,padding:"22px 24px" }}>
-        <div ref={stats.ref} className={`anim-up${stats.vis?" vis":""}`}
-          style={{ maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:20,direction:"rtl" }}>
+        <div ref={stats.ref} className={`anim-up stats-grid${stats.vis?" vis":""}`}
+          style={{ maxWidth:1100,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,direction:"rtl" }}>
           {[
             { icon:"fa-seedling", num:"100%",      label:"طبيعي نقي" },
             { icon:"fa-users",    num:"+10,000",   label:"عميل سعيد" },
