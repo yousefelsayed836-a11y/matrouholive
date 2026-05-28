@@ -66,6 +66,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/reviews', require('./routes/reviews'));
 
 const bulkUploadRoutes = require('./routes/admin/bulkUpload');
 app.use('/api/admin/products/bulk-upload', upload.single('csv'), bulkUploadRoutes);
