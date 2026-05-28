@@ -18,6 +18,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl">
       <head>
+        {/* Apply cached favicon instantly before hydration to avoid flicker */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var f = localStorage.getItem('favicon_cache');
+            if (f) {
+              var l = document.createElement('link');
+              l.rel = 'icon';
+              l.href = f;
+              document.head.appendChild(l);
+            }
+          } catch(e) {}
+        ` }} />
         <link rel="preconnect" href="https://assets.wuiltstore.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
