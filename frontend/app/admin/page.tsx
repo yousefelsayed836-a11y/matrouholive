@@ -21,7 +21,8 @@ interface Product {
   images?: string | string[];
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
+const API_ROOT = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = API_ROOT + "/api";
 
 function compressImage(file: File, maxDim: number, quality: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -129,7 +130,7 @@ export default function AdminDashboard() {
     setHeroUploading(true); setHeroMsg("");
     try {
       const formData = new FormData(); formData.append("image", file);
-      const res = await fetch(`${API_BASE.replace("/api","")}/api/upload`, { method: "POST", body: formData });
+      const res = await fetch(`${API_ROOT}/api/upload`, { method: "POST", body: formData });
       const data = await res.json();
       if (!data.url) throw new Error(data.error || "فشل الرفع");
       const url: string = data.url;
@@ -150,7 +151,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!authed) return;
-    const es = new EventSource(`${API_BASE.replace("/api", "")}/api/events`);
+    const es = new EventSource(`${API_ROOT}/api/events`);
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -432,7 +433,7 @@ export default function AdminDashboard() {
               setEmailTestLoading(true);
               setEmailTestMsg("");
               try {
-                const res = await fetch(`${API_BASE.replace("/api", "")}/api/test-email`, { method: "POST" });
+                const res = await fetch(`${API_ROOT}/api/test-email`, { method: "POST" });
                 const data = await res.json();
                 setEmailTestMsg(data.success ? "✅ " + data.message : "❌ " + data.message);
               } catch (e: any) {
