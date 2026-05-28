@@ -68,7 +68,7 @@ const CARD_GAP = 20;
 
 export default function HomePage() {
   const [siteSettings, setSiteSettings] = useState({ name:"مطروح أوليفي", whatsapp:"", address:"", announcement:"" });
-  const [heroSlides, setHeroSlides]     = useState<HeroSlide[]>([{ id: "default", desktop: HERO_BANNER, show: "both" }]);
+  const [heroSlides, setHeroSlides]     = useState<HeroSlide[]>([]);
   const [isMobile, setIsMobile]         = useState(false);
   const [heroIdx, setHeroIdx]           = useState(0);
   const [heroAnim, setHeroAnim]         = useState(true);
@@ -332,61 +332,59 @@ export default function HomePage() {
       )}
 
       {/* ══ HERO SLIDESHOW ══ */}
-      <section style={{ position:"relative",lineHeight:0,overflow:"hidden",background:"#1a1a1a",
-        cursor: heroTotal > 1 ? "pointer" : "default" }}
-        onClick={goHeroNext}>
-        {visibleSlides.map((slide, i) => {
-          const isActive = i === safeHeroIdx;
-          return (
-            <div key={slide.id} style={{
-              position: i === 0 ? "relative" : "absolute",
-              inset: 0, lineHeight: 0,
-              opacity: isActive ? (heroAnim ? 1 : 0) : 0,
-              transition: "opacity .55s ease",
-              pointerEvents: "none",
-              zIndex: isActive ? 1 : 0,
-            }}>
-              {/* On mobile: show mobile image if exists, else desktop. On desktop: always desktop */}
-              <img
-                src={isMobile && slide.mobile ? slide.mobile : slide.desktop}
-                alt="مطروح أوليفي"
-                style={{ width:"100%", display:"block", maxHeight: isMobile ? 600 : 620,
-                  objectFit:"cover", objectPosition: (isMobile && slide.mobile ? (slide.mobilePos||"center center") : (slide.pos||"center center")) }}
-              />
+      {(() => {
+        const HERO_H = isMobile ? "60vw" : 580;
+        const slides = visibleSlides.length > 0 ? visibleSlides : [{ id:"default", desktop: HERO_BANNER, show:"both" as const, pos:"center center" }];
+        const activeIdx = slides.length > 0 ? safeHeroIdx % slides.length : 0;
+        return (
+          <section style={{ position:"relative", overflow:"hidden", background:"#111",
+            height: HERO_H, minHeight: isMobile ? 220 : 380 }}>
+            {slides.map((slide, i) => {
+              const isActive = i === activeIdx;
+              const src = isMobile && slide.mobile ? slide.mobile : slide.desktop;
+              const pos = isMobile && slide.mobile ? (slide.mobilePos||"center center") : (slide.pos||"center center");
+              return (
+                <div key={slide.id} style={{
+                  position:"absolute", inset:0,
+                  opacity: isActive ? (heroAnim ? 1 : 0) : 0,
+                  transition:"opacity .55s ease",
+                  zIndex: isActive ? 1 : 0,
+                }}>
+                  <img src={src} alt="مطروح أوليفي"
+                    style={{ width:"100%", height:"100%", display:"block", objectFit:"cover", objectPosition: pos }} />
+                </div>
+              );
+            })}
+
+            {/* Gradient overlay */}
+            <div style={{ position:"absolute",inset:0,zIndex:2,pointerEvents:"none",
+              background:"linear-gradient(105deg,rgba(45,43,39,.48) 0%,rgba(45,43,39,.1) 55%,transparent 100%)" }} />
+
+            {/* Shop Now button */}
+            <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}>
+              <Link href="/shop" className="btn-gold"
+                style={{ display:"inline-block",background:AU,color:"#fff",padding:"14px 44px",borderRadius:50,
+                  textDecoration:"none",fontWeight:800,fontSize:16,letterSpacing:.5,
+                  boxShadow:"0 8px 28px rgba(189,154,82,.55)" }}>
+                تسوق الآن
+              </Link>
             </div>
-          );
-        })}
 
-        {/* Gradient overlay */}
-        <div style={{ position:"absolute",inset:0,zIndex:2,
-          background:"linear-gradient(105deg,rgba(45,43,39,.52) 0%,rgba(45,43,39,.12) 55%,transparent 100%)",
-          pointerEvents:"none" }} />
-
-        {/* Shop Now button */}
-        <div className="hero-cta" style={{ position:"absolute",bottom:"14%",right:"7%",zIndex:4,animation:"fadeUp .9s ease .3s both" }}
-          onClick={e => e.stopPropagation()}>
-          <Link href="/shop" className="btn-gold"
-            style={{ display:"inline-block",background:AU,color:"#fff",padding:"14px 44px",borderRadius:50,
-              textDecoration:"none",fontWeight:800,fontSize:16,letterSpacing:.5,
-              boxShadow:"0 8px 28px rgba(189,154,82,.55)" }}>
-            تسوق الآن
-          </Link>
-        </div>
-
-        {/* Slide dots */}
-        {heroTotal > 1 && (
-          <div style={{ position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",
-            zIndex:4,display:"flex",gap:8 }}
-            onClick={e => e.stopPropagation()}>
-            {visibleSlides.map((_,i) => (
-              <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
-                style={{ width: i===safeHeroIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
-                  background: i===safeHeroIdx ? AU : "rgba(255,255,255,.5)",
-                  transition:"width .3s ease,background .3s ease", padding:0 }} />
-            ))}
-          </div>
-        )}
-      </section>
+            {/* Slide dots — only navigation, no full-section click */}
+            {slides.length > 1 && (
+              <div style={{ position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",
+                zIndex:4,display:"flex",gap:8 }}>
+                {slides.map((_,i) => (
+                  <button key={i} onClick={() => { setHeroAnim(false); setTimeout(() => { setHeroIdx(i); setHeroAnim(true); }, 300); }}
+                    style={{ width: i===activeIdx?24:8, height:8, borderRadius:8, border:"none", cursor:"pointer",
+                      background: i===activeIdx ? AU : "rgba(255,255,255,.5)",
+                      transition:"width .3s ease,background .3s ease", padding:0 }} />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* ══ STATS ══ */}
       <section className="stats-section" style={{ background:`linear-gradient(135deg,${GD} 0%,${G} 100%)` }}>
