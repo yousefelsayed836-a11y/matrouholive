@@ -122,8 +122,8 @@ export default function HomePage() {
     <>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap');
-        * { font-family: 'Cairo', 'Tajawal', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
+        * { font-family: 'Readex Pro', 'Cairo', sans-serif; }
 
         @keyframes fadeUp   { from{opacity:0;transform:translateY(32px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
@@ -150,7 +150,7 @@ export default function HomePage() {
         .btn-gold:hover { background: #a07d3a !important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(189,154,82,0.45) !important; }
 
         .section-badge { display: inline-block; background: ${CREAM}; color: ${GREEN}; font-weight: 800; font-size: 11px; letter-spacing: 3px; padding: 5px 18px; border-radius: 20px; text-transform: uppercase; margin-bottom: 14px; }
-        .section-title { font-family: 'Tajawal', 'Cairo', sans-serif; font-size: 30px; font-weight: 800; color: ${DARK}; margin: 0; line-height: 1.3; }
+        .section-title { font-family: 'Readex Pro', 'Cairo', sans-serif; font-size: 30px; font-weight: 800; color: ${DARK}; margin: 0; line-height: 1.3; }
 
         @media (max-width: 1100px) { .cat-grid { grid-template-columns: repeat(3,1fr) !important; } }
         @media (max-width: 900px)  { .best-grid { grid-template-columns: repeat(3,1fr) !important; } }
@@ -294,7 +294,7 @@ export default function HomePage() {
           </div>
           <div style={{ flex: 1 }}>
             <span className="section-badge" style={{ background: GREEN, color: "#fff" }}>قصتنا</span>
-            <h2 style={{ fontFamily: "Tajawal, Cairo, sans-serif", fontSize: 28, fontWeight: 800, color: DARK, margin: "0 0 16px" }}>مطروح أوليفي</h2>
+            <h2 style={{ fontFamily: "'Readex Pro', 'Cairo', sans-serif", fontSize: 28, fontWeight: 800, color: DARK, margin: "0 0 16px" }}>مطروح أوليفي</h2>
             <p style={{ fontSize: 15, color: "#5a7050", lineHeight: 2, marginBottom: 22 }}>
               نحن شركة متخصصة في تقديم أجود أنواع زيت الزيتون الطبيعي من مطروح. شعارنا الدائم{" "}
               <strong style={{ color: GREEN }}>صدق .. أمانة .. خبرة</strong>، ونسعى دائماً لأن نخلق لك من الطبيعة حياة أفضل.

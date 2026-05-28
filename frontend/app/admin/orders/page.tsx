@@ -361,24 +361,24 @@ export default function OrdersPage() {
                       { label: "متوسط قيمة الشحن المجاني", value: freeOrders.length ? `${Math.round(totalSaved / freeOrders.length)} EGP` : "—", color: "#1e40af" },
                     ].map(s => (
                       <div key={s.label} style={{ background: "#f5f9ee", borderRadius: 12, padding: "14px 16px", textAlign: "center", border: "1.5px solid #e0ebd6" }}>
-                        <p style={{ margin: 0, fontSize: 11, color: "#888", fontFamily: "Cairo, sans-serif" }}>{s.label}</p>
+                        <p style={{ margin: 0, fontSize: 11, color: "#888", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{s.label}</p>
                         <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</p>
                       </div>
                     ))}
                   </div>
 
                   {freeOrders.length === 0 ? (
-                    <p style={{ textAlign: "center", color: "#aaa", padding: 30, fontFamily: "Cairo, sans-serif" }}>لا يوجد أوردرات بشحن مجاني حتى الآن</p>
+                    <p style={{ textAlign: "center", color: "#aaa", padding: 30, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>لا يوجد أوردرات بشحن مجاني حتى الآن</p>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
                       {/* Per governorate */}
                       <div>
-                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "Cairo, sans-serif" }}>📍 حسب المحافظة</h3>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📍 حسب المحافظة</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {govRows.map(([gov, data]) => (
                             <div key={gov} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
                               <div>
-                                <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "Cairo, sans-serif" }}>{gov}</span>
+                                <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{gov}</span>
                                 <span style={{ fontSize: 11, color: "#888", marginRight: 6 }}>({data.count} أوردر)</span>
                               </div>
                               <span style={{ fontWeight: 800, color: "#D4AF37", fontSize: 14 }}>{data.saved.toLocaleString()} EGP</span>
@@ -388,14 +388,14 @@ export default function OrdersPage() {
                       </div>
                       {/* Per city */}
                       <div>
-                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "Cairo, sans-serif" }}>🏙️ حسب المدينة</h3>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>🏙️ حسب المدينة</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto" }}>
                           {cityRows.map(([ck, data]) => {
                             const city = ck.split("||")[0];
                             return (
                               <div key={ck} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
                                 <div>
-                                  <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "Cairo, sans-serif" }}>{city}</span>
+                                  <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{city}</span>
                                   <span style={{ fontSize: 11, color: "#aaa", marginRight: 4 }}>{data.gov}</span>
                                   <span style={{ fontSize: 11, color: "#888", marginRight: 4 }}>({data.count})</span>
                                 </div>
@@ -411,7 +411,7 @@ export default function OrdersPage() {
                   {/* Orders list */}
                   {freeOrders.length > 0 && (
                     <div>
-                      <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "Cairo, sans-serif" }}>📋 تفاصيل الأوردرات ({freeOrders.length})</h3>
+                      <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📋 تفاصيل الأوردرات ({freeOrders.length})</h3>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {freeOrders.map(o => {
                           const rate = getShippingRate(shippingRates, o.governorate, o.city);

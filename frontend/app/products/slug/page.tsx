@@ -71,7 +71,7 @@ function ProductContent() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Cairo, sans-serif" }}>
+    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
       <div style={{ textAlign: "center", color: "#888" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
         <p>جاري التحميل...</p>
@@ -80,11 +80,11 @@ function ProductContent() {
   );
 
   if (error || !product) return (
-    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Cairo, sans-serif" }}>
+    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>❌</div>
         <h1 style={{ fontSize: 22, color: "#2a3a20", marginBottom: 12 }}>{error || "المنتج غير موجود"}</h1>
-        <Link href="/shop" style={{ padding: "12px 24px", borderRadius: 12, background: GREEN, color: "#fff", textDecoration: "none", fontWeight: 700, fontFamily: "Cairo, sans-serif" }}>
+        <Link href="/shop" style={{ padding: "12px 24px", borderRadius: 12, background: GREEN, color: "#fff", textDecoration: "none", fontWeight: 700, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
           ← عرض كل المنتجات
         </Link>
       </div>
@@ -100,8 +100,8 @@ function ProductContent() {
   const name = product.name_ar || product.name_en;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "Cairo, sans-serif", direction: "rtl" }}>
-      <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');`}</style>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
+      <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');`}</style>
 
       {/* مسار التنقل */}
       <div style={{ background: CREAM, padding: "12px 24px", borderBottom: "1px solid #c8d9b0" }}>
@@ -178,12 +178,12 @@ function ProductContent() {
             {/* أزرار الإجراء */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto" }}>
               <button onClick={addToCart} disabled={!inStock}
-                style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: inStock ? GREEN : "#ccc", color: "#fff", fontSize: 16, fontWeight: 700, cursor: inStock ? "pointer" : "not-allowed", fontFamily: "Cairo, sans-serif", transition: "all 0.2s" }}
+                style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: inStock ? GREEN : "#ccc", color: "#fff", fontSize: 16, fontWeight: 700, cursor: inStock ? "pointer" : "not-allowed", fontFamily: "'Readex Pro', 'Cairo', sans-serif", transition: "all 0.2s" }}
                 onMouseEnter={e => { if (inStock) (e.currentTarget as HTMLButtonElement).style.background = "#3d5828"; }}
                 onMouseLeave={e => { if (inStock) (e.currentTarget as HTMLButtonElement).style.background = GREEN; }}>
                 {added ? "✅ تمت الإضافة!" : inStock ? "🛒 أضف للسلة" : "نفد المخزون"}
               </button>
-              <Link href="/checkout" style={{ display: "block", padding: "15px 20px", borderRadius: 14, border: `2px solid ${GREEN}`, color: GREEN, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "Cairo, sans-serif", textAlign: "center", textDecoration: "none", transition: "all 0.2s", boxSizing: "border-box" }}
+              <Link href="/checkout" style={{ display: "block", padding: "15px 20px", borderRadius: 14, border: `2px solid ${GREEN}`, color: GREEN, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Readex Pro', 'Cairo', sans-serif", textAlign: "center", textDecoration: "none", transition: "all 0.2s", boxSizing: "border-box" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = GREEN; (e.currentTarget as HTMLAnchorElement).style.color = "#fff"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = GREEN; }}>
                 اشتري الآن ←
@@ -204,7 +204,7 @@ function ProductContent() {
 
 export default function ProductPage() {
   return (
-    <Suspense fallback={<div style={{ textAlign: "center", padding: 60, fontFamily: "Cairo, sans-serif", color: "#888" }}>جاري التحميل...</div>}>
+    <Suspense fallback={<div style={{ textAlign: "center", padding: 60, fontFamily: "'Readex Pro', 'Cairo', sans-serif", color: "#888" }}>جاري التحميل...</div>}>
       <ProductContent />
     </Suspense>
   );

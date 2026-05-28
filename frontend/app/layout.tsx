@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Cairo, Tajawal } from 'next/font/google';
+import { Cairo, Readex_Pro } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 import Header from '../components/Header';
@@ -7,7 +7,7 @@ import { CartProvider } from '../components/CartContext';
 import FaviconLoader from '../components/FaviconLoader';
 
 const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo', weight: ['300','400','600','700','800','900'] });
-const tajawal = Tajawal({ subsets: ['arabic'], variable: '--font-tajawal', weight: ['400','500','700','800'] });
+const readex = Readex_Pro({ subsets: ['arabic'], variable: '--font-readex', weight: ['200','300','400','500','600','700'] });
 
 export const metadata: Metadata = {
   title: 'Matrouh Olive - زيت زيتون مطروح',
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             src="https://www.facebook.com/tr?id=1441876790405084&ev=PageView&noscript=1" />
         </noscript>
       </head>
-      <body className={`${cairo.variable} ${tajawal.variable}`} style={{ background: '#f1f7c9', margin: 0, fontFamily: 'var(--font-cairo), var(--font-tajawal), sans-serif' }}>
+      <body className={`${cairo.variable} ${readex.variable}`} style={{ background: '#f1f7c9', margin: 0 }}>
         <Script id="fb-pixel" strategy="afterInteractive">{`
           !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
           n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;

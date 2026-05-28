@@ -77,7 +77,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   if (loading) return (
     <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM_BG }}>
-      <div style={{ textAlign: "center", color: "#888", fontFamily: "Cairo, sans-serif" }}>
+      <div style={{ textAlign: "center", color: "#888", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
         <div style={{ width: 48, height: 48, border: `4px solid ${CREAM}`, borderTop: `4px solid ${GREEN}`, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         <p>جاري التحميل...</p>
@@ -87,7 +87,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   if (error || !product) return (
     <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM_BG }}>
-      <div style={{ textAlign: "center", fontFamily: "Cairo, sans-serif" }}>
+      <div style={{ textAlign: "center", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <span style={{ fontSize: 28, color: "#dc2626" }}>!</span>
         </div>
@@ -107,10 +107,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, {});
 
   return (
-    <div style={{ minHeight: "100vh", background: CREAM_BG, fontFamily: "Cairo, sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: CREAM_BG, fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap');
-        * { font-family: 'Cairo', 'Tajawal', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
+        * { font-family: 'Readex Pro', 'Cairo', sans-serif; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         .variant-btn { transition: all .2s; }
         .variant-btn:hover { border-color: ${GREEN} !important; color: ${GREEN} !important; }
@@ -157,7 +157,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 {product.category_name_ar}
               </span>
             )}
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: DARK, lineHeight: 1.4, fontFamily: "Tajawal, Cairo, sans-serif" }}>{name}</h1>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: DARK, lineHeight: 1.4, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{name}</h1>
 
             {/* السعر */}
             <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 0", borderTop: "1px solid #e8edd0", borderBottom: "1px solid #e8edd0" }}>
@@ -211,7 +211,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             {/* أزرار */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto" }}>
               <button onClick={addToCart}
-                style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: added ? "#22c55e" : GREEN, color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "Cairo, sans-serif", transition: "all .2s", boxShadow: `0 4px 16px rgba(79,112,50,${added ? 0.4 : 0.3})` }}
+                style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: added ? "#22c55e" : GREEN, color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "'Readex Pro', 'Cairo', sans-serif", transition: "all .2s", boxShadow: `0 4px 16px rgba(79,112,50,${added ? 0.4 : 0.3})` }}
                 onMouseEnter={e => { if (!added) (e.currentTarget as HTMLButtonElement).style.background = GREEN_DARK; }}
                 onMouseLeave={e => { if (!added) (e.currentTarget as HTMLButtonElement).style.background = GREEN; }}>
                 {added ? "تمت الإضافة للسلة" : "أضف للسلة"}

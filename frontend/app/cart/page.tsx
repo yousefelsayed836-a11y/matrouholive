@@ -37,9 +37,9 @@ export default function CartPage() {
   const count = cart.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "Cairo, sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
 
         .cart-layout {
           display: grid;
@@ -71,7 +71,7 @@ export default function CartPage() {
 
         {/* رأس الصفحة */}
         <div className="cart-header" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-          <Link href="/" style={{ color: GREEN, textDecoration: "none", fontSize: 13, fontFamily: "Cairo, sans-serif" }}>الرئيسية</Link>
+          <Link href="/" style={{ color: GREEN, textDecoration: "none", fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>الرئيسية</Link>
           <span style={{ color: "#aaa" }}>←</span>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#2a3a20" }}>🛒 سلة التسوق ({count} منتج)</h1>
         </div>

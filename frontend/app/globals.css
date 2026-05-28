@@ -13,6 +13,8 @@
   --dark: #2d2b27;
   --text-main: #2d2b27;
   --text-muted: #6b7160;
+  --font-body: var(--font-cairo), 'Cairo', sans-serif;
+  --font-display: var(--font-readex), 'Readex Pro', 'Cairo', sans-serif;
 }
 
 html, body {
@@ -20,11 +22,18 @@ html, body {
   color: var(--text-main);
   margin: 0;
   padding: 0;
-  font-family: var(--font-cairo), var(--font-tajawal), 'Cairo', 'Tajawal', sans-serif;
+  font-family: var(--font-body);
 }
 
+/* Readex Pro (closest to Bedayah) for all headings */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-tajawal), var(--font-cairo), 'Tajawal', 'Cairo', sans-serif;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* Body text uses Cairo (closest to Algiers) */
+p, span, div, input, textarea, select, button, a, label, li {
+  font-family: var(--font-body);
 }
 
 main {
@@ -33,7 +42,6 @@ main {
 }
 
 html { scroll-behavior: smooth; }
-.font-arabic { font-family: 'Cairo', 'Tahoma', sans-serif; }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f7c9; }

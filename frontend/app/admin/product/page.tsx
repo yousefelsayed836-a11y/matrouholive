@@ -312,7 +312,7 @@ export default function ProductsPage() {
                 <thead>
                   <tr style={{ background: "#1a1a2e", color: "#fff" }}>
                     {["صورة", "المنتج", "القسم", "السعر", "التوفر", "الحالة", "إجراءات"].map(h => (
-                      <th key={h} style={{ padding: 16, textAlign: "right", fontSize: 13, fontFamily: "Cairo, sans-serif" }}>{h}</th>
+                      <th key={h} style={{ padding: 16, textAlign: "right", fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>

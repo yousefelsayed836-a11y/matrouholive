@@ -142,7 +142,7 @@ function ShopContent() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Cairo', sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
 
       {/* زر السلة العائم */}
       <button onClick={() => setShowCart(true)} className="cart-fab" aria-label="سلة التسوق">
@@ -431,7 +431,7 @@ function ShopContent() {
       )}
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
 
         /* ===== HERO ===== */
         .shop-hero {
@@ -464,7 +464,7 @@ function ShopContent() {
         .sort-pill {
           padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
           border: 1.5px solid #d0ddc0; background: #fff; color: #6a8a5a;
-          cursor: pointer; transition: all 0.15s; font-family: Cairo, sans-serif;
+          cursor: pointer; transition: all 0.15s; font-family: 'Readex Pro', 'Cairo', sans-serif;
         }
         .sort-pill:hover { border-color: ${GREEN}; color: ${GREEN}; }
         .sort-pill.active { background: ${GREEN}; color: #fff; border-color: ${GREEN}; }
@@ -501,7 +501,7 @@ function ShopContent() {
         .overlay-btn-view {
           padding: 9px 20px; border-radius: 25px; border: 2px solid #fff;
           background: rgba(255,255,255,0.15); color: #fff; font-size: 13px;
-          font-weight: 700; cursor: pointer; font-family: Cairo, sans-serif;
+          font-weight: 700; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif;
           backdrop-filter: blur(4px); transition: background 0.2s;
         }
         .overlay-btn-view:hover { background: #fff; color: ${GREEN}; }
@@ -526,7 +526,7 @@ function ShopContent() {
         .product-category { font-size: 11px; color: ${GREEN}; font-weight: 700; letter-spacing: 0.5px; }
         .product-name {
           margin: 0; font-size: 14px; font-weight: 700; color: #2a3a20;
-          line-height: 1.45; cursor: pointer; font-family: Cairo, sans-serif;
+          line-height: 1.45; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
           min-height: 41px;
         }
@@ -548,7 +548,7 @@ function ShopContent() {
         .btn-add-cart {
           flex: 1; height: 34px; border-radius: 8px; border: none;
           background: ${GREEN}; color: #fff; font-size: 12px; font-weight: 700;
-          cursor: pointer; font-family: Cairo, sans-serif; transition: all 0.2s;
+          cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; transition: all 0.2s;
           white-space: nowrap;
         }
         .btn-add-cart:hover { background: ${GREEN_DARK}; }
@@ -567,7 +567,7 @@ function ShopContent() {
 
         /* ===== ERROR ===== */
         .error-banner { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; color: #b91c1c; font-weight: 600; }
-        .btn-retry { padding: 6px 16px; border-radius: 8px; border: none; background: #ef4444; color: #fff; cursor: pointer; font-family: Cairo, sans-serif; font-size: 13px; }
+        .btn-retry { padding: 6px 16px; border-radius: 8px; border: none; background: #ef4444; color: #fff; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; font-size: 13px; }
 
         /* ===== MODAL ===== */
         .modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -607,14 +607,14 @@ function ShopContent() {
         .btn-modal-add {
           width: 100%; padding: 14px; border-radius: 14px; border: none;
           background: ${GREEN}; color: #fff; font-size: 15px; font-weight: 700;
-          cursor: pointer; font-family: Cairo, sans-serif; transition: background 0.2s;
+          cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; transition: background 0.2s;
         }
         .btn-modal-add:hover { background: ${GREEN_DARK}; }
         .btn-modal-add.disabled { background: #ccc; cursor: not-allowed; }
         .btn-modal-view {
           display: block; width: 100%; padding: 13px; border-radius: 14px;
           border: 2px solid ${GREEN}; color: ${GREEN}; font-size: 14px; font-weight: 700;
-          text-align: center; text-decoration: none; font-family: Cairo, sans-serif;
+          text-align: center; text-decoration: none; font-family: 'Readex Pro', 'Cairo', sans-serif;
           transition: all 0.2s; box-sizing: border-box;
         }
         .btn-modal-view:hover { background: ${GREEN}; color: #fff; }
@@ -649,7 +649,7 @@ function ShopContent() {
         .cart-count-chip { background: ${GREEN}; color: #fff; border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
         .cart-close-btn { background: none; border: none; font-size: 30px; cursor: pointer; color: #aaa; line-height: 1; }
         .cart-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
-        .btn-continue-shopping { margin-top: 16px; padding: 10px 24px; border-radius: 25px; border: 2px solid ${GREEN}; background: #fff; color: ${GREEN}; font-weight: 700; font-size: 14px; cursor: pointer; font-family: Cairo, sans-serif; }
+        .btn-continue-shopping { margin-top: 16px; padding: 10px 24px; border-radius: 25px; border: 2px solid ${GREEN}; background: #fff; color: ${GREEN}; font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; }
         .cart-items-list { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
         .cart-item { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #f0f5e8; align-items: flex-start; }
         .qty-btn {
@@ -666,11 +666,11 @@ function ShopContent() {
         .btn-checkout {
           display: block; width: 100%; padding: 14px; border-radius: 14px;
           background: ${GREEN}; color: #fff; font-size: 15px; font-weight: 800;
-          text-align: center; text-decoration: none; font-family: Cairo, sans-serif;
+          text-align: center; text-decoration: none; font-family: 'Readex Pro', 'Cairo', sans-serif;
           transition: background 0.2s; box-sizing: border-box;
         }
         .btn-checkout:hover { background: ${GREEN_DARK}; }
-        .btn-continue { background: none; border: 1.5px solid #e0e0e0; border-radius: 14px; padding: 11px; color: #666; font-size: 14px; cursor: pointer; font-family: Cairo, sans-serif; transition: border-color 0.2s; }
+        .btn-continue { background: none; border: 1.5px solid #e0e0e0; border-radius: 14px; padding: 11px; color: #666; font-size: 14px; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; transition: border-color 0.2s; }
         .btn-continue:hover { border-color: ${GREEN}; color: ${GREEN}; }
 
         /* ===== RESPONSIVE ===== */
@@ -706,7 +706,7 @@ function ShopContent() {
 export default function ShopPage() {
   return (
     <Suspense fallback={
-      <div style={{ textAlign: "center", padding: 60, color: "#888", fontFamily: "Cairo, sans-serif", fontSize: 16 }}>
+      <div style={{ textAlign: "center", padding: 60, color: "#888", fontFamily: "'Readex Pro', 'Cairo', sans-serif", fontSize: 16 }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
         جاري تحميل المنتجات...
       </div>

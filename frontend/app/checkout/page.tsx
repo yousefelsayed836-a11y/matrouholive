@@ -173,7 +173,7 @@ export default function CheckoutPage() {
 
   if (success) return (
     <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f7c9", direction: "rtl" }}>
-      <div style={{ background: "#f1f7c9", borderRadius: 24, padding: 48, textAlign: "center", maxWidth: 480, boxShadow: "0 8px 40px rgba(75,103,65,0.15)", fontFamily: "Cairo, sans-serif" }}>
+      <div style={{ background: "#f1f7c9", borderRadius: 24, padding: 48, textAlign: "center", maxWidth: 480, boxShadow: "0 8px 40px rgba(75,103,65,0.15)", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
         <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
         <h2 style={{ color: "#2a3a20", fontSize: 26, fontWeight: 800, margin: "0 0 12px" }}>تم الطلب بنجاح!</h2>
         {orderId && <p style={{ color: "#888", margin: "0 0 8px" }}>رقم الطلب: #{orderId.slice(-6)}</p>}
@@ -191,9 +191,9 @@ export default function CheckoutPage() {
   );
 
   return (
-    <div style={{ background: "#f1f7c9", minHeight: "100vh", padding: "24px 14px", fontFamily: "'Cairo', sans-serif", direction: "rtl" }}>
+    <div style={{ background: "#f1f7c9", minHeight: "100vh", padding: "24px 14px", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
         .co-layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
         .co-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .co-summary-sticky { position: sticky; top: 80px; }
@@ -204,14 +204,14 @@ export default function CheckoutPage() {
         }
       `}</style>
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#2a3a20", margin: "0 0 20px", fontFamily: "Cairo, sans-serif" }}>🛒 إتمام الطلب</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#2a3a20", margin: "0 0 20px", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>🛒 إتمام الطلب</h1>
 
         <div className="co-layout">
           {/* نموذج التوصيل */}
           <div style={{ background: "#f1f7c9", borderRadius: 20, padding: "20px 18px", boxShadow: "0 4px 20px rgba(75,103,65,0.08)" }}>
-            <h2 style={{ margin: "0 0 18px", fontSize: 17, fontWeight: 700, color: "#2a3a20", fontFamily: "Cairo, sans-serif" }}>📋 بيانات التوصيل</h2>
+            <h2 style={{ margin: "0 0 18px", fontSize: 17, fontWeight: 700, color: "#2a3a20", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📋 بيانات التوصيل</h2>
 
-            {errorMsg && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 10, padding: 12, marginBottom: 16, color: "#ef4444", fontWeight: 600, fontFamily: "Cairo, sans-serif" }}>⚠️ {errorMsg}</div>}
+            {errorMsg && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 10, padding: 12, marginBottom: 16, color: "#ef4444", fontWeight: 600, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>⚠️ {errorMsg}</div>}
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
@@ -253,7 +253,7 @@ export default function CheckoutPage() {
               {form.governorate && govShipping > 0 && (
                 <div style={{ background: freeShipping ? "#dcfce7" : "#d7f7b3", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, border: `1px solid ${freeShipping ? "#86efac" : "#c8e6a0"}` }}>
                   <span style={{ fontSize: 18 }}>{freeShipping ? "🎉" : "🚚"}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: freeShipping ? "#166534" : "#4f7032", fontFamily: "Cairo, sans-serif" }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: freeShipping ? "#166534" : "#4f7032", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
                     {freeShipping
                       ? `شحن مجاني إلى ${form.governorate} 🎁`
                       : `تكلفة الشحن إلى ${form.governorate}: ${govShipping} ج.م`}
@@ -265,8 +265,8 @@ export default function CheckoutPage() {
               {freeShippingEnabled && !freeShipping && subtotal > 0 && (
                 <div style={{ background: "#fff8e1", borderRadius: 10, padding: "10px 14px", border: "1px solid #fde68a" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#92400e", fontFamily: "Cairo, sans-serif" }}>🚚 أضف {(freeThreshold - subtotal).toLocaleString()} ج.م للشحن المجاني!</span>
-                    <span style={{ fontSize: 12, color: "#b45309", fontFamily: "Cairo, sans-serif" }}>{subtotal}/{freeThreshold}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#92400e", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>🚚 أضف {(freeThreshold - subtotal).toLocaleString()} ج.م للشحن المجاني!</span>
+                    <span style={{ fontSize: 12, color: "#b45309", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{subtotal}/{freeThreshold}</span>
                   </div>
                   <div style={{ height: 6, background: "#fde68a", borderRadius: 3, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${Math.min(100, (subtotal / freeThreshold) * 100)}%`, background: "#f59e0b", borderRadius: 3, transition: "width 0.3s" }} />
@@ -285,7 +285,7 @@ export default function CheckoutPage() {
               </div>
 
               <button type="submit" disabled={submitting || cart.length === 0}
-                style={{ padding: "16px", borderRadius: 14, border: "none", background: "#4f7032", color: "#fff", fontSize: 16, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1, fontFamily: "Cairo, sans-serif" }}>
+                style={{ padding: "16px", borderRadius: 14, border: "none", background: "#4f7032", color: "#fff", fontSize: 16, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
                 {submitting ? "جاري إرسال الطلب..." : `إرسال الطلب — ${finalTotal} ج.م`}
               </button>
             </form>
@@ -294,13 +294,13 @@ export default function CheckoutPage() {
           {/* ملخص الطلب */}
           <div>
             <div className="co-summary-sticky" style={{ background: "#f1f7c9", borderRadius: 20, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)" }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#2a3a20", fontFamily: "Cairo, sans-serif" }}>📦 ملخص الطلب</h3>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#2a3a20", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📦 ملخص الطلب</h3>
 
               {cart.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 24, color: "#aaa" }}>
                   <div style={{ fontSize: 40 }}>🛒</div>
-                  <p style={{ fontFamily: "Cairo, sans-serif" }}>السلة فارغة</p>
-                  <Link href="/shop" style={{ color: "#4f7032", fontWeight: 600, textDecoration: "none", fontFamily: "Cairo, sans-serif" }}>← تسوق الآن</Link>
+                  <p style={{ fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>السلة فارغة</p>
+                  <Link href="/shop" style={{ color: "#4f7032", fontWeight: 600, textDecoration: "none", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>← تسوق الآن</Link>
                 </div>
               ) : (
                 <>
@@ -313,8 +313,8 @@ export default function CheckoutPage() {
                           ) : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🫒</div>}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#2a3a20", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "Cairo, sans-serif" }}>{(item.product as any).name_ar || item.product.name_en}</div>
-                          <div style={{ fontSize: 12, color: "#888", fontFamily: "Cairo, sans-serif" }}>الكمية: {item.qty}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#2a3a20", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{(item.product as any).name_ar || item.product.name_en}</div>
+                          <div style={{ fontSize: 12, color: "#888", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>الكمية: {item.qty}</div>
                         </div>
                         <div style={{ fontWeight: 700, color: "#4f7032", fontSize: 13, flexShrink: 0 }}>{item.product.price * item.qty} ج.م</div>
                       </div>
@@ -323,20 +323,20 @@ export default function CheckoutPage() {
 
                   <div style={{ borderTop: "2px solid #d7f7b3", paddingTop: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                      <span style={{ color: "#888", fontSize: 14, fontFamily: "Cairo, sans-serif" }}>المجموع الفرعي</span>
+                      <span style={{ color: "#888", fontSize: 14, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>المجموع الفرعي</span>
                       <span style={{ fontWeight: 600 }}>{subtotal} ج.م</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-                      <span style={{ color: "#888", fontSize: 14, fontFamily: "Cairo, sans-serif" }}>الشحن {form.governorate ? `(${form.governorate})` : ""}</span>
+                      <span style={{ color: "#888", fontSize: 14, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>الشحن {form.governorate ? `(${form.governorate})` : ""}</span>
                       {freeShipping
                         ? <span style={{ fontWeight: 700, color: "#166534", fontSize: 14 }}>مجاني 🎉</span>
                         : <span style={{ fontWeight: 600, color: "#333" }}>{form.governorate ? `${shippingCost} ج.م` : "—"}</span>}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: "2px solid #4f7032" }}>
-                      <span style={{ fontWeight: 800, fontSize: 16, fontFamily: "Cairo, sans-serif" }}>الإجمالي</span>
+                      <span style={{ fontWeight: 800, fontSize: 16, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>الإجمالي</span>
                       <span style={{ fontWeight: 800, fontSize: 20, color: "#4f7032" }}>{finalTotal} ج.م</span>
                     </div>
-                    <div style={{ background: "#fef3c7", borderRadius: 10, padding: "10px 14px", marginTop: 8, textAlign: "center", fontSize: 13, fontWeight: 600, color: "#92400e", fontFamily: "Cairo, sans-serif" }}>
+                    <div style={{ background: "#fef3c7", borderRadius: 10, padding: "10px 14px", marginTop: 8, textAlign: "center", fontSize: 13, fontWeight: 600, color: "#92400e", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
                       💵 الدفع عند الاستلام
                     </div>
                   </div>
@@ -351,5 +351,5 @@ export default function CheckoutPage() {
   );
 }
 
-const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 700, color: "#5a7050", marginBottom: 6, fontFamily: "Cairo, sans-serif" };
-const inputStyle: React.CSSProperties = { width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #c8e6a0", fontSize: 14, outline: "none", boxSizing: "border-box", background: "#f1f7c9", fontFamily: "Cairo, sans-serif" };
+const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 700, color: "#5a7050", marginBottom: 6, fontFamily: "'Readex Pro', 'Cairo', sans-serif" };
+const inputStyle: React.CSSProperties = { width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #c8e6a0", fontSize: 14, outline: "none", boxSizing: "border-box", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif" };
