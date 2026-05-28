@@ -60,9 +60,6 @@ function ShopContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -127,15 +124,6 @@ function ShopContent() {
     return 0;
   });
 
-  const openProduct = (p: Product) => {
-    setSelectedProduct(p);
-    const imgs: string[] = [];
-    if (p.main_image && (p.main_image.startsWith("http") || p.main_image.startsWith("data:"))) imgs.push(p.main_image);
-    (p.images || []).forEach(i => { if (i && (i.startsWith("http") || i.startsWith("data:")) && !imgs.includes(i)) imgs.push(i); });
-    setSelectedImages(imgs.length > 0 ? imgs : [getProductImage(p)]);
-    setSelectedImgIdx(0);
-  };
-
   const setCollection = (key: string) => {
     if (key) router.push(`/shop?collection=${encodeURIComponent(key)}`);
     else router.push("/shop");
@@ -143,10 +131,11 @@ function ShopContent() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
       {/* زر السلة العائم */}
       <button onClick={() => setShowCart(true)} className="cart-fab" aria-label="سلة التسوق">
-        🛒
+        <i className="fas fa-shopping-cart" style={{ fontSize: 22 }} />
         {cartCount > 0 && <span className="cart-fab-badge">{cartCount}</span>}
       </button>
 
@@ -156,7 +145,7 @@ function ShopContent() {
           <div className="cart-sidebar" onClick={e => e.stopPropagation()}>
             <div className="cart-sidebar-header">
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 22 }}>🛒</span>
+                <i className="fas fa-shopping-cart" style={{ fontSize: 20, color: GREEN }} />
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: GREEN }}>سلة التسوق</h2>
                 {cartCount > 0 && <span className="cart-count-chip">{cartCount}</span>}
               </div>
@@ -165,7 +154,7 @@ function ShopContent() {
 
             {cartItems.length === 0 ? (
               <div className="cart-empty">
-                <div style={{ fontSize: 64, marginBottom: 16 }}>🛒</div>
+                <i className="fas fa-shopping-cart" style={{ fontSize: 48, color: "#c8d9b0", marginBottom: 16, display: "block" }} />
                 <p style={{ color: "#999", fontWeight: 600, fontSize: 15 }}>السلة فارغة</p>
                 <button onClick={() => setShowCart(false)} className="btn-continue-shopping">تصفح المنتجات</button>
               </div>
@@ -187,7 +176,7 @@ function ShopContent() {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                         <span style={{ fontWeight: 800, color: GREEN, fontSize: 14 }}>{item.product.price * item.qty} ج.م</span>
-                        <button onClick={() => setCartItems(p => p.filter(x => x.product.id !== item.product.id))} className="remove-btn">🗑</button>
+                        <button onClick={() => setCartItems(p => p.filter(x => x.product.id !== item.product.id))} className="remove-btn">حذف</button>
                       </div>
                     </div>
                   ))}
@@ -219,7 +208,7 @@ function ShopContent() {
             </span>
           </div>
           <h1 className="shop-hero-title">
-            {searchQuery ? `نتائج: "${searchQuery}"` : collectionFilter ? `قسم: ${collectionFilter}` : "🛒 تسوق الآن"}
+            {searchQuery ? `نتائج: "${searchQuery}"` : collectionFilter ? `قسم: ${collectionFilter}` : " تسوق الآن"}
           </h1>
           <p className="shop-hero-sub">منتجات طبيعية أصيلة من مطروح • جودة عالية • توصيل سريع</p>
         </div>
@@ -267,7 +256,7 @@ function ShopContent() {
           </div>
         ) : sorted.length === 0 ? (
           <div className="empty-state">
-            <div style={{ fontSize: 72, marginBottom: 16 }}>🔍</div>
+            <div style={{ fontSize: 72, marginBottom: 16 }}></div>
             <h2 style={{ fontSize: 20, color: "#2a3a20", marginBottom: 8 }}>لا توجد منتجات</h2>
             <p style={{ color: "#888", marginBottom: 24 }}>{searchQuery ? `لم نجد نتائج لـ "${searchQuery}"` : "لا توجد منتجات في هذا القسم حالياً"}</p>
             <Link href="/shop" className="btn-browse-all">عرض كل المنتجات</Link>
@@ -287,12 +276,12 @@ function ShopContent() {
               return (
                 <div key={p.id} className="product-card">
                   {/* صورة المنتج */}
-                  <div className="product-img-wrap" onClick={() => openProduct(p)}>
+                  <Link href={`/products/${p.id}`} className="product-img-wrap" style={{ textDecoration: "none", display: "block" }}>
                     <img src={img} alt={displayName} className="product-img" loading="lazy"
                       onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent(displayName?.slice(0, 4) || "؟؟")}`; }} />
                     {/* overlay actions */}
                     <div className="product-overlay">
-                      <button className="overlay-btn-view" onClick={e => { e.stopPropagation(); openProduct(p); }}>عرض التفاصيل</button>
+                      <span className="overlay-btn-view">عرض التفاصيل</span>
                     </div>
                     {/* badges */}
                     <div className="product-badges">
@@ -306,14 +295,16 @@ function ShopContent() {
                     )}
                     {/* wishlist */}
                     <button className={`wishlist-btn${isWished ? " wished" : ""}`} onClick={e => { e.stopPropagation(); toggleWishlist(p.id); }}>
-                      {isWished ? "❤️" : "🤍"}
+                      {isWished ? "♥" : "♡"}
                     </button>
-                  </div>
+                  </Link>
 
                   {/* تفاصيل المنتج */}
                   <div className="product-info">
                     {p.category_name_ar && <span className="product-category">{p.category_name_ar}</span>}
-                    <h3 className="product-name" onClick={() => openProduct(p)}>{displayName}</h3>
+                    <Link href={`/products/${p.id}`} style={{ textDecoration: "none" }}>
+                      <h3 className="product-name">{displayName}</h3>
+                    </Link>
                     <div style={{ color: "#bd9a52", fontSize: 13, letterSpacing: 1, marginBottom: 8 }}>★★★★★</div>
                     <div className="product-price-row">
                       <span className="product-price">{p.price} ج.م</span>
@@ -327,7 +318,7 @@ function ShopContent() {
                       </div>
                       <button onClick={() => addToCart(p, qty)} disabled={!inStock}
                         className={`btn-add-cart${isAdded ? " added" : ""}${!inStock ? " disabled" : ""}`}>
-                        {!inStock ? "نفذ" : isAdded ? "✅ أُضيف" : "🛒 أضف"}
+                        {!inStock ? "نفذ" : isAdded ? "تمت الإضافة" : "أضف"}
                       </button>
                     </div>
                   </div>
@@ -338,11 +329,11 @@ function ShopContent() {
         )}
       </div>
 
-      {/* مودال المنتج */}
-      {selectedProduct && (
-        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-          <div className="modal-inner" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedProduct(null)}>×</button>
+      {/* modal removed — products now have their own pages at /products/[id] */}
+      {false && (
+        <div className="modal-overlay">
+          <div className="modal-inner">
+            <button className="modal-close">×</button>
 
             {/* الصورة */}
             <div className="modal-images">
@@ -394,7 +385,7 @@ function ShopContent() {
               )}
 
               {/* المخزون */}
-              <div className="stock-badge">✅ متوفر في المخزون</div>
+              <div className="stock-badge">متوفر في المخزون</div>
 
               {/* الكمية وأزرار الإجراء */}
               {(
@@ -412,7 +403,7 @@ function ShopContent() {
                 <button
                   onClick={() => { addToCart(selectedProduct, quantities[selectedProduct.id] || 1); setSelectedProduct(null); }}
                   className="btn-modal-add">
-                  🛒 أضف للسلة
+                  أضف للسلة
                 </button>
                 <Link href={`/products/slug?id=${selectedProduct.id}`} className="btn-modal-view">
                   عرض الصفحة الكاملة ←
@@ -421,9 +412,9 @@ function ShopContent() {
 
               {/* مميزات */}
               <div className="modal-features">
-                <div className="feature-item"><span>🚚</span><span>توصيل سريع لجميع المحافظات</span></div>
-                <div className="feature-item"><span>✅</span><span>منتجات طبيعية 100%</span></div>
-                <div className="feature-item"><span>💳</span><span>الدفع عند الاستلام</span></div>
+                <div className="feature-item"><span></span><span>توصيل سريع لجميع المحافظات</span></div>
+                <div className="feature-item"><span></span><span>منتجات طبيعية 100%</span></div>
+                <div className="feature-item"><span></span><span>الدفع عند الاستلام</span></div>
               </div>
             </div>
           </div>
@@ -441,7 +432,7 @@ function ShopContent() {
           overflow: hidden;
         }
         .shop-hero::before {
-          content: "🫒🌿🍯";
+          content: "";
           position: absolute;
           right: 5%;
           top: 50%;
