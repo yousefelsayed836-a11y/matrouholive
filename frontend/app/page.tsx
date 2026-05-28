@@ -24,7 +24,7 @@ interface CartItem {
   qty: number; size: string;
 }
 interface Review { id?: number; name: string; text: string; stars?: number; }
-interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; }
+interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; pos?: string; mobilePos?: string; }
 
 const FALLBACK_REVIEWS: Review[] = [
   { name: "أحمد محمود",  text: "والله زيت الزيتون بتاعهم تحفة! ريحته حلوة جداً والطعم أصلي" },
@@ -351,7 +351,7 @@ export default function HomePage() {
                 src={isMobile && slide.mobile ? slide.mobile : slide.desktop}
                 alt="مطروح أوليفي"
                 style={{ width:"100%", display:"block", maxHeight: isMobile ? 600 : 620,
-                  objectFit:"cover", objectPosition:"center top" }}
+                  objectFit:"cover", objectPosition: (isMobile && slide.mobile ? (slide.mobilePos||"center center") : (slide.pos||"center center")) }}
               />
             </div>
           );

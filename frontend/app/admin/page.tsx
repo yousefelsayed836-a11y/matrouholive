@@ -72,7 +72,7 @@ export default function AdminDashboard() {
   const [changePwMsg, setChangePwMsg] = useState("");
   const [newOrderToast, setNewOrderToast] = useState<{ name: string; total: number } | null>(null);
   // Hero slides
-  interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; }
+  interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; pos?: string; mobilePos?: string; }
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [heroMsg, setHeroMsg] = useState("");
   const [heroUploading, setHeroUploading] = useState(false);
@@ -551,83 +551,111 @@ export default function AdminDashboard() {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {heroSlides.map((slide, idx) => (
-            <div key={slide.id} style={{ border: "1.5px solid #e0ebd6", borderRadius: 14, padding: 16, background: "#f8faf6", direction: "rtl" }}>
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {heroSlides.map((slide, idx) => {
+            // 3×3 position picker helper
+            const POSITIONS = [
+              ["right top","center top","left top"],
+              ["right center","center center","left center"],
+              ["right bottom","center bottom","left bottom"],
+            ];
+            const PosPicker = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,20px)", gap:3 }}>
+                {POSITIONS.map((row, ri) => row.map((pos, ci) => {
+                  const active = (value||"center center") === pos;
+                  return (
+                    <div key={`${ri}-${ci}`} onClick={() => onChange(pos)}
+                      title={pos}
+                      style={{ width:20, height:20, borderRadius:4, cursor:"pointer", border:`2px solid ${active?"#4B6741":"#ddd"}`,
+                        background: active ? "#4B6741" : "#f0f5eb",
+                        display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <div style={{ width:6, height:6, borderRadius:"50%", background: active?"#fff":"#aaa" }} />
+                    </div>
+                  );
+                }))}
+              </div>
+            );
 
-                {/* Desktop image */}
-                <div style={{ flex: "0 0 auto" }}>
-                  <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>صورة الديسكتوب</div>
-                  <div style={{ width: 140, height: 80, borderRadius: 10, overflow: "hidden", border: "1.5px solid #ddd", background: "#eee", position: "relative" }}>
-                    {slide.desktop
-                      ? <img src={slide.desktop} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#bbb", fontSize: 22 }}>+</div>}
-                    <label style={{ position: "absolute", inset: 0, cursor: "pointer", opacity: 0 }}>
-                      <input type="file" accept="image/*" style={{ display: "none" }} disabled={heroUploading}
-                        onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], slide.id, "desktop")} />
-                    </label>
-                  </div>
-                  <div style={{ fontSize: 10, color: "#4B6741", marginTop: 4, cursor: "pointer", textAlign: "center", fontWeight: 600 }}>اضغط لتغيير</div>
-                </div>
+            return (
+              <div key={slide.id} style={{ border: "1.5px solid #e0ebd6", borderRadius: 14, padding: 16, background: "#f8faf6", direction: "rtl" }}>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
 
-                {/* Mobile image */}
-                <div style={{ flex: "0 0 auto" }}>
-                  <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>صورة الموبايل <span style={{ color: "#bbb", fontWeight: 400 }}>(اختياري)</span></div>
-                  <div style={{ width: 70, height: 80, borderRadius: 10, overflow: "hidden", border: "1.5px solid #ddd", background: "#eee", position: "relative" }}>
-                    {slide.mobile
-                      ? <img src={slide.mobile} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#bbb", fontSize: 22 }}>+</div>}
-                    <label style={{ position: "absolute", inset: 0, cursor: "pointer", opacity: 0 }}>
-                      <input type="file" accept="image/*" style={{ display: "none" }} disabled={heroUploading}
-                        onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], slide.id, "mobile")} />
-                    </label>
-                  </div>
-                  {slide.mobile && (
-                    <div style={{ fontSize: 10, color: "#ef4444", marginTop: 4, cursor: "pointer", textAlign: "center", fontWeight: 600 }}
-                      onClick={async () => {
-                        const updated = heroSlides.map(s => s.id === slide.id ? { ...s, mobile: undefined } : s);
-                        setHeroSlides(updated); await saveHeroSlides(updated);
-                      }}>حذف صورة الموبايل</div>
-                  )}
-                  {!slide.mobile && <div style={{ fontSize: 10, color: "#4B6741", marginTop: 4, cursor: "pointer", textAlign: "center", fontWeight: 600 }}>اضغط لإضافة</div>}
-                </div>
-
-                {/* Show on */}
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>تظهر على</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {([["both","الكل (موبايل + لاب)"],["desktop","اللاب فقط"],["mobile","الموبايل فقط"]] as const).map(([val, label]) => (
-                      <label key={val} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
-                        <input type="radio" name={`show-${slide.id}`} checked={slide.show === val} onChange={async () => {
-                          const updated = heroSlides.map(s => s.id === slide.id ? { ...s, show: val } : s);
-                          setHeroSlides(updated); await saveHeroSlides(updated);
-                        }} style={{ accentColor: "#4B6741" }} />
-                        {label}
+                  {/* Desktop image + position */}
+                  <div style={{ flex: "0 0 auto" }}>
+                    <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>صورة اللاب</div>
+                    <div style={{ width: 150, height: 85, borderRadius: 10, overflow: "hidden", border: "1.5px solid #ddd", background: "#eee", position: "relative" }}>
+                      {slide.desktop
+                        ? <img src={slide.desktop} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition: slide.pos||"center center" }} />
+                        : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", color:"#bbb", fontSize:22 }}>+</div>}
+                      <label style={{ position:"absolute", inset:0, cursor:"pointer", opacity:0 }}>
+                        <input type="file" accept="image/*" style={{ display:"none" }} disabled={heroUploading}
+                          onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], slide.id, "desktop")} />
                       </label>
-                    ))}
+                    </div>
+                    <div style={{ fontSize:10, color:"#4B6741", marginTop:4, textAlign:"center", fontWeight:600 }}>اضغط لتغيير الصورة</div>
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ fontSize:10, color:"#888", marginBottom:4, fontWeight:600 }}>موضع الصورة</div>
+                      <PosPicker value={slide.pos} onChange={async (v) => {
+                        const u = heroSlides.map(s => s.id===slide.id ? {...s, pos:v} : s);
+                        setHeroSlides(u); await saveHeroSlides(u);
+                      }} />
+                    </div>
                   </div>
-                </div>
 
-                {/* Order + Delete */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginRight: "auto" }}>
-                  <button disabled={idx === 0} onClick={async () => {
-                    const u = [...heroSlides]; [u[idx-1], u[idx]] = [u[idx], u[idx-1]];
-                    setHeroSlides(u); await saveHeroSlides(u);
-                  }} style={{ padding: "6px 12px", borderRadius: 8, border: "1.5px solid #e0ebd6", background: "#fff", cursor: idx===0?"not-allowed":"pointer", opacity: idx===0?0.4:1, fontSize: 14 }}>↑</button>
-                  <button disabled={idx === heroSlides.length-1} onClick={async () => {
-                    const u = [...heroSlides]; [u[idx], u[idx+1]] = [u[idx+1], u[idx]];
-                    setHeroSlides(u); await saveHeroSlides(u);
-                  }} style={{ padding: "6px 12px", borderRadius: 8, border: "1.5px solid #e0ebd6", background: "#fff", cursor: idx===heroSlides.length-1?"not-allowed":"pointer", opacity: idx===heroSlides.length-1?0.4:1, fontSize: 14 }}>↓</button>
-                  <button onClick={async () => {
-                    const updated = heroSlides.filter(s => s.id !== slide.id);
-                    setHeroSlides(updated); await saveHeroSlides(updated);
-                    setHeroMsg("✅ تم الحذف");
-                    setTimeout(() => setHeroMsg(""), 3000);
-                  }} style={{ padding: "6px 12px", borderRadius: 8, border: "1.5px solid #fca5a5", background: "#fff8f8", color: "#ef4444", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>حذف</button>
+                  {/* Mobile image + position */}
+                  <div style={{ flex: "0 0 auto" }}>
+                    <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>صورة الموبايل <span style={{ color:"#bbb", fontWeight:400 }}>(اختياري)</span></div>
+                    <div style={{ width: 75, height: 85, borderRadius: 10, overflow: "hidden", border: "1.5px solid #ddd", background: "#eee", position: "relative" }}>
+                      {slide.mobile
+                        ? <img src={slide.mobile} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition: slide.mobilePos||"center center" }} />
+                        : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", color:"#bbb", fontSize:22 }}>+</div>}
+                      <label style={{ position:"absolute", inset:0, cursor:"pointer", opacity:0 }}>
+                        <input type="file" accept="image/*" style={{ display:"none" }} disabled={heroUploading}
+                          onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], slide.id, "mobile")} />
+                      </label>
+                    </div>
+                    {slide.mobile
+                      ? <div style={{ fontSize:10, color:"#ef4444", marginTop:4, cursor:"pointer", textAlign:"center", fontWeight:600 }}
+                          onClick={async () => { const u=heroSlides.map(s=>s.id===slide.id?{...s,mobile:undefined}:s); setHeroSlides(u); await saveHeroSlides(u); }}>حذف</div>
+                      : <div style={{ fontSize:10, color:"#4B6741", marginTop:4, textAlign:"center", fontWeight:600 }}>اضغط لإضافة</div>}
+                    {slide.mobile && (
+                      <div style={{ marginTop:8 }}>
+                        <div style={{ fontSize:10, color:"#888", marginBottom:4, fontWeight:600 }}>موضع الصورة</div>
+                        <PosPicker value={slide.mobilePos} onChange={async (v) => {
+                          const u = heroSlides.map(s => s.id===slide.id ? {...s, mobilePos:v} : s);
+                          setHeroSlides(u); await saveHeroSlides(u);
+                        }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show on */}
+                  <div style={{ flex:1, minWidth:140 }}>
+                    <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:600 }}>تظهر على</div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      {([["both","الكل (موبايل + لاب)"],["desktop","اللاب فقط"],["mobile","الموبايل فقط"]] as const).map(([val, label]) => (
+                        <label key={val} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:13 }}>
+                          <input type="radio" name={`show-${slide.id}`} checked={slide.show===val} onChange={async () => {
+                            const u=heroSlides.map(s=>s.id===slide.id?{...s,show:val}:s); setHeroSlides(u); await saveHeroSlides(u);
+                          }} style={{ accentColor:"#4B6741" }} />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Order + Delete */}
+                  <div style={{ display:"flex", flexDirection:"column", gap:8, marginRight:"auto" }}>
+                    <button disabled={idx===0} onClick={async () => { const u=[...heroSlides]; [u[idx-1],u[idx]]=[u[idx],u[idx-1]]; setHeroSlides(u); await saveHeroSlides(u); }}
+                      style={{ padding:"6px 12px", borderRadius:8, border:"1.5px solid #e0ebd6", background:"#fff", cursor:idx===0?"not-allowed":"pointer", opacity:idx===0?0.4:1, fontSize:14 }}>↑</button>
+                    <button disabled={idx===heroSlides.length-1} onClick={async () => { const u=[...heroSlides]; [u[idx],u[idx+1]]=[u[idx+1],u[idx]]; setHeroSlides(u); await saveHeroSlides(u); }}
+                      style={{ padding:"6px 12px", borderRadius:8, border:"1.5px solid #e0ebd6", background:"#fff", cursor:idx===heroSlides.length-1?"not-allowed":"pointer", opacity:idx===heroSlides.length-1?0.4:1, fontSize:14 }}>↓</button>
+                    <button onClick={async () => { const u=heroSlides.filter(s=>s.id!==slide.id); setHeroSlides(u); await saveHeroSlides(u); setHeroMsg("✅ تم الحذف"); setTimeout(()=>setHeroMsg(""),3000); }}
+                      style={{ padding:"6px 12px", borderRadius:8, border:"1.5px solid #fca5a5", background:"#fff8f8", color:"#ef4444", cursor:"pointer", fontWeight:700, fontSize:13 }}>حذف</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {heroMsg && (
