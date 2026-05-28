@@ -130,8 +130,8 @@ function ShopContent() {
   const openProduct = (p: Product) => {
     setSelectedProduct(p);
     const imgs: string[] = [];
-    if (p.main_image?.startsWith("http")) imgs.push(p.main_image);
-    (p.images || []).forEach(i => { if (i?.startsWith("http") && !imgs.includes(i)) imgs.push(i); });
+    if (p.main_image && (p.main_image.startsWith("http") || p.main_image.startsWith("data:"))) imgs.push(p.main_image);
+    (p.images || []).forEach(i => { if (i && (i.startsWith("http") || i.startsWith("data:")) && !imgs.includes(i)) imgs.push(i); });
     setSelectedImages(imgs.length > 0 ? imgs : [getProductImage(p)]);
     setSelectedImgIdx(0);
   };

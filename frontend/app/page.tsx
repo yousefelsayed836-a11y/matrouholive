@@ -49,9 +49,10 @@ const CATS = [
 ];
 
 function getImg(p: Product): string {
-  const img = p.main_image || (p.images && p.images.find(i => i?.startsWith("http")));
-  if (!img) return `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent((p.name_ar || p.name_en)?.slice(0, 4) || "؟")}`;
-  return img.startsWith("http") ? img : `http://localhost:5000${img}`;
+  const img = p.main_image || (p.images && p.images[0]);
+  if (!img) return `https://placehold.co/400x400/4f7032/fff?text=${encodeURIComponent((p.name_ar || p.name_en)?.slice(0, 4) || "؟")}`;
+  if (img.startsWith("http") || img.startsWith("data:")) return img;
+  return `http://localhost:5000${img}`;
 }
 
 export default function HomePage() {
