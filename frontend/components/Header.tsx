@@ -41,7 +41,6 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
-  const [searching, setSearching] = useState(false);
   const [showDrop, setShowDrop] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout>(undefined);
@@ -50,7 +49,6 @@ export default function Header() {
   const ghost = isHome && !scrolled;
   const isDash = pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
 
-  /* scroll detection */
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
     fn();
@@ -58,7 +56,6 @@ export default function Header() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  /* cart */
   useEffect(() => {
     const upd = () => {
       try {
@@ -72,7 +69,6 @@ export default function Header() {
     return () => { window.removeEventListener('cartUpdated', upd); window.removeEventListener('storage', upd); };
   }, []);
 
-  /* close search dropdown on outside click */
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowDrop(false);
@@ -81,18 +77,15 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  /* close menu on route change */
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setResults([]); setShowDrop(false); return; }
-    setSearching(true);
     try {
       const r = await fetch(`${API_BASE}/products?search=${encodeURIComponent(q)}&is_active=true&limit=8`);
       const d = await r.json();
       setResults(d.products || []); setShowDrop(true);
     } catch { setResults([]); }
-    finally { setSearching(false); }
   }, []);
 
   const handleInput = (v: string) => {
@@ -104,18 +97,21 @@ export default function Header() {
 
   if (isDash) return null;
 
+  /* ─── line colours ─── */
+  const lineColor = ghost ? 'rgba(255,255,255,0.95)' : G;
+
   return (
     <>
-      {/* ═══ FIXED HEADER UNIT ═══ */}
-      <div className="hdr-unit" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200 }}>
+      {/* ══════════ FIXED WRAPPER ══════════ */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200 }}>
 
-        {/* Ticker — desktop only, slides in when scrolled */}
+        {/* ── Ticker (desktop only, appears on scroll) ── */}
         <div className="hdr-ticker" style={{
-          background: GD, overflow: 'hidden', padding: '7px 0',
+          background: GD, overflow: 'hidden',
           maxHeight: scrolled ? 34 : 0,
           transition: 'max-height 0.4s ease',
         }}>
-          <div style={{ display: 'flex', width: '200%', animation: 'tickerScroll 28s linear infinite' }}>
+          <div style={{ display: 'flex', width: '200%', animation: 'tickerScroll 28s linear infinite', padding: '7px 0' }}>
             {[0, 1].map(k => (
               <div key={k} style={{ flex: '0 0 50%', display: 'flex', justifyContent: 'space-around' }}>
                 {TICKER.map((t, i) => (
@@ -126,46 +122,32 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Main nav bar */}
+        {/* ── Main bar ── */}
         <header style={{
-          height: 64, display: 'flex', alignItems: 'center', padding: '0 20px',
+          height: 64,
           background: ghost ? 'transparent' : 'rgba(255,255,255,0.97)',
           backdropFilter: ghost ? 'none' : 'blur(14px)',
           WebkitBackdropFilter: ghost ? 'none' : 'blur(14px)',
           borderBottom: ghost ? 'none' : `1px solid ${BORDER}`,
           boxShadow: ghost ? 'none' : '0 2px 20px rgba(0,0,0,0.07)',
           transition: 'background 0.4s, box-shadow 0.4s, border-color 0.4s',
+          position: 'relative',
         }}>
-          <div style={{
-            maxWidth: 1300, width: '100%', margin: '0 auto',
-            display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
-            direction: 'rtl', gap: 12,
-          }}>
+          <div style={{ height: '100%', maxWidth: 1300, margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
-            {/* ── Right: Hamburger ── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* ── RIGHT: hamburger (+ desktop nav) ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Hamburger — always visible */}
               <button
                 onClick={() => setMenuOpen(v => !v)}
                 aria-label="القائمة"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 5, touchAction: 'manipulation' }}>
-                <span style={{
-                  display: 'block', height: 2.5, borderRadius: 2, background: ghost ? 'rgba(255,255,255,0.92)' : G,
-                  width: menuOpen ? 22 : 22, transform: menuOpen ? 'translateY(7.5px) rotate(45deg)' : 'none',
-                  transition: 'all 0.3s ease', transformOrigin: 'center',
-                }} />
-                <span style={{
-                  display: 'block', height: 2.5, borderRadius: 2, background: ghost ? 'rgba(255,255,255,0.92)' : G,
-                  width: 16, opacity: menuOpen ? 0 : 1, transform: menuOpen ? 'scaleX(0)' : 'none',
-                  transition: 'all 0.3s ease',
-                }} />
-                <span style={{
-                  display: 'block', height: 2.5, borderRadius: 2, background: ghost ? 'rgba(255,255,255,0.92)' : G,
-                  width: menuOpen ? 22 : 10, transform: menuOpen ? 'translateY(-7.5px) rotate(-45deg)' : 'none',
-                  transition: 'all 0.3s ease', transformOrigin: 'center',
-                }} />
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 5.5, touchAction: 'manipulation' }}>
+                <span style={{ display: 'block', height: 2.5, borderRadius: 2, background: lineColor, width: 22, transform: menuOpen ? 'translateY(8px) rotate(45deg)' : 'none', transition: 'all 0.3s', transformOrigin: 'center' }} />
+                <span style={{ display: 'block', height: 2.5, borderRadius: 2, background: lineColor, width: 16, opacity: menuOpen ? 0 : 1, transition: 'all 0.3s' }} />
+                <span style={{ display: 'block', height: 2.5, borderRadius: 2, background: lineColor, width: 10, transform: menuOpen ? 'translateY(-8px) rotate(-45deg)' : 'none', transition: 'all 0.3s', transformOrigin: 'center' }} />
               </button>
 
-              {/* Desktop nav */}
+              {/* Desktop nav links */}
               <nav className="desk-nav" style={{ display: 'flex', gap: 4 }}>
                 {NAV.map(item => (
                   <Link key={item.href} href={item.href} style={{
@@ -179,31 +161,29 @@ export default function Header() {
               </nav>
             </div>
 
-            {/* ── Center: Logo ── */}
-            <Link href="/" style={{ textDecoration: 'none', display: 'flex', justifyContent: 'center' }}>
+            {/* ── CENTER: logo (absolutely centered) ── */}
+            <Link href="/" style={{ textDecoration: 'none', position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 1 }}>
               <img src={LOGO} alt="مطروح أوليفي" style={{
-                height: 46, width: 'auto', display: 'block',
+                height: 44, width: 'auto', display: 'block',
                 filter: ghost ? 'brightness(0) invert(1)' : 'none',
                 transition: 'filter 0.4s ease',
               }} />
             </Link>
 
-            {/* ── Left: Search + Cart bag ── */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-              {/* Search (desktop, hidden when ghost) */}
+            {/* ── LEFT: desktop search + cart ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Desktop search */}
               {!ghost && (
-                <div ref={searchRef} className="desk-search" style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
-                  <div style={{ position: 'relative' }}>
-                    <i className="fas fa-search" style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: G, fontSize: 13, pointerEvents: 'none' }} />
-                    <input
-                      type="text" value={query} onChange={e => handleInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && query.trim()) { setShowDrop(false); router.push(`/shop?search=${encodeURIComponent(query)}`); } if (e.key === 'Escape') { setShowDrop(false); setQuery(''); } }}
-                      onFocus={() => query && setShowDrop(true)}
-                      placeholder="ابحث..."
-                      style={{ width: '100%', padding: '8px 36px 8px 12px', borderRadius: 24, border: `1.5px solid ${BORDER}`, fontSize: 13, outline: 'none', background: CB, color: DK, fontFamily: 'Cairo, sans-serif', direction: 'rtl', boxSizing: 'border-box' }}
-                    />
-                    {query && <button onClick={() => { setQuery(''); setResults([]); setShowDrop(false); }} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#aaa', padding: 0, lineHeight: 1 }}>×</button>}
-                  </div>
+                <div ref={searchRef} className="desk-search" style={{ position: 'relative', width: 280 }}>
+                  <i className="fas fa-search" style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: G, fontSize: 13, pointerEvents: 'none' }} />
+                  <input
+                    type="text" value={query} onChange={e => handleInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && query.trim()) { setShowDrop(false); router.push(`/shop?search=${encodeURIComponent(query)}`); } if (e.key === 'Escape') { setShowDrop(false); setQuery(''); } }}
+                    onFocus={() => query && setShowDrop(true)}
+                    placeholder="ابحث..."
+                    style={{ width: '100%', padding: '8px 36px 8px 12px', borderRadius: 24, border: `1.5px solid ${BORDER}`, fontSize: 13, outline: 'none', background: CB, color: DK, fontFamily: 'Cairo, sans-serif', direction: 'rtl', boxSizing: 'border-box' }}
+                  />
+                  {query && <button onClick={() => { setQuery(''); setResults([]); setShowDrop(false); }} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#aaa', padding: 0 }}>×</button>}
                   {showDrop && (
                     <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: '#fff', borderRadius: 14, border: `1px solid ${BORDER}`, boxShadow: '0 12px 40px rgba(79,112,50,0.15)', zIndex: 300, overflow: 'hidden', maxHeight: 380, overflowY: 'auto' }}>
                       {results.length === 0
@@ -230,14 +210,14 @@ export default function Header() {
               )}
 
               {/* Cart bag */}
-              <Link href="/cart" style={{ position: 'relative', textDecoration: 'none', touchAction: 'manipulation' }}>
+              <Link href="/cart" style={{ position: 'relative', textDecoration: 'none', flexShrink: 0, touchAction: 'manipulation' }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: ghost ? 'rgba(255,255,255,0.15)' : CB,
-                  border: ghost ? '1.5px solid rgba(255,255,255,0.4)' : `1.5px solid ${BORDER}`,
+                  border: ghost ? '1.5px solid rgba(255,255,255,0.5)' : `1.5px solid ${BORDER}`,
                   transition: 'all 0.3s',
                 }}>
-                  <i className="fas fa-bag-shopping" style={{ fontSize: 16, color: ghost ? '#fff' : G }} />
+                  <i className="fas fa-bag-shopping" style={{ fontSize: 17, color: ghost ? '#fff' : G }} />
                 </div>
                 {cartCount > 0 && (
                   <span style={{ position: 'absolute', top: -3, left: -3, background: AU, color: '#fff', width: 18, height: 18, borderRadius: '50%', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cairo, sans-serif', border: '2px solid #fff' }}>
@@ -246,64 +226,66 @@ export default function Header() {
                 )}
               </Link>
             </div>
+
           </div>
         </header>
 
-        {/* Mobile search bar — slides down when not ghost */}
+        {/* ── Mobile search bar (below nav, hidden in ghost mode) ── */}
         <div style={{
-          background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          padding: ghost ? 0 : '8px 16px',
+          background: 'rgba(255,255,255,0.97)',
+          backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
           maxHeight: ghost ? 0 : 56, overflow: 'hidden',
           borderBottom: ghost ? 'none' : `1px solid ${BORDER}`,
-          transition: 'max-height 0.4s ease, padding 0.4s ease',
+          transition: 'max-height 0.4s ease',
         }} className="mob-search-bar">
-          <div style={{ position: 'relative' }}>
-            <i className="fas fa-search" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: G, fontSize: 13, pointerEvents: 'none' }} />
+          <div style={{ padding: '8px 16px', position: 'relative' }}>
+            <i className="fas fa-search" style={{ position: 'absolute', right: 28, top: '50%', transform: 'translateY(-50%)', color: G, fontSize: 13, pointerEvents: 'none' }} />
             <input
               type="text" value={query} onChange={e => handleInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && query.trim()) { router.push(`/shop?search=${encodeURIComponent(query)}`); setQuery(''); } }}
               placeholder="ابحث عن منتج..."
               style={{ width: '100%', padding: '9px 36px 9px 12px', borderRadius: 24, border: `1.5px solid ${BORDER}`, fontSize: 14, outline: 'none', background: CB, color: DK, fontFamily: 'Cairo, sans-serif', direction: 'rtl', boxSizing: 'border-box' }}
             />
-            {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#aaa', padding: 0 }}>×</button>}
+            {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', left: 26, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#aaa', padding: 0 }}>×</button>}
           </div>
         </div>
+
       </div>
 
-      {/* ═══ MENU DRAWER ═══ */}
+      {/* ══════════ MENU DRAWER ══════════ */}
       {menuOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, direction: 'rtl' }}>
-          {/* backdrop */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} onClick={() => setMenuOpen(false)} />
-          {/* drawer from right */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)' }} onClick={() => setMenuOpen(false)} />
           <div style={{
             position: 'absolute', top: 0, right: 0, bottom: 0, width: 280,
             background: '#fff', boxShadow: '-8px 0 40px rgba(0,0,0,0.15)',
             display: 'flex', flexDirection: 'column', overflowY: 'auto',
           }}>
-            {/* drawer header */}
             <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${CB}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <img src={LOGO} alt="مطروح أوليفي" style={{ height: 40 }} />
-              <button onClick={() => setMenuOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888', padding: 4 }}>×</button>
+              <button onClick={() => setMenuOpen(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#999', padding: 4, lineHeight: 1 }}>×</button>
             </div>
-            {/* nav links */}
-            <div style={{ padding: '12px 0', flex: 1 }}>
+            <div style={{ padding: '8px 0', flex: 1 }}>
               {NAV.map(item => (
                 <Link key={item.href} href={item.href}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', borderBottom: `1px solid ${CB}`, color: pathname === item.href ? G : DK, fontWeight: pathname === item.href ? 700 : 600, fontSize: 15, fontFamily: 'Cairo, sans-serif', background: pathname === item.href ? `${GL}88` : 'transparent' }}>
-                  <i className={`fas ${item.href === '/' ? 'fa-home' : item.href === '/shop' ? 'fa-store' : 'fa-envelope'}`} style={{ fontSize: 16, color: G, width: 20, textAlign: 'center' }} />
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 20px', textDecoration: 'none', borderBottom: `1px solid ${CB}`, color: pathname === item.href ? G : DK, fontWeight: pathname === item.href ? 700 : 600, fontSize: 15, fontFamily: 'Cairo, sans-serif', background: pathname === item.href ? `${GL}99` : 'transparent' }}>
+                  <i className={`fas ${item.href === '/' ? 'fa-home' : item.href === '/shop' ? 'fa-store' : 'fa-envelope'}`} style={{ fontSize: 15, color: G, width: 20, textAlign: 'center' }} />
                   {item.label}
                 </Link>
               ))}
-              <Link href="/cart" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', color: DK, fontWeight: 600, fontSize: 15, fontFamily: 'Cairo, sans-serif' }}>
-                <i className="fas fa-bag-shopping" style={{ fontSize: 16, color: G, width: 20, textAlign: 'center' }} />
+              <Link href="/cart"
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 20px', textDecoration: 'none', color: DK, fontWeight: 600, fontSize: 15, fontFamily: 'Cairo, sans-serif' }}>
+                <i className="fas fa-bag-shopping" style={{ fontSize: 15, color: G, width: 20, textAlign: 'center' }} />
                 سلة التسوق
-                {cartCount > 0 && <span style={{ background: AU, color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif' }}>{cartCount}</span>}
+                {cartCount > 0 && <span style={{ background: AU, color: '#fff', borderRadius: 10, padding: '1px 8px', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif', marginInlineStart: 'auto' }}>{cartCount}</span>}
               </Link>
             </div>
-            {/* drawer footer */}
             <div style={{ padding: '16px 20px', borderTop: `1px solid ${CB}`, display: 'flex', gap: 12 }}>
-              {[{ href: 'https://wa.me/201229555229', icon: 'fa-whatsapp', bg: '#25D366' }, { href: '#', icon: 'fa-facebook-f', bg: '#1877F2' }, { href: '#', icon: 'fa-instagram', bg: '#E4405F' }].map(s => (
+              {[
+                { href: 'https://wa.me/201229555229', icon: 'fa-whatsapp', bg: '#25D366' },
+                { href: '#', icon: 'fa-facebook-f', bg: '#1877F2' },
+                { href: '#', icon: 'fa-instagram', bg: '#E4405F' },
+              ].map(s => (
                 <a key={s.icon} href={s.href} target="_blank" rel="noreferrer"
                   style={{ width: 38, height: 38, borderRadius: '50%', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#fff', fontSize: 15 }}>
                   <i className={`fab ${s.icon}`} />
@@ -316,15 +298,15 @@ export default function Header() {
 
       <style jsx global>{`
         @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .desk-nav { display: none; }
+        .desk-nav    { display: none !important; }
         .desk-search { display: none !important; }
+        .hdr-ticker  { display: none !important; }
         .mob-search-bar { display: block; }
-        .hdr-ticker { display: none !important; }
         @media (min-width: 900px) {
           .desk-nav    { display: flex !important; }
           .desk-search { display: block !important; }
+          .hdr-ticker  { display: block !important; }
           .mob-search-bar { display: none !important; }
-          .hdr-ticker { display: block !important; }
         }
       `}</style>
     </>
