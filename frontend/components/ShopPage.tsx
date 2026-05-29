@@ -74,7 +74,7 @@ export default function ShopPage({ collectionSlug, title, breadcrumb }: Props) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fdf4", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f8fdf4", direction: "rtl" }} className="shop-page-wrap">
 
       {/* Floating cart */}
       <button onClick={() => setShowCart(true)} style={{ position: "fixed", bottom: 28, left: 28, width: 62, height: 62, borderRadius: "50%", background: `linear-gradient(135deg,${GREEN},${GREEN_DARK})`, color: "#fff", border: "none", fontSize: 26, cursor: "pointer", zIndex: 100, boxShadow: "0 6px 24px rgba(75,103,65,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>

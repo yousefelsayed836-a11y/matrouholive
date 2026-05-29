@@ -43,9 +43,9 @@ main {
   min-height: 100vh;
   padding-top: 64px;
 }
-/* mobile: nav(64) + search-bar(56) = 120px */
+/* shop page: extra 56px on mobile for the search bar below the header */
 @media (max-width: 899px) {
-  main { padding-top: 120px; }
+  .shop-page-wrap { padding-top: 56px; }
 }
 
 html { scroll-behavior: smooth; }

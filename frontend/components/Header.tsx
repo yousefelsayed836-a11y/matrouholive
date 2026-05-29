@@ -47,6 +47,7 @@ export default function Header() {
 
   const isHome = pathname === '/';
   const ghost = isHome && !scrolled;
+  const isShop = pathname.startsWith('/shop');
   const isDash = pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
 
   useEffect(() => {
@@ -172,8 +173,8 @@ export default function Header() {
 
             {/* ── LEFT: desktop search + cart ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Desktop search */}
-              {!ghost && (
+              {/* Desktop search — only on shop page */}
+              {isShop && (
                 <div ref={searchRef} className="desk-search" style={{ position: 'relative', width: 280 }}>
                   <i className="fas fa-search" style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: G, fontSize: 13, pointerEvents: 'none' }} />
                   <input
@@ -234,8 +235,8 @@ export default function Header() {
         <div style={{
           background: 'rgba(255,255,255,0.97)',
           backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          maxHeight: ghost ? 0 : 56, overflow: 'hidden',
-          borderBottom: ghost ? 'none' : `1px solid ${BORDER}`,
+          maxHeight: isShop ? 56 : 0, overflow: 'hidden',
+          borderBottom: isShop ? `1px solid ${BORDER}` : 'none',
           transition: 'max-height 0.4s ease',
         }} className="mob-search-bar">
           <div style={{ padding: '8px 16px', position: 'relative' }}>

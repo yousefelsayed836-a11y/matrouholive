@@ -36,12 +36,12 @@ const FALLBACK_REVIEWS: Review[] = [
 ];
 
 const CATS = [
-  { slug: "زيت-الزيتون",     title: "زيت الزيتون",     desc: "زيت بكر ممتاز",          bg: G,         icon: "fa-wine-bottle" },
-  { slug: "العنايه-بالبشره", title: "العناية بالبشرة",  desc: "منتجات طبيعية للبشرة",   bg: AU,        icon: "fa-spa" },
-  { slug: "العنايه-بالشعر",  title: "العناية بالشعر",   desc: "زيوت وتركيبات للشعر",    bg: GD,        icon: "fa-leaf" },
-  { slug: "الزيوت-الطبيعيه", title: "الزيوت الطبيعية",  desc: "زيوت طبيعية 100%",       bg: "#5a8a3a", icon: "fa-oil-can" },
-  { slug: "منتجات-اخري",     title: "منتجات أخرى",      desc: "مجموعة متنوعة",           bg: "#7a5e28", icon: "fa-box-open" },
-  { slug: "مخللات",           title: "المخللات",          desc: "مخللات طبيعية طازجة",    bg: "#2d5018", icon: "fa-jar" },
+  { slug: "زيت-الزيتون",     title: "زيت الزيتون",     desc: "زيت بكر ممتاز",          bg: G, icon: "fa-wine-bottle" },
+  { slug: "العنايه-بالبشره", title: "العناية بالبشرة",  desc: "منتجات طبيعية للبشرة",   bg: G, icon: "fa-spa" },
+  { slug: "العنايه-بالشعر",  title: "العناية بالشعر",   desc: "زيوت وتركيبات للشعر",    bg: G, icon: "fa-leaf" },
+  { slug: "الزيوت-الطبيعيه", title: "الزيوت الطبيعية",  desc: "زيوت طبيعية 100%",       bg: G, icon: "fa-oil-can" },
+  { slug: "منتجات-اخري",     title: "منتجات أخرى",      desc: "مجموعة متنوعة",           bg: G, icon: "fa-box-open" },
+  { slug: "مخللات",           title: "المخللات",          desc: "مخللات طبيعية طازجة",    bg: G, icon: "fa-jar" },
 ];
 
 function getImg(p: Product): string {
