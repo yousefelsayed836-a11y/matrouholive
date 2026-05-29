@@ -143,8 +143,6 @@ export default function HomePage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  /* hero advances only on manual tap — no auto-advance */
-
   /* auto-advance review every 5s */
   useEffect(() => {
     const t = setInterval(() => {
@@ -168,6 +166,13 @@ export default function HomePage() {
     setHeroAnim(false);
     setTimeout(() => { setHeroIdx(i => (i + 1) % heroTotal); setHeroAnim(true); }, 300);
   };
+
+  /* auto-advance hero every 20s */
+  useEffect(() => {
+    if (heroTotal <= 1) return;
+    const t = setInterval(goHeroNext, 20000);
+    return () => clearInterval(t);
+  }, [heroTotal]);
 
   const visibleCards = typeof window !== "undefined" ? Math.floor((window.innerWidth - 80) / (CARD_W + CARD_GAP)) || 2 : 4;
   const maxIdx = Math.max(0, bestSellers.length - visibleCards);
@@ -353,7 +358,7 @@ export default function HomePage() {
         const activeIdx = safeHeroIdx % slides.length;
         return (
       <section style={{ position:"relative", overflow:"hidden", background:"#1a1a1a",
-        height: HERO_H, minHeight: isMobile ? 260 : 360 }}>
+        height: HERO_H, minHeight: isMobile ? 260 : 360, marginTop: -64 }}>
         {slides.map((slide, i) => {
           const isActive = i === activeIdx;
           const src = isMobile && slide.mobile ? slide.mobile : slide.desktop;

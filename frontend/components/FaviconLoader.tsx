@@ -21,11 +21,9 @@ function applyFavicon(value: string) {
 
 export default function FaviconLoader() {
   useEffect(() => {
-    // Apply cached favicon immediately on mount (before API call)
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) applyFavicon(cached);
 
-    // Fetch fresh value, update cache + DOM
     fetch(`${API_BASE}/settings/favicon`)
       .then(r => r.json())
       .then(d => {
