@@ -5,13 +5,18 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + 
 const CACHE_KEY = "favicon_cache";
 
 function applyFavicon(value: string) {
-  // Remove all existing favicon link tags to avoid duplicates
-  document.querySelectorAll("link[rel~='icon'], link[rel='shortcut icon']").forEach(el => el.remove());
-  const link = document.createElement("link");
-  link.rel = "icon";
-  link.type = value.startsWith("data:image/png") ? "image/png" : value.startsWith("data:image/svg") ? "image/svg+xml" : "image/x-icon";
+  const type = value.startsWith("data:image/png") ? "image/png"
+    : value.startsWith("data:image/svg") ? "image/svg+xml"
+    : "image/x-icon";
+  // Update existing tag in-place — never remove React-managed elements
+  let link = document.head.querySelector<HTMLLinkElement>("link[rel~='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+  }
+  link.type = type;
   link.href = value;
-  document.head.appendChild(link);
 }
 
 export default function FaviconLoader() {
