@@ -328,6 +328,11 @@ export default function HomePage() {
           .about-flex { flex-direction:column!important;text-align:center!important; }
           .about-img  { width:130px!important;height:130px!important; }
           .hero-cta   { bottom:8%!important;right:50%!important;transform:translateX(50%)!important; }
+
+          /* Kill ALL entrance animations on mobile — prevent ghost-click from mid-animation taps */
+          .cat-card, .prod-card, .anim-up, .anim-r, .anim-l {
+            opacity:1!important; transform:none!important; transition:none!important; animation:none!important;
+          }
         }
       `}</style>
 
@@ -341,7 +346,7 @@ export default function HomePage() {
 
       {/* ══ HERO SLIDESHOW ══ */}
       {(() => {
-        const HERO_H = isMobile ? "80vw" : 580;
+        const HERO_H = isMobile ? "100vw" : 580;
         const slides = visibleSlides.length > 0
           ? visibleSlides
           : [{ id:"default", desktop: HERO_BANNER, show:"both" as const, pos:"center center" }];
@@ -502,7 +507,7 @@ export default function HomePage() {
                     <Link href={`/products/${p.id}`} style={{ textDecoration:"none",display:"block" }}>
                       <div style={{ position:"relative",height:200,overflow:"hidden",background:CB }}>
                         <img className="prod-img" src={img} alt={name}
-                          style={{ width:"100%",height:"100%",objectFit:"cover" }} loading="lazy"
+                          style={{ width:"100%",height:"100%",objectFit:"cover",pointerEvents:"none" }} loading="lazy"
                           onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4f7032/d7f7b3?text=${encodeURIComponent(name.slice(0,4))}`; }} />
                         {hasDisc && <span style={{ position:"absolute",top:10,right:10,background:"#ef4444",
                           color:"#fff",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:800 }}>-{disc}%</span>}
