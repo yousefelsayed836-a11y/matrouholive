@@ -109,8 +109,8 @@ export default function Header() {
       {/* ═══ FIXED HEADER UNIT ═══ */}
       <div className="hdr-unit" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200 }}>
 
-        {/* Ticker — slides in when scrolled */}
-        <div style={{
+        {/* Ticker — desktop only, slides in when scrolled */}
+        <div className="hdr-ticker" style={{
           background: GD, overflow: 'hidden', padding: '7px 0',
           maxHeight: scrolled ? 34 : 0,
           transition: 'max-height 0.4s ease',
@@ -319,10 +319,12 @@ export default function Header() {
         .desk-nav { display: none; }
         .desk-search { display: none !important; }
         .mob-search-bar { display: block; }
+        .hdr-ticker { display: none !important; }
         @media (min-width: 900px) {
           .desk-nav    { display: flex !important; }
           .desk-search { display: block !important; }
           .mob-search-bar { display: none !important; }
+          .hdr-ticker { display: block !important; }
         }
       `}</style>
     </>

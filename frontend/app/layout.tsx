@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartProvider>
           <FaviconLoader />
           <Header />
-          <main style={{ minHeight: '100vh', background: '#f1f7c9', paddingTop: 64 }}>
+          <main style={{ minHeight: '100vh', background: '#f1f7c9' }}>
             {children}
           </main>
         </CartProvider>

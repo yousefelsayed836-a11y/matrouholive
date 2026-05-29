@@ -41,6 +41,11 @@ p, span, div, input, textarea, select, button, a, label, li {
 main {
   background-color: #f1f7c9;
   min-height: 100vh;
+  padding-top: 64px;
+}
+/* mobile: nav(64) + search-bar(56) = 120px */
+@media (max-width: 899px) {
+  main { padding-top: 120px; }
 }
 
 html { scroll-behavior: smooth; }

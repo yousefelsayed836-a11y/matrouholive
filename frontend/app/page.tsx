@@ -358,7 +358,7 @@ export default function HomePage() {
         const activeIdx = safeHeroIdx % slides.length;
         return (
       <section style={{ position:"relative", overflow:"hidden", background:"#1a1a1a",
-        height: HERO_H, minHeight: isMobile ? 260 : 360, marginTop: -64 }}>
+        height: HERO_H, minHeight: isMobile ? 260 : 360, marginTop: isMobile ? -120 : -64 }}>
         {slides.map((slide, i) => {
           const isActive = i === activeIdx;
           const src = isMobile && slide.mobile ? slide.mobile : slide.desktop;
