@@ -55,7 +55,7 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true); setError("");
-      const res = await fetch(`${API_BASE}/products`, { cache: "no-store" });
+      const res = await fetch(`${API_BASE}/products?limit=1000`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Error: ${res.status}`);
       const data = await res.json();
       setProducts(Array.isArray(data) ? data : data.products || []);
