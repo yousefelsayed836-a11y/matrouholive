@@ -558,7 +558,7 @@ export default function OrdersPage() {
                         onChange={toggleSelectAll}
                         style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#4B6741" }} />
                     </th>
-                    {["ORDER", "CUSTOMER", "PHONE", "ADDRESS", "CITY", "ITEMS", "TOTAL", "STATUS", "ACTIONS"].map(h => (
+                    {["ORDER", "CUSTOMER", "PHONE", "ADDRESS", "CITY", "ITEMS", "TOTAL", "STATUS", "مندوب", "ACTIONS"].map(h => (
                       <th key={h} style={{ padding: 14, textAlign: "left", fontSize: 12, fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>
@@ -610,6 +610,16 @@ export default function OrdersPage() {
                           <option value="completed">Completed</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
+                      </td>
+                      <td style={{ padding: "8px 10px" }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 90 }}>
+                          {["علاء", "سامح", "شخص آخر"].map(p => (
+                            <button key={p} onClick={e => { e.stopPropagation(); updateShippedBy(order.id, order.shipped_by === p ? "" : p); }}
+                              style={{ padding: "5px 8px", borderRadius: 6, border: `1.5px solid ${order.shipped_by === p ? "#4B6741" : "#ddd"}`, background: order.shipped_by === p ? "#4B6741" : "#fff", color: order.shipped_by === p ? "#fff" : "#555", fontSize: 11, fontWeight: order.shipped_by === p ? 700 : 400, cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}>
+                              {p}
+                            </button>
+                          ))}
+                        </div>
                       </td>
                       <td style={{ padding: 14, textAlign: "center" }}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
