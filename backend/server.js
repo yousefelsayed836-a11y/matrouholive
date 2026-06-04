@@ -71,6 +71,10 @@ app.use('/api/reviews', require('./routes/reviews'));
 const bulkUploadRoutes = require('./routes/admin/bulkUpload');
 app.use('/api/admin/products/bulk-upload', upload.single('csv'), bulkUploadRoutes);
 
+app.get('/api/upload', (req, res) => {
+  res.json({ connected: !!process.env.GITHUB_TOKEN, repo: process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive' });
+});
+
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
