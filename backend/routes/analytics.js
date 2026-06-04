@@ -89,7 +89,7 @@ router.get('/bought-together', async (req, res) => {
 // Revenue timeline
 router.get('/timeline', async (req, res) => {
   try {
-    const days = Math.min(parseInt(req.query.days as string) || 30, 90);
+    const days = Math.min(parseInt(req.query.days) || 30, 90);
     const timeline = await allQuery(`
       SELECT
         TO_CHAR(DATE(created_at), 'YYYY-MM-DD') as date,
