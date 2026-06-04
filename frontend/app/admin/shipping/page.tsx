@@ -101,7 +101,7 @@ export default function ShippingPage() {
   };
 
   const updateGovCost = (govName: string, cost: number) =>
-    setRates(prev => prev.map(r => r.name === govName ? { ...r, cost } : r));
+    setRates(prev => prev.map(r => r.name === govName ? { ...r, cost, cities: r.cities.map(c => ({ ...c, cost })) } : r));
 
   const updateCityCost = (govName: string, cityName: string, cost: number) =>
     setRates(prev => prev.map(r =>
