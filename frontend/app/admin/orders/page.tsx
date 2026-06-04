@@ -24,6 +24,7 @@ interface Order {
   total_amount: number;
   shipping_cost?: number;
   status: string;
+  shipped_by?: string;
   created_at: string;
   notes?: string;
   items?: OrderItem[];
@@ -149,6 +150,17 @@ export default function OrdersPage() {
       });
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
       if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, status } : null);
+    } catch {}
+  };
+
+  const updateShippedBy = async (id: string, shipped_by: string) => {
+    try {
+      await fetch(`${API_BASE}/orders/${id}/shipped-by`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shipped_by }),
+      });
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, shipped_by } : o));
+      if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, shipped_by } : null);
     } catch {}
   };
 
@@ -602,10 +614,15 @@ export default function OrdersPage() {
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 4 }}>{order.customer_name}</div>
                   <div style={{ fontSize: 13, color: "#555", marginBottom: 2 }}>📞 {order.customer_phone}{order.phone2 ? ` · 💬 ${order.phone2}` : ""}</div>
                   <div style={{ fontSize: 13, color: "#777", marginBottom: 6 }}>📍 {order.city || ""}{order.governorate ? ` / ${order.governorate}` : ""}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: "#888" }}>{new Date(order.created_at).toLocaleDateString("ar-EG")}</span>
                     <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 17 }}>{fmt(order.total_amount)} EGP</span>
                   </div>
+                  {order.shipped_by && (
+                    <div style={{ fontSize: 12, color: "#4B6741", fontWeight: 700, marginBottom: 6, background: "#f0f5eb", borderRadius: 8, padding: "4px 10px", display: "inline-block" }}>
+                      🚚 شحن: {order.shipped_by}
+                    </div>
+                  )}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     <button onClick={() => openOrder(order)}
                       style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "#1a1a2e", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -690,14 +707,39 @@ export default function OrdersPage() {
 
                 {/* Status Change */}
                 <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #eee" }}>
-                  <label style={{ fontSize: 12, color: "#888", fontWeight: 700, display: "block", marginBottom: 8 }}>UPDATE STATUS</label>
+                  <label style={{ fontSize: 12, color: "#888", fontWeight: 700, display: "block", marginBottom: 8 }}>تغيير الحالة</label>
                   <select value={selectedOrder.status} onChange={e => updateStatus(selectedOrder.id, e.target.value)}
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #c8d9b0", fontSize: 14, fontWeight: 700, color: getStatusColor(selectedOrder.status), cursor: "pointer", background: "#fff", outline: "none" }}>
-                    <option value="pending">⏳ Pending</option>
-                    <option value="processing">🔄 Processing</option>
-                    <option value="completed">✅ Completed</option>
-                    <option value="cancelled">❌ Cancelled</option>
+                    <option value="pending">⏳ معلق</option>
+                    <option value="processing">🔄 جاري التجهيز</option>
+                    <option value="shipped">🚚 تم الشحن</option>
+                    <option value="delivered">✅ تم التسليم</option>
+                    <option value="cancelled">❌ ملغي</option>
                   </select>
+                </div>
+
+                {/* Shipped By */}
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ fontSize: 12, color: "#888", fontWeight: 700, display: "block", marginBottom: 8 }}>تم الشحن بواسطة</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {["علاء", "سام", "شخص آخر", ""].map(person => (
+                      <button key={person} onClick={() => updateShippedBy(selectedOrder.id, person)}
+                        style={{
+                          padding: "8px 18px", borderRadius: 20, border: "2px solid",
+                          borderColor: selectedOrder.shipped_by === person && person !== "" ? "#4B6741" : "#ddd",
+                          background: selectedOrder.shipped_by === person && person !== "" ? "#4B6741" : "#fff",
+                          color: selectedOrder.shipped_by === person && person !== "" ? "#fff" : "#555",
+                          fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "Cairo, sans-serif",
+                        }}>
+                        {person === "" ? "🗑️ إلغاء" : person === "علاء" ? "👤 علاء" : person === "سام" ? "👤 سام" : "👤 شخص آخر"}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedOrder.shipped_by && (
+                    <div style={{ marginTop: 8, fontSize: 13, color: "#4B6741", fontWeight: 600, fontFamily: "Cairo, sans-serif" }}>
+                      ✅ تم الشحن بواسطة: <strong>{selectedOrder.shipped_by}</strong>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

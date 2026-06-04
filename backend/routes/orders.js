@@ -89,6 +89,15 @@ router.get('/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+router.put('/:id/shipped-by', async (req, res) => {
+  try {
+    const { shipped_by } = req.body;
+    await runQuery('ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_by VARCHAR(100)').catch(() => {});
+    await runQuery('UPDATE orders SET shipped_by = ? WHERE id = ?', [shipped_by || null, req.params.id]);
+    res.json(await getQuery('SELECT * FROM orders WHERE id = ?', [req.params.id]));
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 router.put('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
