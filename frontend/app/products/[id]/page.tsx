@@ -50,6 +50,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         setProduct(data.product);
         if (data.product?.variants?.length > 0) setSelectedVariant(data.product.variants[0]);
         setLoading(false);
+        // Track product view
+        const sid = sessionStorage.getItem("sid") || Math.random().toString(36).slice(2);
+        sessionStorage.setItem("sid", sid);
+        fetch(`${API_BASE}/analytics/event`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_type: "product_view", product_id: data.product?.id, product_name: data.product?.name_ar || data.product?.name_en, session_id: sid }) }).catch(() => {});
       })
       .catch(() => { setError("المنتج غير موجود"); setLoading(false); });
   }, [id]);
@@ -71,6 +76,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       else cart = [...cart, item];
       localStorage.setItem("cart", JSON.stringify(cart));
       window.dispatchEvent(new Event("cartUpdated"));
+      // Track cart add
+      const sid = sessionStorage.getItem("sid") || "";
+      fetch(`${API_BASE}/analytics/event`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_type: "cart_add", product_id: product.id, product_name: product.name_ar || product.name_en, session_id: sid }) }).catch(() => {});
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch {}

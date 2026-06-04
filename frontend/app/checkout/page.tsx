@@ -69,6 +69,10 @@ export default function CheckoutPage() {
         setCart(items);
         const total = items.reduce((s: number, i: any) => s + i.product.price * i.qty, 0);
         trackInitiateCheckout(total, items.reduce((s: number, i: any) => s + i.qty, 0));
+        const sid = sessionStorage.getItem("sid") || Math.random().toString(36).slice(2);
+        sessionStorage.setItem("sid", sid);
+        fetch(`${API_BASE}/analytics/event`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_type: "checkout_start", session_id: sid, metadata: { items: items.length, total } }) }).catch(() => {});
       }
     } catch {}
 
