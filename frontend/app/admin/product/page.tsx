@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import ProductFormFields from "@/components/ProductFormFields";
+import { uploadToGitHub } from "../../../lib/uploadToGitHub";
 
 interface Category { id: string; name_en: string; slug: string; }
 interface Variant { option_name: string; option_value: string; quantity: number; price_override: number | null; sku: string; }
@@ -10,21 +10,24 @@ interface Product {
   price: number; old_price?: number; stock: number; material?: string; is_active: boolean;
   images?: string[]; main_image?: string; image_url?: string; category_id?: string;
   category_name?: string; water_resistance?: string; size_info?: string; variants?: Variant[];
+  categories?: { id: string; name_en: string }[]; category_ids?: string[];
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 
+
 function getProductImage(p: Product) {
   const img = p.main_image || (p.images && p.images[0]) || p.image_url;
   if (!img) return "https://placehold.co/60x60/4B6741/fff?text=??";
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:")) return img;
   return `http://localhost:5000${img}`;
 }
 
 const emptyForm = {
   name_en: "", name_ar: "", description_en: "", description_ar: "",
   price: "", old_price: "", stock: "", material: "", main_image: "",
-  category_id: "", water_resistance: "", size_info: "", is_active: true,
+  images: [] as string[],
+  category_id: "", category_ids: [] as string[], water_resistance: "", size_info: "", is_active: true,
   variants: [] as Variant[],
 };
 
@@ -52,7 +55,7 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true); setError("");
-      const res = await fetch(`${API_BASE}/products`, { cache: "no-store" });
+      const res = await fetch(`${API_BASE}/products?limit=1000`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Error: ${res.status}`);
       const data = await res.json();
       setProducts(Array.isArray(data) ? data : data.products || []);
@@ -71,15 +74,22 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchProducts(); fetchCategories(); }, [fetchProducts, fetchCategories]);
 
-  const uploadImage = async (file: File, setter: (f: string, v: any) => void) => {
+  const uploadImages = async (files: File[], currentImages: string[], setter: (f: string, v: any) => void) => {
     setUploadingImage(true);
     try {
-      const fd = new FormData(); fd.append("image", file);
-      const res = await fetch("http://localhost:5000/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.url) setter("main_image", data.url);
-    } catch (e: any) { alert("Upload failed: " + e.message); }
-    finally { setUploadingImage(false); }
+      const urls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadToGitHub(files[i], 900, 0.82);
+        urls.push(url);
+      }
+      const next = [...currentImages, ...urls];
+      setter("images", next);
+      if (!currentImages.length) setter("main_image", next[0] || "");
+    } catch (e: any) {
+      alert("فشل رفع الصورة: " + e.message);
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   // ✅ FIXED: handlers defined OUTSIDE render, stable references = no re-render focus loss
@@ -98,8 +108,10 @@ export default function ProductsPage() {
           description_en: addForm.description_en || undefined, description_ar: addForm.description_ar || undefined,
           price: Number(addForm.price), old_price: addForm.old_price ? Number(addForm.old_price) : undefined,
           stock: Number(addForm.stock) || 0, material: addForm.material || undefined,
-          main_image: addForm.main_image || undefined, images: addForm.main_image ? [addForm.main_image] : [],
-          category_id: addForm.category_id || undefined, water_resistance: addForm.water_resistance || undefined,
+          main_image: (addForm.images?.[0] || addForm.main_image) || undefined, images: addForm.images?.length ? addForm.images : addForm.main_image ? [addForm.main_image] : [],
+          category_id: addForm.category_ids[0] || addForm.category_id || undefined,
+          category_ids: addForm.category_ids.length > 0 ? addForm.category_ids : undefined,
+          water_resistance: addForm.water_resistance || undefined,
           size_info: addForm.size_info || undefined, is_active: addForm.is_active,
           variants: addForm.variants || [],
         }),
@@ -128,8 +140,10 @@ export default function ProductsPage() {
           description_en: fullEditForm.description_en || undefined, description_ar: fullEditForm.description_ar || undefined,
           price: Number(fullEditForm.price), old_price: fullEditForm.old_price ? Number(fullEditForm.old_price) : null,
           stock: Number(fullEditForm.stock) || 0, material: fullEditForm.material || undefined,
-          main_image: fullEditForm.main_image || undefined, images: fullEditForm.main_image ? [fullEditForm.main_image] : undefined,
-          category_id: fullEditForm.category_id || undefined, water_resistance: fullEditForm.water_resistance || undefined,
+          main_image: (fullEditForm.images?.[0] || fullEditForm.main_image) || undefined, images: fullEditForm.images?.length ? fullEditForm.images : fullEditForm.main_image ? [fullEditForm.main_image] : undefined,
+          category_id: fullEditForm.category_ids[0] || fullEditForm.category_id || undefined,
+          category_ids: fullEditForm.category_ids.length > 0 ? fullEditForm.category_ids : undefined,
+          water_resistance: fullEditForm.water_resistance || undefined,
           size_info: fullEditForm.size_info || undefined, is_active: fullEditForm.is_active,
           variants: fullEditForm.variants || [],
         }),
@@ -191,7 +205,9 @@ export default function ProductsPage() {
       price: String(p.price || 0), old_price: p.old_price ? String(p.old_price) : "",
       stock: String(p.stock || 0), material: p.material || "",
       main_image: p.main_image || p.image_url || "",
+      images: Array.isArray(p.images) ? p.images.filter(Boolean) : (p.main_image ? [p.main_image] : []),
       category_id: p.category_id || "",
+      category_ids: p.category_ids || (p.categories?.map(c => c.id)) || (p.category_id ? [p.category_id] : []),
       water_resistance: p.water_resistance || "", size_info: p.size_info || "",
       is_active: p.is_active ?? true,
       variants: (p.variants || []).map(v => ({
@@ -211,13 +227,10 @@ export default function ProductsPage() {
 
   return (
     <>
-      <style jsx global>{`* { box-sizing: border-box; } body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }`}</style>
-      <div style={{ minHeight: "100vh", padding: "24px" }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
             <div>
-              <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
-              <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>🛍️ Product Management</h1>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>🛍️ إدارة المنتجات</h1>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <button onClick={() => { setAddForm({ ...emptyForm }); setAddError(""); setShowAddModal(true); }}
@@ -256,7 +269,7 @@ export default function ProductsPage() {
                 <thead>
                   <tr style={{ background: "#1a1a2e", color: "#fff" }}>
                     {["صورة", "المنتج", "القسم", "السعر", "التوفر", "الحالة", "إجراءات"].map(h => (
-                      <th key={h} style={{ padding: 16, textAlign: "right", fontSize: 13, fontFamily: "Cairo, sans-serif" }}>{h}</th>
+                      <th key={h} style={{ padding: 16, textAlign: "right", fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -347,7 +360,6 @@ export default function ProductsPage() {
               )}
             </div>
           )}
-        </div>
       </div>
 
       {/* ADD MODAL */}
@@ -359,7 +371,7 @@ export default function ProductsPage() {
               <button onClick={() => setShowAddModal(false)} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: "#fff", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
             {addError && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 10, padding: 12, marginBottom: 20, color: "#ef4444", fontWeight: 600 }}>⚠️ {addError}</div>}
-            <ProductFormFields form={addForm} onChange={handleAddChange} formId="add" categories={categories} uploadingImage={uploadingImage} onUploadImage={f => uploadImage(f, handleAddChange)} />
+            <ProductFormFields form={addForm} onChange={handleAddChange} formId="add" categories={categories} uploadingImage={uploadingImage} onUploadImages={files => uploadImages(files, addForm.images || [], handleAddChange)} />
             <div style={{ display: "flex", gap: 12, marginTop: 24, justifyContent: "flex-end" }}>
               <button onClick={() => setShowAddModal(false)} style={{ padding: "12px 24px", borderRadius: 10, border: "1px solid #ddd", background: "#fff", color: "#666", cursor: "pointer" }}>Cancel</button>
               <button onClick={saveAddProduct} disabled={addSaving} style={{ padding: "12px 32px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "#fff", fontWeight: 700, cursor: addSaving ? "not-allowed" : "pointer", opacity: addSaving ? 0.7 : 1 }}>
@@ -379,7 +391,7 @@ export default function ProductsPage() {
               <button onClick={() => setFullEditProduct(null)} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: "#fff", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
             {fullEditError && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 10, padding: 12, marginBottom: 20, color: "#ef4444", fontWeight: 600 }}>⚠️ {fullEditError}</div>}
-            <ProductFormFields form={fullEditForm} onChange={handleFullEditChange} formId="edit" categories={categories} uploadingImage={uploadingImage} onUploadImage={f => uploadImage(f, handleFullEditChange)} />
+            <ProductFormFields form={fullEditForm} onChange={handleFullEditChange} formId="edit" categories={categories} uploadingImage={uploadingImage} onUploadImages={files => uploadImages(files, fullEditForm.images || [], handleFullEditChange)} />
             <div style={{ display: "flex", gap: 12, marginTop: 24, justifyContent: "flex-end" }}>
               <button onClick={() => setFullEditProduct(null)} style={{ padding: "12px 24px", borderRadius: 10, border: "1px solid #ddd", background: "#fff", color: "#666", cursor: "pointer" }}>Cancel</button>
               <button onClick={saveFullEdit} disabled={fullEditSaving} style={{ padding: "12px 32px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 700, cursor: fullEditSaving ? "not-allowed" : "pointer", opacity: fullEditSaving ? 0.7 : 1 }}>

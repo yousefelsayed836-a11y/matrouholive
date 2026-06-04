@@ -93,6 +93,13 @@ async function initDb() {
       category_id TEXT NOT NULL,
       PRIMARY KEY (product_id, category_id)
     );
+    CREATE TABLE IF NOT EXISTS reviews (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      text TEXT NOT NULL,
+      stars INTEGER DEFAULT 5,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
   console.log('✅ Neon PostgreSQL schema ready');
   return pool;

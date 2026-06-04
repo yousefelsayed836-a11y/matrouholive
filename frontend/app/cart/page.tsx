@@ -9,8 +9,8 @@ interface CartItem {
   size: string;
 }
 
-const GREEN = "#4B6741";
-const CREAM = "#E8EDD0";
+const GREEN = "#4f7032";
+const CREAM = "#d7f7b3";
 
 export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -37,9 +37,9 @@ export default function CartPage() {
   const count = cart.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f9ee", fontFamily: "Cairo, sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
 
         .cart-layout {
           display: grid;
@@ -71,7 +71,7 @@ export default function CartPage() {
 
         {/* رأس الصفحة */}
         <div className="cart-header" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-          <Link href="/" style={{ color: GREEN, textDecoration: "none", fontSize: 13, fontFamily: "Cairo, sans-serif" }}>الرئيسية</Link>
+          <Link href="/" style={{ color: GREEN, textDecoration: "none", fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>الرئيسية</Link>
           <span style={{ color: "#aaa" }}>←</span>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#2a3a20" }}>🛒 سلة التسوق ({count} منتج)</h1>
         </div>
@@ -108,10 +108,10 @@ export default function CartPage() {
                     <p style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: GREEN }}>{item.product.price} ج.م</p>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <button onClick={() => updateQty(item.product.id, -1)}
-                        style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid #c8d9b0`, background: "#fff", cursor: "pointer", color: GREEN, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>−</button>
+                        style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid #c8e6a0`, background: "#fff", cursor: "pointer", color: GREEN, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>−</button>
                       <span style={{ fontWeight: 700, minWidth: 22, textAlign: "center", fontSize: 15 }}>{item.qty}</span>
                       <button onClick={() => updateQty(item.product.id, 1)}
-                        style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid #c8d9b0`, background: "#fff", cursor: "pointer", color: GREEN, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>+</button>
+                        style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid #c8e6a0`, background: "#fff", cursor: "pointer", color: GREEN, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>+</button>
                       <button onClick={() => removeItem(item.product.id)}
                         style={{ marginRight: "auto", color: "#e74c3c", background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: "4px 8px" }}>🗑 حذف</button>
                     </div>

@@ -13,10 +13,31 @@ async function getVariants(productId) {
   return allQuery('SELECT * FROM product_variants WHERE product_id = ? ORDER BY option_value', [productId]);
 }
 
+async function getProductCategories(productId) {
+  return allQuery('SELECT c.id, c.name_en, c.name_ar, c.slug FROM categories c JOIN product_categories pc ON c.id = pc.category_id WHERE pc.product_id = ?', [productId]);
+}
+
+async function syncProductCategories(productId, categoryIds) {
+  await runQuery('DELETE FROM product_categories WHERE product_id = ?', [productId]);
+  for (const catId of categoryIds) {
+    await runQuery('INSERT INTO product_categories (product_id, category_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [productId, catId]);
+  }
+  // Also update category_id with first category
+  const first = categoryIds[0] || null;
+  await runQuery('UPDATE products SET category_id = ? WHERE id = ?', [first, productId]);
+}
+
 async function getFullProduct(id) {
   const p = await getQuery(`SELECT p.*, c.name_en as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`, [id]);
   if (!p) return null;
-  return { ...parseRow(p), images: safeParseJSON(p.images, []), variants: await getVariants(id) };
+  const cats = await getProductCategories(id);
+  return {
+    ...parseRow(p),
+    images: safeParseJSON(p.images, []),
+    variants: await getVariants(id),
+    categories: cats,
+    category_ids: cats.map(c => c.id),
+  };
 }
 
 async function resolveCategoryId(categoryId) {
@@ -37,7 +58,7 @@ async function insertVariants(productId, variants) {
 
 router.get('/', async (req, res) => {
   try {
-    const { collection, is_active, search, page = 1, limit = 1000 } = req.query;
+    const { collection, is_active, search, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = '1=1'; const params = [];
     if (collection) {
@@ -49,9 +70,28 @@ router.get('/', async (req, res) => {
     const products = await allQuery(`SELECT p.*, c.name_en as category_name, c.name_ar as category_name_ar, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...params, parseInt(limit), offset]);
     const totalRow = await getQuery(`SELECT COUNT(*) as count FROM products p WHERE ${where}`, params);
     const total = totalRow ? parseInt(totalRow.count) : 0;
-    const parsed = await Promise.all(products.map(async p => ({ ...parseRow(p), images: safeParseJSON(p.images, []), variants: await getVariants(p.id) })));
+    const parsed = await Promise.all(products.map(async p => {
+      const cats = await getProductCategories(p.id);
+      return { ...parseRow(p), images: safeParseJSON(p.images, []), variants: await getVariants(p.id), categories: cats, category_ids: cats.map(c => c.id) };
+    }));
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({ success: true, products: parsed, pagination: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / parseInt(limit)) } });
   } catch (error) { console.error('Get products error:', error); res.status(500).json({ error: 'Failed to fetch products', details: error.message }); }
+});
+
+router.get('/:id/buyers', async (req, res) => {
+  try {
+    const buyers = await allQuery(`
+      SELECT o.id as order_id, o.customer_name, o.customer_phone, o.shipping_address,
+             o.city, o.governorate, o.status, o.created_at,
+             oi.quantity, oi.price, oi.size, oi.total
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE oi.product_id = ?
+      ORDER BY o.created_at DESC
+    `, [req.params.id]);
+    res.json(buyers);
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 router.get('/:id', async (req, res) => {
@@ -64,13 +104,15 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, material, water_resistance, size_info, stock, is_active, is_featured, variants } = req.body;
-    const resolvedCategoryId = await resolveCategoryId(category_id);
+    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, category_ids, material, water_resistance, size_info, stock, is_active, is_featured, variants } = req.body;
+    const allCatIds = Array.isArray(category_ids) && category_ids.length > 0 ? category_ids : (category_id ? [category_id] : []);
+    const resolvedCategoryId = allCatIds[0] || await resolveCategoryId(category_id) || null;
     const id = uuidv4();
     const imagesArr = Array.isArray(images) ? images : (images ? [images] : []);
     const mainImg = main_image || imagesArr[0] || null;
     await runQuery(`INSERT INTO products (id, name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, material, water_resistance, size_info, stock, is_active, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, name_en, name_ar || name_en, description_en || null, description_ar || null, price, old_price || null, JSON.stringify(imagesArr), mainImg, resolvedCategoryId, material || null, water_resistance || null, size_info || null, stock || 0, is_active !== undefined ? (is_active ? 1 : 0) : 1, is_featured ? 1 : 0]);
+    if (allCatIds.length > 0) await syncProductCategories(id, allCatIds);
     if (variants && Array.isArray(variants)) await insertVariants(id, variants);
     res.json({ success: true, product: await getFullProduct(id) });
   } catch (error) { console.error('Add product error:', error); res.status(500).json({ error: 'Failed to add product', details: error.message }); }
@@ -80,7 +122,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!await getQuery('SELECT id FROM products WHERE id = ?', [id])) return res.status(404).json({ error: 'Product not found' });
-    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, material, water_resistance, size_info, stock, is_active, is_featured, variants } = req.body;
+    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, category_ids, material, water_resistance, size_info, stock, is_active, is_featured, variants } = req.body;
     const fields = []; const vals = [];
     if (name_en !== undefined) { fields.push('name_en = ?'); vals.push(name_en); }
     if (name_ar !== undefined) { fields.push('name_ar = ?'); vals.push(name_ar); }
@@ -90,7 +132,6 @@ router.put('/:id', async (req, res) => {
     if ('old_price' in req.body) { fields.push('old_price = ?'); vals.push(old_price || null); }
     if (images !== undefined) { fields.push('images = ?'); vals.push(JSON.stringify(Array.isArray(images) ? images : [images])); }
     if (main_image !== undefined) { fields.push('main_image = ?'); vals.push(main_image); }
-    if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(await resolveCategoryId(category_id)); }
     if (material !== undefined) { fields.push('material = ?'); vals.push(material); }
     if (water_resistance !== undefined) { fields.push('water_resistance = ?'); vals.push(water_resistance); }
     if (size_info !== undefined) { fields.push('size_info = ?'); vals.push(size_info); }
@@ -99,6 +140,9 @@ router.put('/:id', async (req, res) => {
     if (is_featured !== undefined) { fields.push('is_featured = ?'); vals.push(is_featured ? 1 : 0); }
     fields.push('updated_at = NOW()'); vals.push(id);
     await runQuery(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, vals);
+    // Handle category_ids (multi) or category_id (single)
+    const allCatIds = Array.isArray(category_ids) && category_ids.length > 0 ? category_ids : (category_id !== undefined ? (category_id ? [category_id] : []) : null);
+    if (allCatIds !== null) await syncProductCategories(id, allCatIds);
     if (variants && Array.isArray(variants)) { await runQuery('DELETE FROM product_variants WHERE product_id = ?', [id]); await insertVariants(id, variants); }
     res.json({ success: true, product: await getFullProduct(id) });
   } catch (error) { console.error('Update product error:', error); res.status(500).json({ error: 'Failed to update product', details: error.message }); }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 interface OrderItem {
   product_id: string;
@@ -45,14 +44,36 @@ async function fetchProductImage(productId: string): Promise<string | null> {
   } catch { return null; }
 }
 
+interface ShippingRate { name: string; nameAr: string; cost: number; cities: { name: string; cost: number }[]; }
+
+function getShippingRate(rates: ShippingRate[], governorate?: string, city?: string): number {
+  if (!governorate && !city) return 0;
+  const gov = rates.find(r =>
+    r.nameAr === governorate || r.name.toLowerCase() === (governorate || "").toLowerCase() ||
+    r.cities.some(c => c.name.toLowerCase() === (city || "").toLowerCase())
+  );
+  if (!gov) return 0;
+  const cityRate = gov.cities.find(c => c.name.toLowerCase() === (city || "").toLowerCase());
+  return cityRate ? cityRate.cost : gov.cost;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [productImages, setProductImages] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showFreeReport, setShowFreeReport] = useState(false);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+    fetch(`${API_BASE}/settings/shipping_rates`).then(r => r.json()).then(d => {
+      if (d.value) try { const p = JSON.parse(d.value); if (p.rates) setShippingRates(p.rates); } catch {}
+    }).catch(() => {});
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -65,7 +86,48 @@ export default function OrdersPage() {
     finally { setLoading(false); }
   };
 
-  // Load product images when order is selected
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+
+  const toggleSelect = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrders.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredOrders.map(o => o.id)));
+  };
+  const applyBulkStatus = async () => {
+    if (!bulkStatus || selectedIds.size === 0) return;
+    await Promise.all([...selectedIds].map(id => updateStatus(id, bulkStatus)));
+    setSelectedIds(new Set());
+    setBulkStatus("");
+  };
+  const shareSelected = async () => {
+    const selected = filteredOrders.filter(o => selectedIds.has(o.id));
+    const text = selected.map(o => {
+      const items = (o.items || []).map(i => `• ${i.product_name || "منتج"} × ${i.quantity} — ${i.price * i.quantity} EGP`).join("\n");
+      const shipping = (o.shipping_cost ?? 0) === 0 ? "مجاني 🎉" : `${o.shipping_cost} EGP`;
+      return `📦 أوردر #${o.id.slice(-6)}\n👤 ${o.customer_name}\n📞 ${o.customer_phone}${o.phone2 ? "\n💬 " + o.phone2 : ""}\n📍 ${o.shipping_address || o.address || ""}${items ? "\n\n" + items : ""}\n\n🚚 شحن: ${shipping}\n💰 الإجمالي: ${fmt(o.total_amount)} EGP\n📌 الحالة: ${o.status}`;
+    }).join("\n\n" + "─".repeat(30) + "\n\n");
+    if (navigator.share) { try { await navigator.share({ title: `${selected.length} أوردرات`, text }); } catch {} }
+    else { await navigator.clipboard.writeText(text).catch(() => {}); alert("✅ تم نسخ الأوردرات!"); }
+  };
+
+
+  const shareOrder = async (order: Order) => {
+    const items = (order.items || []).map(i => `• ${i.product_name || "منتج"} × ${i.quantity} — ${i.price * i.quantity} EGP`).join("\n");
+    const shipping = (order.shipping_cost ?? 0) === 0 ? "مجاني 🎉" : `${order.shipping_cost} EGP`;
+    const text = `📦 أوردر #${order.id.slice(-6)}\n👤 ${order.customer_name}\n📞 ${order.customer_phone}${order.phone2 ? "\n💬 " + order.phone2 : ""}\n📍 ${order.shipping_address || order.address || ""}\n\n${items}\n\n🚚 شحن: ${shipping}\n💰 الإجمالي: ${fmt(order.total_amount)} EGP\n📌 الحالة: ${order.status}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: `أوردر #${order.id.slice(-6)}`, text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text).catch(() => {});
+      alert("✅ تم نسخ تفاصيل الأوردر!");
+    }
+  };
+
   const openOrder = async (order: Order) => {
     setSelectedOrder(order);
     if (!order.items) return;
@@ -223,46 +285,239 @@ export default function OrdersPage() {
   const getStatusColor = (s: string) => s === "pending" ? "#f59e0b" : s === "completed" || s === "delivered" ? "#22c55e" : s === "cancelled" ? "#ef4444" : "#6b7280";
   const fmt = (n: number) => (n || 0).toLocaleString();
 
+  const filteredOrders = orders.filter(o => {
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q ||
+      o.customer_name?.toLowerCase().includes(q) ||
+      o.customer_phone?.includes(q) ||
+      o.phone2?.includes(q) ||
+      o.id.slice(-6).toLowerCase().includes(q) ||
+      (o.city || "").toLowerCase().includes(q) ||
+      (o.governorate || "").toLowerCase().includes(q) ||
+      (o.shipping_address || o.address || "").toLowerCase().includes(q);
+    const matchStatus = statusFilter === "all" || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
   return (
     <>
-      <style jsx global>{`* { box-sizing: border-box; } body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }`}</style>
+      <style jsx global>{`
+        .orders-table { display: block; }
+        .orders-cards { display: none; }
+        @media (max-width: 768px) {
+          .orders-table { display: none !important; }
+          .orders-cards { display: flex !important; flex-direction: column; gap: 12px; }
+          .orders-header-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .orders-header-btns { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+          .orders-header-btns button { flex: 1; font-size: 12px !important; padding: 10px 8px !important; }
+        }
+      `}</style>
 
-      <div style={{ minHeight: "100vh", padding: 24 }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div>
 
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div className="orders-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 10 }}>
             <div>
-              <Link href="/admin" style={{ color: "#4B6741", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>← Back to Dashboard</Link>
-              <h1 style={{ margin: "8px 0 0", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>📦 Orders</h1>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>📦 الطلبات</h1>
             </div>
-            <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 Refresh</button>
+            <div className="orders-header-btns" style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowFreeReport(true)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>📊 تقرير الشحن</button>
+              <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 Refresh</button>
+            </div>
           </div>
+
+          {/* Free Shipping Report Modal */}
+          {showFreeReport && (() => {
+            const freeOrders = orders.filter(o => (o.shipping_cost ?? -1) === 0 && ["completed", "delivered"].includes((o.status || "").toLowerCase()));
+            const govMap: Record<string, { count: number; saved: number }> = {};
+            const cityMap: Record<string, { count: number; saved: number; gov: string }> = {};
+            let totalSaved = 0;
+            freeOrders.forEach(o => {
+              const rate = getShippingRate(shippingRates, o.governorate, o.city);
+              totalSaved += rate;
+              const gov = o.governorate || "غير محدد";
+              const city = o.city || "غير محدد";
+              if (!govMap[gov]) govMap[gov] = { count: 0, saved: 0 };
+              govMap[gov].count++; govMap[gov].saved += rate;
+              const ck = `${city}||${gov}`;
+              if (!cityMap[ck]) cityMap[ck] = { count: 0, saved: 0, gov };
+              cityMap[ck].count++; cityMap[ck].saved += rate;
+            });
+            const govRows = Object.entries(govMap).sort((a, b) => b[1].saved - a[1].saved);
+            const cityRows = Object.entries(cityMap).sort((a, b) => b[1].saved - a[1].saved);
+            return (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowFreeReport(false)}>
+                <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 800, maxHeight: "90vh", overflow: "auto", padding: 28 }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1a1a2e" }}>📊 تقرير الشحن المجاني</h2>
+                    <button onClick={() => setShowFreeReport(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#aaa" }}>×</button>
+                  </div>
+
+                  {/* Summary cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+                    {[
+                      { label: "أوردرات شحن مجاني", value: freeOrders.length, color: "#4B6741" },
+                      { label: "إجمالي الشحن المتنازل عنه", value: `${totalSaved.toLocaleString()} EGP`, color: "#D4AF37" },
+                      { label: "متوسط قيمة الشحن المجاني", value: freeOrders.length ? `${Math.round(totalSaved / freeOrders.length)} EGP` : "—", color: "#1e40af" },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: "#f5f9ee", borderRadius: 12, padding: "14px 16px", textAlign: "center", border: "1.5px solid #e0ebd6" }}>
+                        <p style={{ margin: 0, fontSize: 11, color: "#888", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{s.label}</p>
+                        <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {freeOrders.length === 0 ? (
+                    <p style={{ textAlign: "center", color: "#aaa", padding: 30, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>لا يوجد أوردرات بشحن مجاني حتى الآن</p>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                      {/* Per governorate */}
+                      <div>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📍 حسب المحافظة</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {govRows.map(([gov, data]) => (
+                            <div key={gov} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                              <div>
+                                <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{gov}</span>
+                                <span style={{ fontSize: 11, color: "#888", marginRight: 6 }}>({data.count} أوردر)</span>
+                              </div>
+                              <span style={{ fontWeight: 800, color: "#D4AF37", fontSize: 14 }}>{data.saved.toLocaleString()} EGP</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Per city */}
+                      <div>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>🏙️ حسب المدينة</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+                          {cityRows.map(([ck, data]) => {
+                            const city = ck.split("||")[0];
+                            return (
+                              <div key={ck} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                                <div>
+                                  <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{city}</span>
+                                  <span style={{ fontSize: 11, color: "#aaa", marginRight: 4 }}>{data.gov}</span>
+                                  <span style={{ fontSize: 11, color: "#888", marginRight: 4 }}>({data.count})</span>
+                                </div>
+                                <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 14 }}>{data.saved.toLocaleString()} EGP</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Orders list */}
+                  {freeOrders.length > 0 && (
+                    <div>
+                      <h3 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#2d4a28", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📋 تفاصيل الأوردرات ({freeOrders.length})</h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {freeOrders.map(o => {
+                          const rate = getShippingRate(shippingRates, o.governorate, o.city);
+                          return (
+                            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb", flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 700, color: "#4B6741", fontSize: 13 }}>#{o.id.slice(-6)}</span>
+                              <span style={{ fontSize: 13, color: "#333", flex: 1 }}>{o.customer_name}</span>
+                              <span style={{ fontSize: 12, color: "#888" }}>{o.city}{o.governorate ? ` / ${o.governorate}` : ""}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#D4AF37" }}>وفّر: {rate > 0 ? `${rate} EGP` : "—"}</span>
+                              <span style={{ fontSize: 12, color: "#888" }}>{new Date(o.created_at).toLocaleDateString("ar-EG")}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {error && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 12, padding: 16, marginBottom: 24, color: "#ef4444", fontWeight: 600 }}>⚠️ {error}</div>}
 
+          {/* Search & Filter */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+            <input
+              type="text"
+              placeholder="🔍 ابحث بالاسم، التليفون، رقم الأوردر، المدينة..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ flex: 1, minWidth: 240, padding: "12px 16px", borderRadius: 12, border: "1.5px solid #ddd", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            />
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              style={{ padding: "12px 16px", borderRadius: 12, border: "1.5px solid #ddd", fontSize: 14, fontWeight: 600, background: "#fff", color: "#333", cursor: "pointer", outline: "none" }}>
+              <option value="all">كل الأوردرات ({orders.length})</option>
+              <option value="pending">⏳ Pending</option>
+              <option value="processing">🔄 Processing</option>
+              <option value="completed">✅ Completed</option>
+              <option value="cancelled">❌ Cancelled</option>
+            </select>
+          </div>
+
+          {/* Bulk Actions Bar */}
+          {selectedIds.size > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#1a1a2e", borderRadius: 12, marginBottom: 12, flexWrap: "wrap" }}>
+              <span style={{ color: "#E8EDD0", fontWeight: 700, fontSize: 14 }}>✅ {selectedIds.size} أوردر محدد</span>
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
+                style={{ padding: "8px 12px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, background: "#fff", cursor: "pointer", outline: "none" }}>
+                <option value="">— غيّر الحالة —</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="processing">🔄 Processing</option>
+                <option value="completed">✅ Completed</option>
+                <option value="cancelled">❌ Cancelled</option>
+              </select>
+              <button onClick={applyBulkStatus} disabled={!bulkStatus}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: bulkStatus ? "#22c55e" : "#555", color: "#fff", fontWeight: 700, fontSize: 13, cursor: bulkStatus ? "pointer" : "not-allowed" }}>
+                تطبيق
+              </button>
+              <button onClick={shareSelected}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                📤 مشاركة الكل
+              </button>
+              <button onClick={() => setSelectedIds(new Set())}
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", marginRight: "auto" }}>
+                إلغاء
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div style={{ textAlign: "center", padding: 60, color: "#888" }}>Loading orders...</div>
-          ) : orders.length === 0 ? (
+          ) : filteredOrders.length === 0 ? (
             <div style={{ textAlign: "center", padding: 60, background: "#fff", borderRadius: 16, color: "#888" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div><p>No orders found</p>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+              <p>{search || statusFilter !== "all" ? "مفيش نتائج للبحث ده" : "No orders found"}</p>
             </div>
           ) : (
-            <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+            <div className="orders-table" style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div style={{ padding: "10px 16px", background: "#f9fafb", borderBottom: "1px solid #eee", fontSize: 13, color: "#888" }}>
+                عارض {filteredOrders.length} أوردر{orders.length !== filteredOrders.length ? ` من ${orders.length}` : ""}
+              </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#1a1a2e", color: "#fff" }}>
+                    <th style={{ padding: "14px 10px 14px 14px", width: 40 }}>
+                      <input type="checkbox"
+                        checked={filteredOrders.length > 0 && selectedIds.size === filteredOrders.length}
+                        onChange={toggleSelectAll}
+                        style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#4B6741" }} />
+                    </th>
                     {["ORDER", "CUSTOMER", "PHONE", "ADDRESS", "CITY", "ITEMS", "TOTAL", "STATUS", "ACTIONS"].map(h => (
                       <th key={h} style={{ padding: 14, textAlign: "left", fontSize: 12, fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(order => (
-                    <tr key={order.id} style={{ borderBottom: "1px solid #f5f5f5", cursor: "pointer" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = "#f5f9ee"}
-                      onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}>
-                      {/* ✅ Click row to open order detail */}
+                  {filteredOrders.map(order => (
+                    <tr key={order.id} style={{ borderBottom: "1px solid #f5f5f5", cursor: "pointer", background: selectedIds.has(order.id) ? "#f0f7eb" : "transparent" }}
+                      onMouseEnter={e => { if (!selectedIds.has(order.id)) (e.currentTarget as HTMLTableRowElement).style.background = "#f5f9ee"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = selectedIds.has(order.id) ? "#f0f7eb" : "transparent"; }}>
+                      <td style={{ padding: "14px 10px 14px 14px" }} onClick={e => e.stopPropagation()}>
+                        <input type="checkbox"
+                          checked={selectedIds.has(order.id)}
+                          onChange={() => toggleSelect(order.id)}
+                          style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#4B6741" }} />
+                      </td>
                       <td style={{ padding: 14, fontSize: 14, fontWeight: 700, color: "#4B6741" }} onClick={() => openOrder(order)}>
                         #{order.id.slice(-6)}
                       </td>
@@ -310,6 +565,10 @@ export default function OrdersPage() {
                             style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                             🖨️ Print
                           </button>
+                          <button onClick={e => { e.stopPropagation(); shareOrder(order); }}
+                            style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                            📤 Share
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -318,7 +577,53 @@ export default function OrdersPage() {
               </table>
             </div>
           )}
-        </div>
+
+          {/* Mobile Cards View */}
+          {!loading && filteredOrders.length > 0 && (
+            <div className="orders-cards">
+              {filteredOrders.map(order => (
+                <div key={order.id} style={{ background: selectedIds.has(order.id) ? "#f0f7eb" : "#fff", borderRadius: 16, padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.07)", border: `1.5px solid ${selectedIds.has(order.id) ? "#4B6741" : "#e5e7eb"}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <input type="checkbox"
+                        checked={selectedIds.has(order.id)}
+                        onChange={() => toggleSelect(order.id)}
+                        style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#4B6741" }} />
+                      <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 16 }}>#{order.id.slice(-6)}</span>
+                    </div>
+                    <select value={order.status} onChange={e => updateStatus(order.id, e.target.value)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, fontWeight: 700, color: getStatusColor(order.status), background: "#fff", cursor: "pointer" }}>
+                      <option value="pending">⏳ Pending</option>
+                      <option value="processing">🔄 Processing</option>
+                      <option value="completed">✅ Completed</option>
+                      <option value="cancelled">❌ Cancelled</option>
+                    </select>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1a2e", marginBottom: 4 }}>{order.customer_name}</div>
+                  <div style={{ fontSize: 13, color: "#555", marginBottom: 2 }}>📞 {order.customer_phone}{order.phone2 ? ` · 💬 ${order.phone2}` : ""}</div>
+                  <div style={{ fontSize: 13, color: "#777", marginBottom: 6 }}>📍 {order.city || ""}{order.governorate ? ` / ${order.governorate}` : ""}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontSize: 13, color: "#888" }}>{new Date(order.created_at).toLocaleDateString("ar-EG")}</span>
+                    <span style={{ fontWeight: 800, color: "#4B6741", fontSize: 17 }}>{fmt(order.total_amount)} EGP</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    <button onClick={() => openOrder(order)}
+                      style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "#1a1a2e", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      👁️ تفاصيل
+                    </button>
+                    <button onClick={() => openOrder(order).then(() => handlePrint(order))}
+                      style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      🖨️ طباعة
+                    </button>
+                    <button onClick={() => shareOrder(order)}
+                      style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      📤 مشاركة
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
       </div>
 
       {/* ✅ Order Detail Modal */}

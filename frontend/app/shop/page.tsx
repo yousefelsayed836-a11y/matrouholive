@@ -28,10 +28,10 @@ interface CartItem {
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
-const GREEN = "#4B6741";
-const GREEN_DARK = "#3A5232";
-const CREAM = "#E8EDD0";
-const GOLD = "#D4AF37";
+const GREEN = "#4f7032";
+const GREEN_DARK = "#3d5828";
+const CREAM = "#d7f7b3";
+const GOLD = "#bd9a52";
 
 const COLLECTIONS = [
   { key: "", label: "الكل", icon: "✨" },
@@ -44,9 +44,9 @@ const COLLECTIONS = [
 ];
 
 function getProductImage(p: Product): string {
-  const img = p.main_image || (p.images && p.images.find(i => i?.startsWith("http")));
+  const img = p.main_image || (p.images && p.images[0]);
   if (!img) return `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent((p.name_ar || p.name_en)?.slice(0, 6) || "؟؟")}`;
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:")) return img;
   return `http://localhost:5000${img}`;
 }
 
@@ -60,9 +60,6 @@ function ShopContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -127,26 +124,18 @@ function ShopContent() {
     return 0;
   });
 
-  const openProduct = (p: Product) => {
-    setSelectedProduct(p);
-    const imgs: string[] = [];
-    if (p.main_image?.startsWith("http")) imgs.push(p.main_image);
-    (p.images || []).forEach(i => { if (i?.startsWith("http") && !imgs.includes(i)) imgs.push(i); });
-    setSelectedImages(imgs.length > 0 ? imgs : [getProductImage(p)]);
-    setSelectedImgIdx(0);
-  };
-
   const setCollection = (key: string) => {
     if (key) router.push(`/shop?collection=${encodeURIComponent(key)}`);
     else router.push("/shop");
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f7faf4", fontFamily: "'Cairo', sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f7c9", fontFamily: "'Readex Pro', 'Cairo', sans-serif", direction: "rtl" }}>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
       {/* زر السلة العائم */}
       <button onClick={() => setShowCart(true)} className="cart-fab" aria-label="سلة التسوق">
-        🛒
+        <i className="fas fa-shopping-cart" style={{ fontSize: 22 }} />
         {cartCount > 0 && <span className="cart-fab-badge">{cartCount}</span>}
       </button>
 
@@ -156,7 +145,7 @@ function ShopContent() {
           <div className="cart-sidebar" onClick={e => e.stopPropagation()}>
             <div className="cart-sidebar-header">
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 22 }}>🛒</span>
+                <i className="fas fa-shopping-cart" style={{ fontSize: 20, color: GREEN }} />
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: GREEN }}>سلة التسوق</h2>
                 {cartCount > 0 && <span className="cart-count-chip">{cartCount}</span>}
               </div>
@@ -165,7 +154,7 @@ function ShopContent() {
 
             {cartItems.length === 0 ? (
               <div className="cart-empty">
-                <div style={{ fontSize: 64, marginBottom: 16 }}>🛒</div>
+                <i className="fas fa-shopping-cart" style={{ fontSize: 48, color: "#c8d9b0", marginBottom: 16, display: "block" }} />
                 <p style={{ color: "#999", fontWeight: 600, fontSize: 15 }}>السلة فارغة</p>
                 <button onClick={() => setShowCart(false)} className="btn-continue-shopping">تصفح المنتجات</button>
               </div>
@@ -187,7 +176,7 @@ function ShopContent() {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                         <span style={{ fontWeight: 800, color: GREEN, fontSize: 14 }}>{item.product.price * item.qty} ج.م</span>
-                        <button onClick={() => setCartItems(p => p.filter(x => x.product.id !== item.product.id))} className="remove-btn">🗑</button>
+                        <button onClick={() => setCartItems(p => p.filter(x => x.product.id !== item.product.id))} className="remove-btn">حذف</button>
                       </div>
                     </div>
                   ))}
@@ -219,21 +208,9 @@ function ShopContent() {
             </span>
           </div>
           <h1 className="shop-hero-title">
-            {searchQuery ? `نتائج: "${searchQuery}"` : collectionFilter ? `قسم: ${collectionFilter}` : "🛒 تسوق الآن"}
+            {searchQuery ? `نتائج: "${searchQuery}"` : collectionFilter ? `قسم: ${collectionFilter}` : " تسوق الآن"}
           </h1>
           <p className="shop-hero-sub">منتجات طبيعية أصيلة من مطروح • جودة عالية • توصيل سريع</p>
-        </div>
-      </div>
-
-      {/* فلاتر الأقسام */}
-      <div className="collection-bar">
-        <div className="collection-chips">
-          {COLLECTIONS.map(c => (
-            <button key={c.key} onClick={() => setCollection(c.key)}
-              className={`collection-chip${collectionFilter === c.key ? " active" : ""}`}>
-              <span>{c.icon}</span> {c.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -279,7 +256,7 @@ function ShopContent() {
           </div>
         ) : sorted.length === 0 ? (
           <div className="empty-state">
-            <div style={{ fontSize: 72, marginBottom: 16 }}>🔍</div>
+            <div style={{ fontSize: 72, marginBottom: 16 }}></div>
             <h2 style={{ fontSize: 20, color: "#2a3a20", marginBottom: 8 }}>لا توجد منتجات</h2>
             <p style={{ color: "#888", marginBottom: 24 }}>{searchQuery ? `لم نجد نتائج لـ "${searchQuery}"` : "لا توجد منتجات في هذا القسم حالياً"}</p>
             <Link href="/shop" className="btn-browse-all">عرض كل المنتجات</Link>
@@ -299,12 +276,12 @@ function ShopContent() {
               return (
                 <div key={p.id} className="product-card">
                   {/* صورة المنتج */}
-                  <div className="product-img-wrap" onClick={() => openProduct(p)}>
+                  <Link href={`/products/${p.id}`} className="product-img-wrap" style={{ textDecoration: "none", display: "block" }}>
                     <img src={img} alt={displayName} className="product-img" loading="lazy"
                       onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4B6741/fff?text=${encodeURIComponent(displayName?.slice(0, 4) || "؟؟")}`; }} />
                     {/* overlay actions */}
                     <div className="product-overlay">
-                      <button className="overlay-btn-view" onClick={e => { e.stopPropagation(); openProduct(p); }}>عرض التفاصيل</button>
+                      <span className="overlay-btn-view">عرض التفاصيل</span>
                     </div>
                     {/* badges */}
                     <div className="product-badges">
@@ -312,17 +289,23 @@ function ShopContent() {
                       {!inStock && <span className="badge-outofstock">نفذ</span>}
                       {!hasDiscount && <span className="badge-new">جديد</span>}
                     </div>
+                    {/* 60ml badge for natural oils */}
+                    {p.category_slug === "الزيوت-الطبيعيه" && !displayName.includes("جوز الهند") && !displayName.includes("جوز هند") && !displayName.includes("تركيبة زيت زيتون") && (
+                      <span className="badge-volume">60 ملل</span>
+                    )}
                     {/* wishlist */}
                     <button className={`wishlist-btn${isWished ? " wished" : ""}`} onClick={e => { e.stopPropagation(); toggleWishlist(p.id); }}>
-                      {isWished ? "❤️" : "🤍"}
+                      {isWished ? "♥" : "♡"}
                     </button>
-                  </div>
+                  </Link>
 
                   {/* تفاصيل المنتج */}
                   <div className="product-info">
                     {p.category_name_ar && <span className="product-category">{p.category_name_ar}</span>}
-                    <h3 className="product-name" onClick={() => openProduct(p)}>{displayName}</h3>
-                    <div style={{ color: "#D4AF37", fontSize: 13, letterSpacing: 1, marginBottom: 8 }}>★★★★★</div>
+                    <Link href={`/products/${p.id}`} style={{ textDecoration: "none" }}>
+                      <h3 className="product-name">{displayName}</h3>
+                    </Link>
+                    <div style={{ color: "#bd9a52", fontSize: 13, letterSpacing: 1, marginBottom: 8 }}>★★★★★</div>
                     <div className="product-price-row">
                       <span className="product-price">{p.price} ج.م</span>
                       {hasDiscount && <span className="product-old-price">{p.old_price} ج.م</span>}
@@ -335,7 +318,7 @@ function ShopContent() {
                       </div>
                       <button onClick={() => addToCart(p, qty)} disabled={!inStock}
                         className={`btn-add-cart${isAdded ? " added" : ""}${!inStock ? " disabled" : ""}`}>
-                        {!inStock ? "نفذ" : isAdded ? "✅ أُضيف" : "🛒 أضف"}
+                        {!inStock ? "نفذ" : isAdded ? "تمت الإضافة" : "أضف"}
                       </button>
                     </div>
                   </div>
@@ -346,100 +329,9 @@ function ShopContent() {
         )}
       </div>
 
-      {/* مودال المنتج */}
-      {selectedProduct && (
-        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-          <div className="modal-inner" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedProduct(null)}>×</button>
-
-            {/* الصورة */}
-            <div className="modal-images">
-              <div className="modal-main-img-wrap">
-                {selectedProduct.old_price && selectedProduct.old_price > selectedProduct.price && (
-                  <span className="modal-discount-badge">
-                    -{Math.round((1 - selectedProduct.price / selectedProduct.old_price) * 100)}%
-                  </span>
-                )}
-                <img src={selectedImages[selectedImgIdx] || getProductImage(selectedProduct)}
-                  alt={selectedProduct.name_ar || selectedProduct.name_en}
-                  className="modal-main-img"
-                  onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/500x500/4B6741/fff?text=؟`; }} />
-              </div>
-              {selectedImages.length > 1 && (
-                <div className="modal-thumbnails">
-                  {selectedImages.map((img, idx) => (
-                    <img key={idx} src={img} alt="" onClick={() => setSelectedImgIdx(idx)}
-                      className={`modal-thumb${idx === selectedImgIdx ? " active" : ""}`} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* التفاصيل */}
-            <div className="modal-details">
-              {selectedProduct.category_name_ar && (
-                <span className="modal-category">{selectedProduct.category_name_ar}</span>
-              )}
-              <h2 className="modal-product-name">{selectedProduct.name_ar || selectedProduct.name_en}</h2>
-
-              {/* التقييم */}
-              <div style={{ color: GOLD, fontSize: 16, letterSpacing: 2, marginBottom: 4 }}>
-                ★★★★★ <span style={{ fontSize: 12, color: "#888", fontWeight: 400 }}>(تقييم العملاء)</span>
-              </div>
-
-              {/* السعر */}
-              <div className="modal-price-section">
-                <span className="modal-price">{selectedProduct.price} ج.م</span>
-                {selectedProduct.old_price && selectedProduct.old_price > selectedProduct.price && (
-                  <span className="modal-old-price">{selectedProduct.old_price} ج.م</span>
-                )}
-              </div>
-
-              {/* الوصف */}
-              {(selectedProduct.description_ar || selectedProduct.description_en) && (
-                <div className="modal-description"
-                  dangerouslySetInnerHTML={{ __html: selectedProduct.description_ar || selectedProduct.description_en || "" }} />
-              )}
-
-              {/* المخزون */}
-              <div className="stock-badge">✅ متوفر في المخزون</div>
-
-              {/* الكمية وأزرار الإجراء */}
-              {(
-                <div className="modal-qty-row">
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#5a7050" }}>الكمية:</span>
-                  <div className="qty-control">
-                    <button onClick={() => setQuantities(q => ({ ...q, [selectedProduct.id]: Math.max(1, (q[selectedProduct.id] || 1) - 1) }))} className="qty-ctrl-btn">−</button>
-                    <span className="qty-display">{quantities[selectedProduct.id] || 1}</span>
-                    <button onClick={() => setQuantities(q => ({ ...q, [selectedProduct.id]: Math.min(10, (q[selectedProduct.id] || 1) + 1) }))} className="qty-ctrl-btn">+</button>
-                  </div>
-                </div>
-              )}
-
-              <div className="modal-action-btns">
-                <button
-                  onClick={() => { addToCart(selectedProduct, quantities[selectedProduct.id] || 1); setSelectedProduct(null); }}
-                  className="btn-modal-add">
-                  🛒 أضف للسلة
-                </button>
-                <Link href={`/products/slug?id=${selectedProduct.id}`} className="btn-modal-view">
-                  عرض الصفحة الكاملة ←
-                </Link>
-              </div>
-
-              {/* مميزات */}
-              <div className="modal-features">
-                <div className="feature-item"><span>🚚</span><span>توصيل سريع لجميع المحافظات</span></div>
-                <div className="feature-item"><span>✅</span><span>منتجات طبيعية 100%</span></div>
-                <div className="feature-item"><span>💳</span><span>الدفع عند الاستلام</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700;800;900&display=swap');
 
         /* ===== HERO ===== */
         .shop-hero {
@@ -449,7 +341,7 @@ function ShopContent() {
           overflow: hidden;
         }
         .shop-hero::before {
-          content: "🫒🌿🍯";
+          content: "";
           position: absolute;
           right: 5%;
           top: 50%;
@@ -462,18 +354,6 @@ function ShopContent() {
         .shop-hero-title { margin: 0 0 6px; font-size: 28px; font-weight: 900; color: #fff; }
         .shop-hero-sub { margin: 0; font-size: 14px; color: rgba(255,255,255,0.75); }
 
-        /* ===== COLLECTION CHIPS ===== */
-        .collection-bar { background: #fff; border-bottom: 1px solid #e8edd0; padding: 14px 24px; overflow-x: auto; }
-        .collection-chips { display: flex; gap: 10px; align-items: center; max-width: 1300px; margin: 0 auto; min-width: max-content; }
-        .collection-chip {
-          display: flex; align-items: center; gap: 6px;
-          padding: 8px 18px; border-radius: 50px; font-size: 13px; font-weight: 700;
-          border: 2px solid #e8edd0; background: #fff; color: #5a7050;
-          cursor: pointer; transition: all 0.2s; white-space: nowrap;
-          font-family: Cairo, sans-serif;
-        }
-        .collection-chip:hover { border-color: ${GREEN}; color: ${GREEN}; background: #f0f7ea; }
-        .collection-chip.active { background: ${GREEN}; color: #fff; border-color: ${GREEN}; }
 
         /* ===== SORT BAR ===== */
         .sort-bar { background: #f7faf4; border-bottom: 1px solid #e8edd0; padding: 12px 24px; }
@@ -484,7 +364,7 @@ function ShopContent() {
         .sort-pill {
           padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
           border: 1.5px solid #d0ddc0; background: #fff; color: #6a8a5a;
-          cursor: pointer; transition: all 0.15s; font-family: Cairo, sans-serif;
+          cursor: pointer; transition: all 0.15s; font-family: 'Readex Pro', 'Cairo', sans-serif;
         }
         .sort-pill:hover { border-color: ${GREEN}; color: ${GREEN}; }
         .sort-pill.active { background: ${GREEN}; color: #fff; border-color: ${GREEN}; }
@@ -503,7 +383,7 @@ function ShopContent() {
           transition: transform 0.25s, box-shadow 0.25s;
           display: flex; flex-direction: column;
         }
-        .product-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(75,103,65,0.18); border-color: #c8d9b0; }
+        .product-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(75,103,65,0.18); border-color: #c8e6a0; }
 
         .product-img-wrap {
           position: relative; aspect-ratio: 1; overflow: hidden;
@@ -521,7 +401,7 @@ function ShopContent() {
         .overlay-btn-view {
           padding: 9px 20px; border-radius: 25px; border: 2px solid #fff;
           background: rgba(255,255,255,0.15); color: #fff; font-size: 13px;
-          font-weight: 700; cursor: pointer; font-family: Cairo, sans-serif;
+          font-weight: 700; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif;
           backdrop-filter: blur(4px); transition: background 0.2s;
         }
         .overlay-btn-view:hover { background: #fff; color: ${GREEN}; }
@@ -530,6 +410,7 @@ function ShopContent() {
         .badge-discount { background: #ef4444; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .badge-outofstock { background: #6b7280; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .badge-new { background: ${GOLD}; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .badge-volume { position: absolute; bottom: 10px; left: 10px; background: #4f7032; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
 
         .wishlist-btn {
           position: absolute; top: 10px; left: 10px; width: 32px; height: 32px;
@@ -545,7 +426,7 @@ function ShopContent() {
         .product-category { font-size: 11px; color: ${GREEN}; font-weight: 700; letter-spacing: 0.5px; }
         .product-name {
           margin: 0; font-size: 14px; font-weight: 700; color: #2a3a20;
-          line-height: 1.45; cursor: pointer; font-family: Cairo, sans-serif;
+          line-height: 1.45; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
           min-height: 41px;
         }
@@ -555,7 +436,7 @@ function ShopContent() {
         .product-old-price { font-size: 12px; color: #bbb; text-decoration: line-through; }
 
         .product-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-        .qty-control { display: flex; align-items: center; border: 1.5px solid #c8d9b0; border-radius: 8px; overflow: hidden; }
+        .qty-control { display: flex; align-items: center; border: 1.5px solid #c8e6a0; border-radius: 8px; overflow: hidden; }
         .qty-ctrl-btn {
           width: 30px; height: 34px; border: none; background: #fff;
           cursor: pointer; font-size: 16px; font-weight: 700; color: ${GREEN};
@@ -567,7 +448,7 @@ function ShopContent() {
         .btn-add-cart {
           flex: 1; height: 34px; border-radius: 8px; border: none;
           background: ${GREEN}; color: #fff; font-size: 12px; font-weight: 700;
-          cursor: pointer; font-family: Cairo, sans-serif; transition: all 0.2s;
+          cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; transition: all 0.2s;
           white-space: nowrap;
         }
         .btn-add-cart:hover { background: ${GREEN_DARK}; }
@@ -586,7 +467,7 @@ function ShopContent() {
 
         /* ===== ERROR ===== */
         .error-banner { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; color: #b91c1c; font-weight: 600; }
-        .btn-retry { padding: 6px 16px; border-radius: 8px; border: none; background: #ef4444; color: #fff; cursor: pointer; font-family: Cairo, sans-serif; font-size: 13px; }
+        .btn-retry { padding: 6px 16px; border-radius: 8px; border: none; background: #ef4444; color: #fff; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; font-size: 13px; }
 
         /* ===== MODAL ===== */
         .modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -626,14 +507,14 @@ function ShopContent() {
         .btn-modal-add {
           width: 100%; padding: 14px; border-radius: 14px; border: none;
           background: ${GREEN}; color: #fff; font-size: 15px; font-weight: 700;
-          cursor: pointer; font-family: Cairo, sans-serif; transition: background 0.2s;
+          cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; transition: background 0.2s;
         }
         .btn-modal-add:hover { background: ${GREEN_DARK}; }
         .btn-modal-add.disabled { background: #ccc; cursor: not-allowed; }
         .btn-modal-view {
           display: block; width: 100%; padding: 13px; border-radius: 14px;
           border: 2px solid ${GREEN}; color: ${GREEN}; font-size: 14px; font-weight: 700;
-          text-align: center; text-decoration: none; font-family: Cairo, sans-serif;
+          text-align: center; text-decoration: none; font-family: 'Readex Pro', 'Cairo', sans-serif;
           transition: all 0.2s; box-sizing: border-box;
         }
         .btn-modal-view:hover { background: ${GREEN}; color: #fff; }
@@ -668,7 +549,7 @@ function ShopContent() {
         .cart-count-chip { background: ${GREEN}; color: #fff; border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
         .cart-close-btn { background: none; border: none; font-size: 30px; cursor: pointer; color: #aaa; line-height: 1; }
         .cart-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
-        .btn-continue-shopping { margin-top: 16px; padding: 10px 24px; border-radius: 25px; border: 2px solid ${GREEN}; background: #fff; color: ${GREEN}; font-weight: 700; font-size: 14px; cursor: pointer; font-family: Cairo, sans-serif; }
+        .btn-continue-shopping { margin-top: 16px; padding: 10px 24px; border-radius: 25px; border: 2px solid ${GREEN}; background: #fff; color: ${GREEN}; font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; }
         .cart-items-list { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
         .cart-item { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #f0f5e8; align-items: flex-start; }
         .qty-btn {
@@ -685,11 +566,11 @@ function ShopContent() {
         .btn-checkout {
           display: block; width: 100%; padding: 14px; border-radius: 14px;
           background: ${GREEN}; color: #fff; font-size: 15px; font-weight: 800;
-          text-align: center; text-decoration: none; font-family: Cairo, sans-serif;
+          text-align: center; text-decoration: none; font-family: 'Readex Pro', 'Cairo', sans-serif;
           transition: background 0.2s; box-sizing: border-box;
         }
         .btn-checkout:hover { background: ${GREEN_DARK}; }
-        .btn-continue { background: none; border: 1.5px solid #e0e0e0; border-radius: 14px; padding: 11px; color: #666; font-size: 14px; cursor: pointer; font-family: Cairo, sans-serif; transition: border-color 0.2s; }
+        .btn-continue { background: none; border: 1.5px solid #e0e0e0; border-radius: 14px; padding: 11px; color: #666; font-size: 14px; cursor: pointer; font-family: 'Readex Pro', 'Cairo', sans-serif; transition: border-color 0.2s; }
         .btn-continue:hover { border-color: ${GREEN}; color: ${GREEN}; }
 
         /* ===== RESPONSIVE ===== */
@@ -725,7 +606,7 @@ function ShopContent() {
 export default function ShopPage() {
   return (
     <Suspense fallback={
-      <div style={{ textAlign: "center", padding: 60, color: "#888", fontFamily: "Cairo, sans-serif", fontSize: 16 }}>
+      <div style={{ textAlign: "center", padding: 60, color: "#888", fontFamily: "'Readex Pro', 'Cairo', sans-serif", fontSize: 16 }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
         جاري تحميل المنتجات...
       </div>

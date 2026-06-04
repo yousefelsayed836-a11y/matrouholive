@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { uploadToGitHub } from "../../lib/uploadToGitHub";
 import Link from "next/link";
 
 interface Order {
@@ -21,9 +22,40 @@ interface Product {
   images?: string | string[];
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
+const API_ROOT = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = API_ROOT + "/api";
+
+function compressImage(file: File, maxDim: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target!.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const getAdminPw = () => (typeof window !== "undefined" ? localStorage.getItem("admin_pw") || "1122" : "1122");
+
+const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
+  pending:    { bg: "#fef3c7", color: "#92400e", label: "معلق" },
+  processing: { bg: "#dbeafe", color: "#1e40af", label: "جاري" },
+  completed:  { bg: "#dcfce7", color: "#166534", label: "مكتمل" },
+  delivered:  { bg: "#dcfce7", color: "#166534", label: "تم التسليم" },
+  cancelled:  { bg: "#fee2e2", color: "#991b1b", label: "ملغي" },
+};
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,6 +71,20 @@ export default function AdminDashboard() {
   const [changePwForm, setChangePwForm] = useState({ current: "", next: "", confirm: "" });
   const [changePwMsg, setChangePwMsg] = useState("");
   const [newOrderToast, setNewOrderToast] = useState<{ name: string; total: number } | null>(null);
+  // Hero slides
+  interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; pos?: string; mobilePos?: string; }
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [heroMsg, setHeroMsg] = useState("");
+  const [heroUploading, setHeroUploading] = useState(false);
+
+  const [githubStatus, setGithubStatus] = useState<"loading"|"connected"|"disconnected">("loading");
+
+  // Site settings
+  const [siteSettings, setSiteSettings] = useState({
+    name: "مطروح أوليفي", whatsapp: "", address: "", announcement: "",
+  });
+  const [siteSettingsMsg, setSiteSettingsMsg] = useState("");
+
   const [faviconUrl, setFaviconUrl] = useState("");
   const [faviconUploading, setFaviconUploading] = useState(false);
   const [faviconMsg, setFaviconMsg] = useState("");
@@ -49,59 +95,73 @@ export default function AdminDashboard() {
   const [featuredIds, setFeaturedIds] = useState<string[]>([]);
   const [featuredMsg, setFeaturedMsg] = useState("");
   const [featuredSearch, setFeaturedSearch] = useState("");
+  const [ordersTab, setOrdersTab] = useState<"all" | "pending" | "completed">("all");
+  const [emailTestMsg, setEmailTestMsg] = useState("");
+  const [emailTestLoading, setEmailTestLoading] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE}/settings/favicon`)
-      .then(r => r.json())
-      .then(d => { if (d.value) setFaviconUrl(d.value); })
-      .catch(() => {});
-    fetch(`${API_BASE}/settings/fb_pixel_id`)
-      .then(r => r.json())
-      .then(d => { if (d.value) setFbPixelId(d.value); })
-      .catch(() => {});
-    fetch(`${API_BASE}/settings/featured_section`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.value) {
-          try {
-            const parsed = JSON.parse(d.value);
-            setFeaturedTitle(parsed.title || "منتجات مميزة");
-            setFeaturedEnabled(parsed.enabled || false);
-            setFeaturedIds(parsed.product_ids || []);
-          } catch {}
-        }
-      })
-      .catch(() => {});
+    fetch("/api/upload").then(r => r.json()).then(d => setGithubStatus(d.connected ? "connected" : "disconnected")).catch(() => setGithubStatus("disconnected"));
+    fetch(`${API_BASE}/settings/favicon`).then(r => r.json()).then(d => { if (d.value) setFaviconUrl(d.value); }).catch(() => {});
+    fetch(`${API_BASE}/settings/site_settings`).then(r => r.json()).then(d => {
+      if (d.value) try { setSiteSettings(s => ({ ...s, ...JSON.parse(d.value) })); } catch {}
+    }).catch(() => {});
+    fetch(`${API_BASE}/settings/hero_slides`).then(r => r.json()).then(d => {
+      if (d.value) try { setHeroSlides(JSON.parse(d.value)); } catch {}
+    }).catch(() => {});
+    fetch(`${API_BASE}/settings/fb_pixel_id`).then(r => r.json()).then(d => { if (d.value) setFbPixelId(d.value); }).catch(() => {});
+    fetch(`${API_BASE}/settings/featured_section`).then(r => r.json()).then(d => {
+      if (d.value) try {
+        const p = JSON.parse(d.value);
+        setFeaturedTitle(p.title || "منتجات مميزة");
+        setFeaturedEnabled(p.enabled || false);
+        setFeaturedIds(p.product_ids || []);
+      } catch {}
+    }).catch(() => {});
   }, []);
 
   const uploadFavicon = async (file: File) => {
     setFaviconUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const r = await fetch(`${API_BASE.replace("/api", "")}/api/upload`, { method: "POST", body: fd });
-      const data = await r.json();
-      if (!data.url) throw new Error("Upload failed");
-      await fetch(`${API_BASE}/settings/favicon`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: data.url }),
-      });
-      setFaviconUrl(data.url);
+      const dataUrl = await compressImage(file, 128, 0.85);
+      await fetch(`${API_BASE}/settings/favicon`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: dataUrl }) });
+      setFaviconUrl(dataUrl);
       setFaviconMsg("✅ تم التحديث!");
       const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (link) link.href = data.url;
+      if (link) link.href = dataUrl;
     } catch (e: any) { setFaviconMsg("❌ " + e.message); }
     setFaviconUploading(false);
     setTimeout(() => setFaviconMsg(""), 3000);
   };
 
-  // SSE: استقبال الأوردرات الجديدة
+  const saveHeroSlides = async (slides: HeroSlide[]) => {
+    await fetch(`${API_BASE}/settings/hero_slides`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: JSON.stringify(slides) }) });
+  };
+
+  const uploadHeroImage = async (file: File, targetSlideId: string | null, field: "desktop" | "mobile") => {
+    setHeroUploading(true); setHeroMsg("");
+    try {
+      const maxDim = field === "desktop" ? 1400 : 900;
+      const url = await uploadToGitHub(file, maxDim, 0.82);
+      let updated: HeroSlide[];
+      if (targetSlideId) {
+        updated = heroSlides.map(s => s.id === targetSlideId ? { ...s, [field]: url } : s);
+      } else {
+        const newSlide: HeroSlide = { id: Date.now().toString(), desktop: field === "desktop" ? url : "", mobile: field === "mobile" ? url : undefined, show: "both" };
+        updated = [...heroSlides, newSlide];
+      }
+      setHeroSlides(updated);
+      await saveHeroSlides(updated);
+      setHeroMsg("✅ تم الرفع والحفظ!");
+    } catch (e: any) { setHeroMsg("❌ " + e.message); }
+    setHeroUploading(false);
+    setTimeout(() => setHeroMsg(""), 4000);
+  };
+
   useEffect(() => {
     if (!authed) return;
-    const es = new EventSource(`${API_BASE.replace("/api", "")}/api/events`);
+    const es = new EventSource(`${API_ROOT}/api/events`);
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -109,7 +169,7 @@ export default function AdminDashboard() {
           setNewOrderToast({ name: data.order.customer_name, total: data.order.total_amount });
           fetchData();
           if (Notification.permission === "granted") {
-            new Notification("🛍️ أوردر جديد!", { body: `${data.order.customer_name} — ${data.order.total_amount} EGP`, icon: "/favicon.png" });
+            new Notification("🛍️ أوردر جديد!", { body: `${data.order.customer_name} — ${data.order.total_amount} EGP` });
           } else if (Notification.permission !== "denied") {
             Notification.requestPermission().then(p => {
               if (p === "granted") new Notification("🛍️ أوردر جديد!", { body: `${data.order.customer_name} — ${data.order.total_amount} EGP` });
@@ -132,43 +192,55 @@ export default function AdminDashboard() {
       const productsData = await productsRes.json();
       setOrders(Array.isArray(ordersData) ? ordersData : ordersData.orders || []);
       setProducts(Array.isArray(productsData) ? productsData : productsData.products || []);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error("Fetch error:", err); }
+    finally { setLoading(false); }
   };
 
-  const totalOrders = orders.length;
-
-  const confirmedOrders = orders.filter(o =>
-    ["completed", "delivered", "confirmed"].includes((o.status || "").toLowerCase())
-  );
+  const confirmedOrders = orders.filter(o => ["completed", "delivered", "confirmed"].includes((o.status || "").toLowerCase()));
   const totalRevenue = confirmedOrders.reduce((s, o) => s + (parseFloat(String(o.total_amount)) || 0), 0);
-
-  const pendingOrders = orders.filter(o => o.status === "pending").length;
-  const totalProducts = products.length;
+  const pendingOrders = orders.filter(o => o.status === "pending");
   const activeProducts = products.filter(p => p.is_active).length;
-  const lowStock = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) < 5).length;
   const outOfStock = products.filter(p => (p.stock || 0) === 0).length;
+  const lowStock = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) < 5).length;
 
-  const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 8);
+  const fmt = (n: number) => n.toLocaleString("ar-EG", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - 6);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  function periodStats(from: Date) {
+    const p = confirmedOrders.filter(o => new Date(o.created_at) >= from);
+    return { count: p.length, revenue: p.reduce((s, o) => s + (parseFloat(String(o.total_amount)) || 0), 0) };
+  }
+  const todayStats = periodStats(startOfDay);
+  const weekStats = periodStats(startOfWeek);
+  const monthStats = periodStats(startOfMonth);
+
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfDay); d.setDate(d.getDate() - (6 - i));
+    const next = new Date(d); next.setDate(d.getDate() + 1);
+    const dayOrders = confirmedOrders.filter(o => { const t = new Date(o.created_at); return t >= d && t < next; });
+    return { label: d.toLocaleDateString("ar-EG", { weekday: "short" }), count: dayOrders.length, revenue: dayOrders.reduce((s, o) => s + (parseFloat(String(o.total_amount)) || 0), 0) };
+  });
+  const maxRevenue = Math.max(...last7.map(d => d.revenue), 1);
+
+  const tabOrders = ordersTab === "all" ? [...orders].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0,10)
+    : ordersTab === "pending" ? pendingOrders.slice(0,10)
+    : confirmedOrders.slice(0,10);
+
+  // ── Password screen ──────────────────────────────────────────────────────
   if (!authed) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f9ee" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
       <div style={{ background: "#fff", borderRadius: 20, padding: 40, boxShadow: "0 4px 24px rgba(75,103,65,0.12)", textAlign: "center", width: 300 }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
-        <h2 style={{ margin: "0 0 20px", color: "#2d4a28", fontSize: 18 }}>دخول الأدمن</h2>
-        <input
-          type="password" value={pw} onChange={e => { setPw(e.target.value); setPwError(false); }}
+        <h2 style={{ margin: "0 0 20px", color: "#2d4a28", fontSize: 18, direction: "rtl" }}>دخول الأدمن</h2>
+        <input type="password" value={pw}
+          onChange={e => { setPw(e.target.value); setPwError(false); }}
           onKeyDown={e => { if (e.key === "Enter") { if (pw === getAdminPw()) { sessionStorage.setItem("admin_auth", "1"); setAuthed(true); } else setPwError(true); } }}
           placeholder="أدخل كلمة المرور"
-          style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${pwError ? "#ef4444" : "#ddd"}`, fontSize: 15, boxSizing: "border-box", outline: "none", marginBottom: 12, textAlign: "center" }}
-        />
+          style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${pwError ? "#ef4444" : "#ddd"}`, fontSize: 15, boxSizing: "border-box", outline: "none", marginBottom: 12, textAlign: "center" }} />
         {pwError && <p style={{ color: "#ef4444", fontSize: 13, margin: "0 0 10px" }}>كلمة مرور خاطئة</p>}
         <button onClick={() => { if (pw === getAdminPw()) { sessionStorage.setItem("admin_auth", "1"); setAuthed(true); } else setPwError(true); }}
           style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
@@ -179,394 +251,520 @@ export default function AdminDashboard() {
   );
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f9ee" }}>
-      <div style={{ fontSize: 18, color: "#4B6741" }}>جاري التحميل...</div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+      <div style={{ fontSize: 16, color: "#4B6741" }}>جاري التحميل...</div>
     </div>
   );
 
+  // ── Main dashboard ───────────────────────────────────────────────────────
   return (
     <>
       <style jsx global>{`
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f5f9ee; }
-        @media (max-width: 640px) {
-          .admin-wrap { padding: 12px !important; }
-          .admin-nav-grid { grid-template-columns: 1fr 1fr !important; }
-          .admin-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-          .admin-recent-row { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+        .dash-stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+        .dash-period-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+        .dash-chart-bar { transition: height 0.4s ease; border-radius: 4px 4px 0 0; }
+        @media (max-width: 900px) { .dash-stats-grid { grid-template-columns: repeat(2,1fr); } }
+        @media (max-width: 900px) { .dash-settings-grid { grid-template-columns: 1fr 1fr !important; } }
+        @media (max-width: 600px) {
+          .dash-stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+          .dash-period-grid { grid-template-columns: 1fr; }
+          .dash-pw-grid { grid-template-columns: 1fr !important; }
+          .dash-settings-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
-      <div className="admin-wrap" style={{ minHeight: "100vh", padding: "16px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-
-          {/* Header */}
-          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
-            <img src="https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png" alt="مطروح أوليفي" style={{ height: 48, objectFit: "contain" }} />
-            <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#2d4a28" }}>🏠 لوحة تحكم مطروح أوليفي</h1>
-              <p style={{ margin: "4px 0 0", color: "#6b8f63", fontSize: 13 }}>نظرة عامة على المتجر</p>
+      {/* ── Stats Cards ────────────────────────────────────────── */}
+      <div className="dash-stats-grid">
+        {[
+          { icon: "📦", label: "إجمالي الطلبات", value: orders.length, sub: `${pendingOrders.length} معلق`, subBg: "#fef3c7", subColor: "#92400e" },
+          { icon: "✅", label: "الطلبات المكتملة", value: confirmedOrders.length, sub: `${Math.round(confirmedOrders.length / Math.max(orders.length,1) * 100)}% نسبة الإتمام`, subBg: "#dcfce7", subColor: "#166534" },
+          { icon: "💰", label: "إجمالي الإيرادات", value: fmt(totalRevenue) + " EGP", sub: "الطلبات المؤكدة فقط", subBg: "#fef9c3", subColor: "#854d0e" },
+          { icon: "🛍️", label: "المنتجات", value: products.length, sub: `${activeProducts} نشط · ${outOfStock} نفذ`, subBg: "#e0e7ff", subColor: "#3730a3" },
+        ].map(s => (
+          <div key={s.label} style={{ background: "#fff", borderRadius: 16, padding: "20px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0f5eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
+              <div>
+                <p style={{ margin: 0, fontSize: 12, color: "#888", direction: "rtl" }}>{s.label}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>{s.value}</p>
+              </div>
             </div>
+            <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 8, background: s.subBg, color: s.subColor, fontSize: 11, fontWeight: 600, direction: "rtl" }}>{s.sub}</span>
           </div>
+        ))}
+      </div>
 
-          {/* Stats */}
-          <div className="admin-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 20 }}>
-
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#4B674122", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>📦</div>
-                <div>
-                  <p style={{ margin: 0, fontSize: 12, color: "#888" }}>إجمالي الطلبات</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 26, fontWeight: 800, color: "#2d4a28" }}>{totalOrders}</p>
-                </div>
+      {/* ── Analytics ──────────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+        {/* Period stats */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+          <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>📊 تحليلات المبيعات</h3>
+          <div className="dash-period-grid">
+            {[
+              { label: "اليوم", icon: "☀️", ...todayStats },
+              { label: "آخر 7 أيام", icon: "📅", ...weekStats },
+              { label: "هذا الشهر", icon: "🗓️", ...monthStats },
+            ].map(p => (
+              <div key={p.label} style={{ background: "#f8faf6", borderRadius: 12, padding: "12px 14px", border: "1.5px solid #e8f0e3" }}>
+                <div style={{ fontSize: 11, color: "#888", marginBottom: 6, direction: "rtl" }}>{p.icon} {p.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#2d4a28" }}>{p.count}</div>
+                <div style={{ fontSize: 12, color: "#4B6741", fontWeight: 700, marginTop: 2 }}>{fmt(p.revenue)} EGP</div>
               </div>
-              <span style={{ padding: "3px 10px", borderRadius: 8, background: "#fef3c7", color: "#92400e", fontSize: 12, fontWeight: 600 }}>{pendingOrders} قيد الانتظار</span>
-            </div>
-
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#D4AF3722", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>💰</div>
-                <div>
-                  <p style={{ margin: 0, fontSize: 12, color: "#888" }}>إجمالي الإيرادات</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 22, fontWeight: 800, color: "#2d4a28" }}>{fmt(totalRevenue)} EGP</p>
-                </div>
-              </div>
-              <span style={{ padding: "3px 10px", borderRadius: 8, background: "#dcfce7", color: "#166534", fontSize: 12, fontWeight: 600 }}>الطلبات المؤكدة فقط</span>
-            </div>
-
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#4B674122", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🛍️</div>
-                <div>
-                  <p style={{ margin: 0, fontSize: 12, color: "#888" }}>المنتجات</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 26, fontWeight: 800, color: "#2d4a28" }}>{totalProducts}</p>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ padding: "3px 10px", borderRadius: 8, background: "#dcfce7", color: "#166534", fontSize: 12, fontWeight: 600 }}>{activeProducts} نشط</span>
-                {outOfStock > 0 && <span style={{ padding: "3px 10px", borderRadius: 8, background: "#fee2e2", color: "#991b1b", fontSize: 12, fontWeight: 600 }}>{outOfStock} نفذ</span>}
-              </div>
-            </div>
-
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#fef3c722", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>⚠️</div>
-                <div>
-                  <p style={{ margin: 0, fontSize: 12, color: "#888" }}>مخزون منخفض</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 26, fontWeight: 800, color: lowStock > 0 ? "#f59e0b" : "#2d4a28" }}>{lowStock}</p>
-                </div>
-              </div>
-              <Link href="/admin/product" style={{ padding: "3px 10px", borderRadius: 8, background: "#E8EDD0", color: "#4B6741", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>إدارة ←</Link>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Nav Cards */}
-          <div className="admin-nav-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-            <Link href="/admin/orders" style={{ background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", borderRadius: 16, padding: "24px 20px", textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 4px 20px rgba(75,103,65,0.3)", transition: "transform 0.2s" }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-4px)"}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)"}>
-              <div style={{ fontSize: 36 }}>📦</div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>الطلبات</h2>
-              <span style={{ padding: "4px 16px", borderRadius: 20, background: "rgba(255,255,255,0.25)", fontSize: 12, fontWeight: 600 }}>{totalOrders} طلب ←</span>
-            </Link>
-
-            <Link href="/admin/product" style={{ background: "#2d4a28", color: "#fff", borderRadius: 16, padding: "24px 20px", textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 4px 20px rgba(45,74,40,0.3)", transition: "transform 0.2s" }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-4px)"}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)"}>
-              <div style={{ fontSize: 36 }}>🛍️</div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>المنتجات</h2>
-              <span style={{ padding: "4px 16px", borderRadius: 20, background: "rgba(255,255,255,0.1)", fontSize: 12, fontWeight: 600 }}>{totalProducts} منتج ←</span>
-            </Link>
-
-            <Link href="/admin/shipping" style={{ background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", borderRadius: 16, padding: "24px 20px", textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 4px 20px rgba(212,175,55,0.3)", transition: "transform 0.2s" }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-4px)"}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)"}>
-              <div style={{ fontSize: 36 }}>🚚</div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>الشحن</h2>
-              <span style={{ padding: "4px 16px", borderRadius: 20, background: "rgba(255,255,255,0.2)", fontSize: 12, fontWeight: 600 }}>إدارة الأسعار ←</span>
-            </Link>
-
-            <Link href="/admin/categories" style={{ background: "linear-gradient(135deg,#6b8f63,#4B6741)", color: "#fff", borderRadius: 16, padding: "24px 20px", textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, boxShadow: "0 4px 20px rgba(75,103,65,0.25)", transition: "transform 0.2s" }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-4px)"}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)"}>
-              <div style={{ fontSize: 36 }}>🗂️</div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>الفئات</h2>
-              <span style={{ padding: "4px 16px", borderRadius: 20, background: "rgba(255,255,255,0.2)", fontSize: 12, fontWeight: 600 }}>إدارة ←</span>
-            </Link>
+        {/* Bar chart */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+          <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>📈 إيرادات آخر 7 أيام</h3>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 90, padding: "0 4px" }}>
+            {last7.map((d, i) => (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                {d.revenue > 0 && <div style={{ fontSize: 9, color: "#4B6741", fontWeight: 700, whiteSpace: "nowrap" }}>{fmt(d.revenue)}</div>}
+                <div className="dash-chart-bar" style={{ width: "100%", background: i === 6 ? "#4B6741" : "#c8d9b0", height: `${Math.max(4, (d.revenue / maxRevenue) * 64)}px` }} />
+                <div style={{ fontSize: 9, color: "#888", whiteSpace: "nowrap" }}>{d.label}</div>
+              </div>
+            ))}
           </div>
+          {lowStock > 0 && (
+            <div style={{ marginTop: 14, padding: "8px 12px", borderRadius: 10, background: "#fef3c7", border: "1px solid #fde68a", fontSize: 12, color: "#92400e", direction: "rtl" }}>
+              ⚠️ {lowStock} منتج مخزونه منخفض — <Link href="/admin/product" style={{ color: "#4B6741", fontWeight: 700, textDecoration: "none" }}>مراجعة</Link>
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Favicon Upload */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 10, border: "1.5px solid #e0ebd6", overflow: "hidden", background: "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {faviconUrl
-                  ? <img src={faviconUrl} alt="favicon" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                  : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 20 }}>🖼️</div>}
+      {/* ── Recent Orders ───────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>قائمة الطلبات</h3>
+          <Link href="/admin/orders" style={{ fontSize: 13, color: "#4B6741", fontWeight: 700, textDecoration: "none" }}>عرض الكل ←</Link>
+        </div>
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, direction: "rtl" }}>
+          {([["all", "الكل"], ["pending", "المعلقة"], ["completed", "المكتملة"]] as const).map(([key, label]) => (
+            <button key={key} onClick={() => setOrdersTab(key)}
+              style={{ padding: "7px 18px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: ordersTab === key ? "#4B6741" : "#f3f4f6", color: ordersTab === key ? "#fff" : "#555", transition: "all 0.15s" }}>
+              {label}
+              {key === "pending" && pendingOrders.length > 0 && <span style={{ marginRight: 5, background: ordersTab === key ? "rgba(255,255,255,0.3)" : "#fef3c7", color: ordersTab === key ? "#fff" : "#92400e", borderRadius: 10, padding: "0 6px", fontSize: 11 }}>{pendingOrders.length}</span>}
+            </button>
+          ))}
+        </div>
+        {tabOrders.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#aaa", padding: 30 }}>لا توجد طلبات</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#f8faf6", direction: "rtl" }}>
+                  {["رقم الطلب", "العميل", "التاريخ", "الإجمالي", "الحالة"].map(h => (
+                    <th key={h} style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#555", fontSize: 12, whiteSpace: "nowrap", borderBottom: "1.5px solid #eee" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tabOrders.map(order => {
+                  const s = STATUS_COLORS[order.status] || { bg: "#f3f4f6", color: "#6b7280", label: order.status };
+                  return (
+                    <tr key={order.id} style={{ borderBottom: "1px solid #f5f5f5", direction: "rtl" }}
+                      onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = "#f8faf6"}
+                      onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}>
+                      <td style={{ padding: "12px 14px", fontWeight: 700, color: "#4B6741" }}>
+                        <Link href="/admin/orders" style={{ textDecoration: "none", color: "inherit" }}>#{order.id.slice(-6)}</Link>
+                      </td>
+                      <td style={{ padding: "12px 14px", color: "#333" }}>{order.customer_name || "—"}</td>
+                      <td style={{ padding: "12px 14px", color: "#888", whiteSpace: "nowrap" }}>{new Date(order.created_at).toLocaleDateString("ar-EG")}</td>
+                      <td style={{ padding: "12px 14px", fontWeight: 700, color: "#1a1a2e" }}>{fmt(parseFloat(String(order.total_amount)) || 0)} EGP</td>
+                      <td style={{ padding: "12px 14px" }}>
+                        <span style={{ padding: "4px 12px", borderRadius: 20, background: s.bg, color: s.color, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{s.label}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── GitHub Status ────────────────────────────────────────── */}
+      {githubStatus !== "loading" && (() => {
+        const connected = githubStatus === "connected";
+        return (
+          <div style={{ marginBottom: 20, padding: "14px 20px", borderRadius: 14,
+            background: connected ? "#f0fdf4" : "#fff7ed",
+            border: `1.5px solid ${connected ? "#86efac" : "#fed7aa"}`,
+            display: "flex", alignItems: "center", gap: 12, direction: "rtl" }}>
+            <div style={{ width: 12, height: 12, borderRadius: "50%", flexShrink: 0,
+              background: connected ? "#22c55e" : "#f97316",
+              boxShadow: `0 0 0 3px ${connected ? "rgba(34,197,94,.2)" : "rgba(249,115,22,.2)"}` }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: connected ? "#166534" : "#9a3412" }}>
+                {connected ? "متصل بـ GitHub — الصور بترفع مباشرة" : "GitHub غير متصل — الصور مش هترفع"}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "#2d4a28", marginBottom: 2 }}>Favicon (أيقونة التاب)</div>
-                <div style={{ fontSize: 12, color: "#aaa" }}>الصورة الصغيرة اللي بتظهر في تاب المتصفح</div>
+              {!connected && (
+                <div style={{ fontSize: 12, color: "#9a3412", marginTop: 3, lineHeight: 1.6 }}>
+                  روح Vercel → Settings → Environment Variables → أضف{" "}
+                  <code style={{ background: "#fee2e2", padding: "1px 6px", borderRadius: 4, fontSize: 11, fontFamily: "monospace" }}>
+                    GITHUB_TOKEN
+                  </code>
+                  {" "}بالقيمة بتاعته (مش NEXT_PUBLIC)، ثم اعمل Redeploy
+                </div>
+              )}
+            </div>
+            {connected && (
+              <div style={{ fontSize: 12, color: "#166534", background: "#dcfce7", padding: "4px 12px", borderRadius: 20, fontWeight: 600, whiteSpace: "nowrap" }}>
+                repo: yousefelsayed836-a11y/matrouholive
               </div>
-              <label style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Settings ────────────────────────────────────────────── */}
+      <div className="dash-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, marginBottom: 24 }}>
+        {/* Favicon */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>🖼️ أيقونة التاب (Favicon)</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, direction: "rtl" }}>
+            <div style={{ width: 52, height: 52, borderRadius: 12, border: "1.5px solid #e0ebd6", overflow: "hidden", flexShrink: 0, background: "#f8faf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {faviconUrl ? <img src={faviconUrl} alt="favicon" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🖼️</span>}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: "#888", marginBottom: 8 }}>الصورة الصغيرة في تاب المتصفح</div>
+              <label style={{ display: "inline-block", padding: "8px 18px", borderRadius: 10, background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 {faviconUploading ? "جاري الرفع..." : "رفع صورة جديدة"}
                 <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && uploadFavicon(e.target.files[0])} disabled={faviconUploading} />
               </label>
             </div>
-            {faviconMsg && <div style={{ marginTop: 10, fontSize: 13, color: faviconMsg.includes("✅") ? "#166534" : "#991b1b", fontWeight: 600 }}>{faviconMsg}</div>}
           </div>
+          {faviconMsg && <div style={{ marginTop: 10, fontSize: 13, color: faviconMsg.includes("✅") ? "#166534" : "#991b1b", fontWeight: 600 }}>{faviconMsg}</div>}
+        </div>
 
-          {/* Facebook Settings */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6", marginBottom: 20 }}>
-            <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#2d4a28" }}>📘 إعدادات فيسبوك</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 5 }}>Facebook Pixel ID</label>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <input
-                    value={fbPixelId}
-                    onChange={e => setFbPixelId(e.target.value)}
-                    placeholder="e.g. 1234567890123456"
-                    style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none" }}
-                  />
-                  <button
-                    onClick={async () => {
-                      try {
-                        await fetch(`${API_BASE}/settings/fb_pixel_id`, {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ value: fbPixelId }),
-                        });
-                        setFbPixelMsg("✅ تم الحفظ!");
-                      } catch { setFbPixelMsg("❌ فشل الحفظ"); }
-                      setTimeout(() => setFbPixelMsg(""), 3000);
-                    }}
-                    style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#1877f2,#0c5fcf)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}
-                  >
-                    حفظ
-                  </button>
-                </div>
-                {fbPixelMsg && <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: fbPixelMsg.includes("✅") ? "#166534" : "#991b1b" }}>{fbPixelMsg}</div>}
-              </div>
-              <div style={{ padding: "10px 14px", borderRadius: 10, background: "#f0f5eb", fontSize: 13, color: "#4a5568" }}>
-                <strong>Catalog Feed URL:</strong>{" "}
-                <code style={{ fontSize: 12, background: "#e0ebd6", padding: "2px 6px", borderRadius: 4 }}>
-                  {typeof window !== "undefined" ? window.location.origin : "https://yoursite.com"}/api/fb-feed
-                </code>
-                <span style={{ marginLeft: 8, color: "#888" }}>— ارفعه في Commerce Manager</span>
-              </div>
-            </div>
+        {/* Facebook Pixel */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>📘 Facebook Pixel</h3>
+          <div style={{ display: "flex", gap: 8, direction: "rtl" }}>
+            <input value={fbPixelId} onChange={e => setFbPixelId(e.target.value)} placeholder="Pixel ID"
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none" }} />
+            <button onClick={async () => {
+              try {
+                await fetch(`${API_BASE}/settings/fb_pixel_id`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: fbPixelId }) });
+                setFbPixelMsg("✅ تم!");
+              } catch { setFbPixelMsg("❌ فشل"); }
+              setTimeout(() => setFbPixelMsg(""), 3000);
+            }} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#1877f2", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+              حفظ
+            </button>
           </div>
+          {fbPixelMsg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: fbPixelMsg.includes("✅") ? "#166534" : "#991b1b" }}>{fbPixelMsg}</div>}
+          <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: "#f0f5eb", fontSize: 12, color: "#555", direction: "rtl" }}>
+            <strong>Catalog Feed:</strong>{" "}
+            <code style={{ fontSize: 11, background: "#e0ebd6", padding: "1px 5px", borderRadius: 4 }}>
+              {typeof window !== "undefined" ? window.location.origin : "https://matrouholive.com"}/api/fb-feed
+            </code>
+          </div>
+        </div>
 
-          {/* Featured Products Section */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6", marginBottom: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#2d4a28" }}>⭐ قسم المنتجات المميزة</h3>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, color: featuredEnabled ? "#166534" : "#888", fontWeight: 600 }}>{featuredEnabled ? "مفعّل" : "معطّل"}</span>
-                <div
-                  onClick={() => setFeaturedEnabled(v => !v)}
-                  style={{
-                    width: 46, height: 26, borderRadius: 13,
-                    background: featuredEnabled ? "#4B6741" : "#d1d5db",
-                    position: "relative", cursor: "pointer", transition: "background 0.2s",
-                  }}
-                >
-                  <div style={{
-                    position: "absolute", top: 3, left: featuredEnabled ? 23 : 3,
-                    width: 20, height: 20, borderRadius: "50%", background: "#fff",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left 0.2s",
-                  }} />
-                </div>
-              </div>
+        {/* Email Test */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb" }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>📧 اختبار الإيميل</h3>
+          <p style={{ margin: "0 0 16px", fontSize: 13, color: "#888", direction: "rtl", lineHeight: 1.6 }}>
+            اضغط الزرار عشان يتبعتلك إيميل تجريبي على <strong>yousefelsayed836@gmail.com</strong> وتتأكد إن الإشعارات شغّالة.
+          </p>
+          <button
+            onClick={async () => {
+              setEmailTestLoading(true);
+              setEmailTestMsg("");
+              try {
+                const res = await fetch(`${API_ROOT}/api/test-email`, { method: "POST" });
+                const data = await res.json();
+                setEmailTestMsg(data.success ? "✅ " + data.message : "❌ " + data.message);
+              } catch (e: any) {
+                setEmailTestMsg("❌ فشل الاتصال بالسيرفر");
+              }
+              setEmailTestLoading(false);
+            }}
+            disabled={emailTestLoading}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: emailTestLoading ? "#9ca3af" : "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: emailTestLoading ? "not-allowed" : "pointer", direction: "rtl" }}
+          >
+            {emailTestLoading ? "⏳ جاري الإرسال..." : "📤 إرسال إيميل تجريبي"}
+          </button>
+          {emailTestMsg && (
+            <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: emailTestMsg.includes("✅") ? "#dcfce7" : "#fee2e2", color: emailTestMsg.includes("✅") ? "#166534" : "#991b1b", fontSize: 13, fontWeight: 600, direction: "rtl" }}>
+              {emailTestMsg}
             </div>
+          )}
+        </div>
+      </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 5 }}>عنوان القسم (يظهر في الصفحة الرئيسية)</label>
+      {/* ── Site Settings ────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb", marginBottom: 24 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>إعدادات الموقع</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, direction: "rtl" }}>
+          {([
+            ["name",         "اسم الموقع / المتجر",          "مطروح أوليفي"],
+            ["whatsapp",     "رقم واتساب (للتواصل)",          "01xxxxxxxxx"],
+            ["address",      "العنوان",                       "مطروح، مصر"],
+            ["announcement", "إعلان في أعلى الموقع (اتركه فاضي للإخفاء)", "مثال: شحن مجاني فوق 500 ج"],
+          ] as const).map(([key, label, placeholder]) => (
+            <div key={key} style={{ ...(key === "announcement" ? { gridColumn: "1 / -1" } : {}) }}>
+              <label style={{ display: "block", fontSize: 11, color: "#888", marginBottom: 5, fontWeight: 600 }}>{label}</label>
               <input
-                value={featuredTitle}
-                onChange={e => setFeaturedTitle(e.target.value)}
-                placeholder="مثال: منتجاتنا المميزة، الأكثر مبيعاً..."
+                value={siteSettings[key]}
+                onChange={e => setSiteSettings(s => ({ ...s, [key]: e.target.value }))}
+                placeholder={placeholder}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box" }}
               />
             </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 5 }}>
-                اختر المنتجات ({featuredIds.length} محدد)
-              </label>
-              <input
-                value={featuredSearch}
-                onChange={e => setFeaturedSearch(e.target.value)}
-                placeholder="ابحث عن منتج..."
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 13, outline: "none", boxSizing: "border-box", marginBottom: 8 }}
-              />
-              <div style={{ maxHeight: 320, overflowY: "auto", border: "1.5px solid #e0ebd6", borderRadius: 10, padding: 10 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
-                  {products
-                    .filter(p => {
-                      const s = featuredSearch.toLowerCase();
-                      return !s || p.name_en?.toLowerCase().includes(s);
-                    })
-                    .slice(0, 80)
-                    .map(p => {
-                      const img = Array.isArray(p.images) ? p.images[0] : (p.images || "");
-                      const selected = featuredIds.includes(p.id);
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={() => setFeaturedIds(ids =>
-                            ids.includes(p.id) ? ids.filter(id => id !== p.id) : [...ids, p.id]
-                          )}
-                          style={{
-                            position: "relative", cursor: "pointer", borderRadius: 10,
-                            border: `2.5px solid ${selected ? "#4B6741" : "#e0ebd6"}`,
-                            overflow: "hidden", background: "#f0f5eb",
-                            boxShadow: selected ? "0 0 0 3px rgba(75,103,65,0.2)" : "none",
-                            transition: "border-color 0.15s, box-shadow 0.15s",
-                          }}
-                        >
-                          <div style={{ aspectRatio: "3/4", width: "100%", overflow: "hidden" }}>
-                            <img
-                              src={img || `https://placehold.co/120x160/f0f5eb/4B6741?text=🌿`}
-                              alt={p.name_en}
-                              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                              onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/120x160/f0f5eb/4B6741?text=🌿`; }}
-                            />
-                          </div>
-                          {selected && (
-                            <div style={{ position: "absolute", top: 5, right: 5, width: 22, height: 22, borderRadius: "50%", background: "#4B6741", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700 }}>✓</div>
-                          )}
-                          <div style={{ padding: "5px 6px", background: "#fff" }}>
-                            <div style={{ fontSize: 10, color: "#333", fontWeight: 600, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.name_en}</div>
-                            <div style={{ fontSize: 10, color: "#4B6741", fontWeight: 700, marginTop: 2 }}>{p.price} EGP</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button
-                onClick={async () => {
-                  try {
-                    await fetch(`${API_BASE}/settings/featured_section`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ value: JSON.stringify({ title: featuredTitle, enabled: featuredEnabled, product_ids: featuredIds }) }),
-                    });
-                    setFeaturedMsg("✅ تم الحفظ!");
-                  } catch { setFeaturedMsg("❌ فشل الحفظ"); }
-                  setTimeout(() => setFeaturedMsg(""), 3000);
-                }}
-                style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
-              >
-                حفظ قسم المميزة
-              </button>
-              {featuredIds.length > 0 && (
-                <button
-                  onClick={() => setFeaturedIds([])}
-                  style={{ padding: "10px 16px", borderRadius: 10, border: "1.5px solid #e0ebd6", background: "#fff", color: "#888", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
-                >
-                  مسح الكل
-                </button>
-              )}
-              {featuredMsg && <span style={{ fontSize: 13, fontWeight: 600, color: featuredMsg.includes("✅") ? "#166534" : "#991b1b" }}>{featuredMsg}</span>}
-            </div>
-          </div>
-
-          {/* Change Password Panel */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6", marginBottom: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#2d4a28" }}>🔐 تغيير كلمة المرور</h3>
-              <button onClick={() => { setShowChangePw(v => !v); setChangePwMsg(""); setChangePwForm({ current: "", next: "", confirm: "" }); }}
-                style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #e0ebd6", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#555" }}>
-                {showChangePw ? "إلغاء" : "تغيير →"}
-              </button>
-            </div>
-            {showChangePw && (
-              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                {changePwMsg && (
-                  <div style={{ padding: "10px 14px", borderRadius: 10, background: changePwMsg.includes("✅") ? "#dcfce7" : "#fee2e2", color: changePwMsg.includes("✅") ? "#166534" : "#991b1b", fontSize: 13, fontWeight: 600 }}>
-                    {changePwMsg}
-                  </div>
-                )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 5 }}>كلمة المرور الحالية</label>
-                    <input type="password" value={changePwForm.current} onChange={e => setChangePwForm(f => ({ ...f, current: e.target.value }))}
-                      placeholder="الحالية"
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 5 }}>كلمة المرور الجديدة</label>
-                    <input type="password" value={changePwForm.next} onChange={e => setChangePwForm(f => ({ ...f, next: e.target.value }))}
-                      placeholder="الجديدة"
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 5 }}>تأكيد الجديدة</label>
-                    <input type="password" value={changePwForm.confirm} onChange={e => setChangePwForm(f => ({ ...f, confirm: e.target.value }))}
-                      placeholder="تأكيد"
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                  </div>
-                </div>
-                <button onClick={() => {
-                  if (changePwForm.current !== getAdminPw()) { setChangePwMsg("❌ كلمة المرور الحالية خاطئة"); return; }
-                  if (!changePwForm.next || changePwForm.next.length < 3) { setChangePwMsg("❌ كلمة المرور الجديدة أقل من 3 أحرف"); return; }
-                  if (changePwForm.next !== changePwForm.confirm) { setChangePwMsg("❌ كلمتا المرور غير متطابقتان"); return; }
-                  localStorage.setItem("admin_pw", changePwForm.next);
-                  setChangePwMsg("✅ تم تغيير كلمة المرور بنجاح!");
-                  setChangePwForm({ current: "", next: "", confirm: "" });
-                  setTimeout(() => setShowChangePw(false), 2000);
-                }}
-                  style={{ alignSelf: "flex-start", padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                  حفظ كلمة المرور
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Recent Orders */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 4px 20px rgba(75,103,65,0.08)", border: "1px solid #e0ebd6" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#2d4a28" }}>أحدث الطلبات</h3>
-              <Link href="/admin/orders" style={{ color: "#4B6741", textDecoration: "none", fontWeight: 600, fontSize: 14 }}>عرض الكل ←</Link>
-            </div>
-            {recentOrders.length === 0 ? (
-              <p style={{ textAlign: "center", color: "#888", padding: 20 }}>لا توجد طلبات بعد</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {recentOrders.map(order => (
-                  <div key={order.id} className="admin-recent-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 10, background: "#f5f9ee", border: "1px solid #e0ebd6" }}>
-                    <div>
-                      <span style={{ fontWeight: 700, color: "#4B6741" }}>#{order.id.slice(-6)}</span>
-                      {order.customer_name && <span style={{ marginLeft: 10, fontSize: 13, color: "#555" }}>{order.customer_name}</span>}
-                      <span style={{ marginLeft: 10, fontSize: 13, color: "#888" }}>{fmt(parseFloat(String(order.total_amount)) || 0)} EGP</span>
-                    </div>
-                    <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: order.status === "pending" ? "#fef3c7" : order.status === "completed" || order.status === "delivered" ? "#dcfce7" : order.status === "cancelled" ? "#fee2e2" : "#f3f4f6", color: order.status === "pending" ? "#92400e" : order.status === "completed" || order.status === "delivered" ? "#166534" : order.status === "cancelled" ? "#991b1b" : "#6b7280" }}>
-                      {order.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+          ))}
         </div>
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, direction: "rtl" }}>
+          <button onClick={async () => {
+            try {
+              await fetch(`${API_BASE}/settings/site_settings`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: JSON.stringify(siteSettings) }) });
+              setSiteSettingsMsg("✅ تم الحفظ!");
+            } catch { setSiteSettingsMsg("❌ فشل"); }
+            setTimeout(() => setSiteSettingsMsg(""), 3000);
+          }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            حفظ الإعدادات
+          </button>
+          {siteSettingsMsg && <span style={{ fontSize: 13, fontWeight: 600, color: siteSettingsMsg.includes("✅") ? "#166534" : "#991b1b" }}>{siteSettingsMsg}</span>}
+        </div>
+      </div>
+
+      {/* ── Hero Slides ──────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, direction: "rtl" }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>صور الهيرو (السلايد شو)</h3>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 10, background: heroUploading ? "#9ca3af" : "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: heroUploading ? "not-allowed" : "pointer" }}>
+            {heroUploading ? "⏳ جاري الرفع..." : "+ إضافة صورة جديدة"}
+            <input type="file" accept="image/*" style={{ display: "none" }} disabled={heroUploading}
+              onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], null, "desktop")} />
+          </label>
+        </div>
+
+        {heroSlides.length === 0 && (
+          <div style={{ textAlign: "center", padding: "32px 0", color: "#aaa", fontSize: 13 }}>
+            لا توجد صور هيرو بعد — اضغط "إضافة صورة جديدة" لرفع أول صورة
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {heroSlides.map((slide, idx) => {
+            // 3×3 position picker helper
+            const POSITIONS = [
+              ["right top","center top","left top"],
+              ["right center","center center","left center"],
+              ["right bottom","center bottom","left bottom"],
+            ];
+            const PosPicker = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,20px)", gap:3 }}>
+                {POSITIONS.map((row, ri) => row.map((pos, ci) => {
+                  const active = (value||"center center") === pos;
+                  return (
+                    <div key={`${ri}-${ci}`} onClick={() => onChange(pos)}
+                      title={pos}
+                      style={{ width:20, height:20, borderRadius:4, cursor:"pointer", border:`2px solid ${active?"#4B6741":"#ddd"}`,
+                        background: active ? "#4B6741" : "#f0f5eb",
+                        display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <div style={{ width:6, height:6, borderRadius:"50%", background: active?"#fff":"#aaa" }} />
+                    </div>
+                  );
+                }))}
+              </div>
+            );
+
+            return (
+              <div key={slide.id} style={{ border: "1.5px solid #e0ebd6", borderRadius: 14, padding: 16, background: "#f8faf6", direction: "rtl" }}>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
+
+                  {/* Desktop image + position */}
+                  <div style={{ flex: "0 0 auto" }}>
+                    <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>صورة اللاب</div>
+                    <div style={{ width: 150, height: 85, borderRadius: 10, overflow: "hidden", border: "1.5px solid #ddd", background: "#eee", position: "relative" }}>
+                      {slide.desktop
+                        ? <img src={slide.desktop} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition: slide.pos||"center center" }} />
+                        : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", color:"#bbb", fontSize:22 }}>+</div>}
+                      <label style={{ position:"absolute", inset:0, cursor:"pointer", opacity:0 }}>
+                        <input type="file" accept="image/*" style={{ display:"none" }} disabled={heroUploading}
+                          onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], slide.id, "desktop")} />
+                      </label>
+                    </div>
+                    <div style={{ fontSize:10, color:"#4B6741", marginTop:4, textAlign:"center", fontWeight:600 }}>اضغط لتغيير الصورة</div>
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ fontSize:10, color:"#888", marginBottom:4, fontWeight:600 }}>موضع الصورة</div>
+                      <PosPicker value={slide.pos} onChange={async (v) => {
+                        const u = heroSlides.map(s => s.id===slide.id ? {...s, pos:v} : s);
+                        setHeroSlides(u); await saveHeroSlides(u);
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Mobile image + position */}
+                  <div style={{ flex: "0 0 auto" }}>
+                    <div style={{ fontSize: 11, color: "#888", marginBottom: 6, fontWeight: 600 }}>صورة الموبايل <span style={{ color:"#bbb", fontWeight:400 }}>(اختياري)</span></div>
+                    <div style={{ width: 75, height: 85, borderRadius: 10, overflow: "hidden", border: "1.5px solid #ddd", background: "#eee", position: "relative" }}>
+                      {slide.mobile
+                        ? <img src={slide.mobile} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition: slide.mobilePos||"center center" }} />
+                        : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", color:"#bbb", fontSize:22 }}>+</div>}
+                      <label style={{ position:"absolute", inset:0, cursor:"pointer", opacity:0 }}>
+                        <input type="file" accept="image/*" style={{ display:"none" }} disabled={heroUploading}
+                          onChange={e => e.target.files?.[0] && uploadHeroImage(e.target.files[0], slide.id, "mobile")} />
+                      </label>
+                    </div>
+                    {slide.mobile
+                      ? <div style={{ fontSize:10, color:"#ef4444", marginTop:4, cursor:"pointer", textAlign:"center", fontWeight:600 }}
+                          onClick={async () => { const u=heroSlides.map(s=>s.id===slide.id?{...s,mobile:undefined}:s); setHeroSlides(u); await saveHeroSlides(u); }}>حذف</div>
+                      : <div style={{ fontSize:10, color:"#4B6741", marginTop:4, textAlign:"center", fontWeight:600 }}>اضغط لإضافة</div>}
+                    {slide.mobile && (
+                      <div style={{ marginTop:8 }}>
+                        <div style={{ fontSize:10, color:"#888", marginBottom:4, fontWeight:600 }}>موضع الصورة</div>
+                        <PosPicker value={slide.mobilePos} onChange={async (v) => {
+                          const u = heroSlides.map(s => s.id===slide.id ? {...s, mobilePos:v} : s);
+                          setHeroSlides(u); await saveHeroSlides(u);
+                        }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show on */}
+                  <div style={{ flex:1, minWidth:140 }}>
+                    <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:600 }}>تظهر على</div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      {([["both","الكل (موبايل + لاب)"],["desktop","اللاب فقط"],["mobile","الموبايل فقط"]] as const).map(([val, label]) => (
+                        <label key={val} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:13 }}>
+                          <input type="radio" name={`show-${slide.id}`} checked={slide.show===val} onChange={async () => {
+                            const u=heroSlides.map(s=>s.id===slide.id?{...s,show:val}:s); setHeroSlides(u); await saveHeroSlides(u);
+                          }} style={{ accentColor:"#4B6741" }} />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Order + Delete */}
+                  <div style={{ display:"flex", flexDirection:"column", gap:8, marginRight:"auto" }}>
+                    <button disabled={idx===0} onClick={async () => { const u=[...heroSlides]; [u[idx-1],u[idx]]=[u[idx],u[idx-1]]; setHeroSlides(u); await saveHeroSlides(u); }}
+                      style={{ padding:"6px 12px", borderRadius:8, border:"1.5px solid #e0ebd6", background:"#fff", cursor:idx===0?"not-allowed":"pointer", opacity:idx===0?0.4:1, fontSize:14 }}>↑</button>
+                    <button disabled={idx===heroSlides.length-1} onClick={async () => { const u=[...heroSlides]; [u[idx],u[idx+1]]=[u[idx+1],u[idx]]; setHeroSlides(u); await saveHeroSlides(u); }}
+                      style={{ padding:"6px 12px", borderRadius:8, border:"1.5px solid #e0ebd6", background:"#fff", cursor:idx===heroSlides.length-1?"not-allowed":"pointer", opacity:idx===heroSlides.length-1?0.4:1, fontSize:14 }}>↓</button>
+                    <button onClick={async () => { const u=heroSlides.filter(s=>s.id!==slide.id); setHeroSlides(u); await saveHeroSlides(u); setHeroMsg("✅ تم الحذف"); setTimeout(()=>setHeroMsg(""),3000); }}
+                      style={{ padding:"6px 12px", borderRadius:8, border:"1.5px solid #fca5a5", background:"#fff8f8", color:"#ef4444", cursor:"pointer", fontWeight:700, fontSize:13 }}>حذف</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {heroMsg && (
+          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: heroMsg.includes("✅") ? "#dcfce7" : "#fee2e2", color: heroMsg.includes("✅") ? "#166534" : "#991b1b", fontSize: 13, fontWeight: 600, direction: "rtl" }}>
+            {heroMsg}
+          </div>
+        )}
+      </div>
+
+      {/* ── Featured Products ─────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e", direction: "rtl" }}>⭐ قسم المنتجات المميزة</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 13, color: featuredEnabled ? "#166534" : "#888", fontWeight: 600 }}>{featuredEnabled ? "مفعّل" : "معطّل"}</span>
+            <div onClick={() => setFeaturedEnabled(v => !v)}
+              style={{ width: 46, height: 26, borderRadius: 13, background: featuredEnabled ? "#4B6741" : "#d1d5db", position: "relative", cursor: "pointer", transition: "background 0.2s" }}>
+              <div style={{ position: "absolute", top: 3, left: featuredEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+            </div>
+          </div>
+        </div>
+        <input value={featuredTitle} onChange={e => setFeaturedTitle(e.target.value)} placeholder="عنوان قسم المميزة"
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 12, direction: "rtl" }} />
+        <input value={featuredSearch} onChange={e => setFeaturedSearch(e.target.value)} placeholder="ابحث عن منتج..."
+          style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 13, outline: "none", boxSizing: "border-box", marginBottom: 10, direction: "rtl" }} />
+        <div style={{ maxHeight: 280, overflowY: "auto", border: "1.5px solid #e0ebd6", borderRadius: 10, padding: 10, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+            {products.filter(p => !featuredSearch || p.name_en?.toLowerCase().includes(featuredSearch.toLowerCase())).slice(0, 80).map(p => {
+              const img = Array.isArray(p.images) ? p.images[0] : (p.images || "");
+              const selected = featuredIds.includes(p.id);
+              return (
+                <div key={p.id} onClick={() => setFeaturedIds(ids => ids.includes(p.id) ? ids.filter(id => id !== p.id) : [...ids, p.id])}
+                  style={{ position: "relative", cursor: "pointer", borderRadius: 10, border: `2.5px solid ${selected ? "#4B6741" : "#e0ebd6"}`, overflow: "hidden", background: "#f0f5eb", boxShadow: selected ? "0 0 0 3px rgba(75,103,65,0.2)" : "none", transition: "all 0.15s" }}>
+                  <div style={{ aspectRatio: "3/4", width: "100%", overflow: "hidden" }}>
+                    <img src={img || `https://placehold.co/90x120/f0f5eb/4B6741?text=🌿`} alt={p.name_en}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/90x120/f0f5eb/4B6741?text=🌿`; }} />
+                  </div>
+                  {selected && <div style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "#4B6741", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700 }}>✓</div>}
+                  <div style={{ padding: "4px 6px", background: "#fff" }}>
+                    <div style={{ fontSize: 9, color: "#333", fontWeight: 600, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.name_en}</div>
+                    <div style={{ fontSize: 9, color: "#4B6741", fontWeight: 700, marginTop: 1 }}>{p.price} EGP</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, direction: "rtl" }}>
+          <button onClick={async () => {
+            try {
+              await fetch(`${API_BASE}/settings/featured_section`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: JSON.stringify({ title: featuredTitle, enabled: featuredEnabled, product_ids: featuredIds }) }) });
+              setFeaturedMsg("✅ تم الحفظ!");
+            } catch { setFeaturedMsg("❌ فشل"); }
+            setTimeout(() => setFeaturedMsg(""), 3000);
+          }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            حفظ المميزة
+          </button>
+          {featuredIds.length > 0 && <button onClick={() => setFeaturedIds([])} style={{ padding: "10px 16px", borderRadius: 10, border: "1.5px solid #e0ebd6", background: "#fff", color: "#888", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>مسح الكل</button>}
+          {featuredMsg && <span style={{ fontSize: 13, fontWeight: 600, color: featuredMsg.includes("✅") ? "#166534" : "#991b1b" }}>{featuredMsg}</span>}
+        </div>
+      </div>
+
+      {/* ── Change Password ───────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #ebebeb", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", direction: "rtl" }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>🔐 تغيير كلمة المرور</h3>
+          <button onClick={() => { setShowChangePw(v => !v); setChangePwMsg(""); setChangePwForm({ current: "", next: "", confirm: "" }); }}
+            style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #e0ebd6", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#555" }}>
+            {showChangePw ? "إلغاء" : "تغيير →"}
+          </button>
+        </div>
+        {showChangePw && (
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12, direction: "rtl" }}>
+            {changePwMsg && <div style={{ padding: "10px 14px", borderRadius: 10, background: changePwMsg.includes("✅") ? "#dcfce7" : "#fee2e2", color: changePwMsg.includes("✅") ? "#166534" : "#991b1b", fontSize: 13, fontWeight: 600 }}>{changePwMsg}</div>}
+            <div className="dash-pw-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {[["current", "الحالية"], ["next", "الجديدة"], ["confirm", "تأكيد"]].map(([k, label]) => (
+                <div key={k}>
+                  <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 5 }}>{label}</label>
+                  <input type="password" value={(changePwForm as any)[k]} onChange={e => setChangePwForm(f => ({ ...f, [k]: e.target.value }))}
+                    placeholder={label}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e0ebd6", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+              ))}
+            </div>
+            <button onClick={() => {
+              if (changePwForm.current !== getAdminPw()) { setChangePwMsg("❌ كلمة المرور الحالية خاطئة"); return; }
+              if (!changePwForm.next || changePwForm.next.length < 3) { setChangePwMsg("❌ كلمة المرور الجديدة أقل من 3 أحرف"); return; }
+              if (changePwForm.next !== changePwForm.confirm) { setChangePwMsg("❌ كلمتا المرور غير متطابقتان"); return; }
+              localStorage.setItem("admin_pw", changePwForm.next);
+              setChangePwMsg("✅ تم تغيير كلمة المرور بنجاح!");
+              setChangePwForm({ current: "", next: "", confirm: "" });
+              setTimeout(() => setShowChangePw(false), 2000);
+            }} style={{ alignSelf: "flex-start", padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3A5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              حفظ كلمة المرور
+            </button>
+          </div>
+        )}
       </div>
 
       {/* New Order Toast */}
       {newOrderToast && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, background: "#2d4a28", color: "#fff", borderRadius: 16, padding: "16px 20px", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", alignItems: "center", gap: 14, minWidth: 280, animation: "slideUp 0.3s ease" }}>
+        <div style={{ position: "fixed", bottom: 24, left: 24, zIndex: 9999, background: "#2d4a28", color: "#fff", borderRadius: 16, padding: "16px 20px", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", alignItems: "center", gap: 14, minWidth: 280 }}>
           <div style={{ fontSize: 32 }}>🛍️</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#E8EDD0" }}>أوردر جديد!</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#E8EDD0", direction: "rtl" }}>أوردر جديد!</div>
             <div style={{ fontSize: 13, marginTop: 2 }}>{newOrderToast.name} — {newOrderToast.total.toLocaleString()} EGP</div>
           </div>
-          <button onClick={() => setNewOrderToast(null)} style={{ marginRight: "auto", background: "none", border: "none", color: "#aaa", fontSize: 20, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
-          <style>{`@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+          <button onClick={() => setNewOrderToast(null)} style={{ marginRight: "auto", background: "none", border: "none", color: "#aaa", fontSize: 20, cursor: "pointer" }}>×</button>
         </div>
       )}
     </>

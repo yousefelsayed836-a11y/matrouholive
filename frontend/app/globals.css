@@ -3,36 +3,65 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 30, 40, 20;
-  --green-main: #4B6741;
-  --green-dark: #3A5232;
-  --cream: #E8EDD0;
-  --gold: #D4AF37;
+  --green-main: #4f7032;
+  --green-dark: #3d5828;
+  --green-light: #d7f7b3;
+  --cream: #f1f7c9;
+  --cream-border: #c8e6a0;
+  --gold: #bd9a52;
+  --gold-dark: #a07d3a;
+  --dark: #2d2b27;
+  --text-main: #2d2b27;
+  --text-muted: #6b7160;
+  --font-body: var(--font-cairo), 'Cairo', sans-serif;
+  --font-display: var(--font-readex), 'Readex Pro', 'Cairo', sans-serif;
 }
 
 html, body {
-  background-color: #fff !important;
-  color: rgb(var(--foreground-rgb));
+  background-color: #f1f7c9 !important;
+  color: var(--text-main);
   margin: 0;
   padding: 0;
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Readex Pro (closest to Bedayah) for all headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* Body text uses Cairo (closest to Algiers) */
+p, span, div, input, textarea, select, button, a, label, li {
+  font-family: var(--font-body);
 }
 
 main {
-  background-color: #fff;
+  background-color: #f1f7c9;
   min-height: 100vh;
+  padding-top: 64px;
+}
+/* shop page: extra 56px on mobile for the search bar below the header */
+@media (max-width: 899px) {
+  .shop-page-wrap { padding-top: 56px; }
 }
 
 html { scroll-behavior: smooth; }
-.font-arabic { font-family: 'Cairo', 'Tahoma', sans-serif; }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #fff; }
-::-webkit-scrollbar-thumb { background: #4B6741; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3A5232; }
+::-webkit-scrollbar-track { background: #f1f7c9; }
+::-webkit-scrollbar-thumb { background: #4f7032; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3d5828; }
 
-button:focus-visible { outline: 2px solid #4B6741; outline-offset: 2px; }
+button:focus-visible { outline: 2px solid #4f7032; outline-offset: 2px; }
 input:focus { outline: none; }
+
+/* Prevent 300ms tap delay and ghost-click on touch devices */
+a, button, [role="button"] { touch-action: manipulation; }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

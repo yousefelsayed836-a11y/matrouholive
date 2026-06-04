@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { trackAddToCart } from "@/lib/pixel";
 
 export interface CartItem {
   product: { id: string; name_en: string; price: number; image_url?: string };
@@ -36,6 +37,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (idx >= 0) { const u = [...prev]; u[idx] = { ...u[idx], qty: Math.min(10, u[idx].qty + qty) }; return u; }
       return [...prev, { product, qty: Math.min(10, qty), size }];
     });
+    trackAddToCart(product, qty);
     return true;
   }, []);
 
