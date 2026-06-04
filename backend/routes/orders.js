@@ -42,17 +42,17 @@ router.get('/customers', async (req, res) => {
   try {
     const customers = await allQuery(`
       SELECT
-        customer_phone,
-        MAX(customer_name) as customer_name,
-        MAX(shipping_address) as shipping_address,
-        MAX(city) as city,
-        MAX(governorate) as governorate,
+        o.customer_phone,
+        (SELECT customer_name FROM orders o2 WHERE o2.customer_phone = o.customer_phone ORDER BY created_at DESC LIMIT 1) as customer_name,
+        (SELECT shipping_address FROM orders o2 WHERE o2.customer_phone = o.customer_phone ORDER BY created_at DESC LIMIT 1) as shipping_address,
+        (SELECT city FROM orders o2 WHERE o2.customer_phone = o.customer_phone ORDER BY created_at DESC LIMIT 1) as city,
+        (SELECT governorate FROM orders o2 WHERE o2.customer_phone = o.customer_phone ORDER BY created_at DESC LIMIT 1) as governorate,
         COUNT(*) as order_count,
-        SUM(total_amount) as total_spent,
-        MAX(created_at) as last_order_date,
-        MIN(created_at) as first_order_date
-      FROM orders
-      GROUP BY customer_phone
+        SUM(o.total_amount) as total_spent,
+        MAX(o.created_at) as last_order_date,
+        MIN(o.created_at) as first_order_date
+      FROM orders o
+      GROUP BY o.customer_phone
       ORDER BY last_order_date DESC
     `);
     res.json(customers);
