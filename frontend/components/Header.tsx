@@ -138,24 +138,24 @@ export default function Header() {
         }}>
           <div style={{
             maxWidth: 1300, width: '100%', margin: '0 auto',
-            display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
-            direction: 'rtl', gap: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            direction: 'rtl', position: 'relative', padding: '0 4px',
           }}>
 
-            {/* ── Right: Hamburger ── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* ── Right: Hamburger + Desktop nav ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
               <button
                 onClick={() => setMenuOpen(v => !v)}
                 aria-label="القائمة"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 5, touchAction: 'manipulation' }}>
                 <span style={{
                   display: 'block', height: 2.5, borderRadius: 2, background: ghost ? 'rgba(255,255,255,0.92)' : G,
-                  width: menuOpen ? 22 : 22, transform: menuOpen ? 'translateY(7.5px) rotate(45deg)' : 'none',
+                  width: 22, transform: menuOpen ? 'translateY(7.5px) rotate(45deg)' : 'none',
                   transition: 'all 0.3s ease', transformOrigin: 'center',
                 }} />
                 <span style={{
                   display: 'block', height: 2.5, borderRadius: 2, background: ghost ? 'rgba(255,255,255,0.92)' : G,
-                  width: 16, opacity: menuOpen ? 0 : 1, transform: menuOpen ? 'scaleX(0)' : 'none',
+                  width: 16, opacity: menuOpen ? 0 : 1,
                   transition: 'all 0.3s ease',
                 }} />
                 <span style={{
@@ -165,22 +165,27 @@ export default function Header() {
                 }} />
               </button>
 
-              {/* Desktop nav */}
-              <nav className="desk-nav" style={{ display: 'flex', gap: 4 }}>
-                {NAV.map(item => (
-                  <Link key={item.href} href={item.href} style={{
-                    padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
-                    fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'Cairo, sans-serif',
-                    color: ghost ? 'rgba(255,255,255,0.9)' : (pathname === item.href ? '#fff' : G),
-                    background: ghost ? 'transparent' : (pathname === item.href ? G : 'transparent'),
-                    transition: 'all 0.2s',
-                  }}>{item.label}</Link>
-                ))}
-              </nav>
+              {/* Desktop nav — hidden when transparent */}
+              {!ghost && (
+                <nav className="desk-nav" style={{ display: 'flex', gap: 4 }}>
+                  {NAV.map(item => (
+                    <Link key={item.href} href={item.href} style={{
+                      padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
+                      fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'Cairo, sans-serif',
+                      color: pathname === item.href ? '#fff' : G,
+                      background: pathname === item.href ? G : 'transparent',
+                      transition: 'all 0.2s',
+                    }}>{item.label}</Link>
+                  ))}
+                </nav>
+              )}
             </div>
 
-            {/* ── Center: Logo ── */}
-            <Link href="/" style={{ textDecoration: 'none', display: 'flex', justifyContent: 'center' }}>
+            {/* ── Center: Logo — absolutely centered on all screens ── */}
+            <Link href="/" style={{
+              position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+              textDecoration: 'none', display: 'flex', alignItems: 'center',
+            }}>
               <img src={LOGO} alt="مطروح أوليفي" style={{
                 height: 46, width: 'auto', display: 'block',
                 filter: ghost ? 'brightness(0) invert(1)' : 'none',
@@ -189,7 +194,7 @@ export default function Header() {
             </Link>
 
             {/* ── Left: Search + Cart bag ── */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, zIndex: 1 }}>
               {/* Search (desktop, hidden when ghost) */}
               {!ghost && (
                 <div ref={searchRef} className="desk-search" style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
@@ -317,12 +322,12 @@ export default function Header() {
       <style jsx global>{`
         @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .desk-nav { display: none; }
-        .desk-search { display: none !important; }
+        .desk-search { display: none; }
         .mob-search-bar { display: block; }
         @media (min-width: 900px) {
-          .desk-nav    { display: flex !important; }
-          .desk-search { display: block !important; }
-          .mob-search-bar { display: none !important; }
+          .desk-nav    { display: flex; }
+          .desk-search { display: block; }
+          .mob-search-bar { display: none; }
         }
       `}</style>
     </>
