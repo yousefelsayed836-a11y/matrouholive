@@ -322,13 +322,13 @@ export default function Header() {
 
       <style jsx global>{`
         @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .desk-nav { display: none; }
-        .desk-search { display: none; }
+        .desk-nav { display: none !important; }
+        .desk-search { display: none !important; }
         .mob-search-bar { display: block; }
         @media (min-width: 900px) {
-          .desk-nav    { display: flex; }
-          .desk-search { display: block; }
-          .mob-search-bar { display: none; }
+          .desk-nav    { display: flex !important; }
+          .desk-search { display: block !important; }
+          .mob-search-bar { display: none !important; }
         }
       `}</style>
     </>
