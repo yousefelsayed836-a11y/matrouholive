@@ -49,6 +49,7 @@ export default function Header() {
   const isHome = pathname === '/';
   const ghost = isHome && !scrolled;
   const isDash = pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
+  const isShop = pathname === '/shop' || pathname.startsWith('/products');
 
   /* scroll detection */
   useEffect(() => {
@@ -165,9 +166,9 @@ export default function Header() {
                 }} />
               </button>
 
-              {/* Desktop nav — hidden when transparent */}
+              {/* Desktop nav — hidden when transparent, CSS hides on mobile */}
               {!ghost && (
-                <nav className="desk-nav" style={{ display: 'flex', gap: 4 }}>
+                <nav className="desk-nav" style={{ gap: 4 }}>
                   {NAV.map(item => (
                     <Link key={item.href} href={item.href} style={{
                       padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
@@ -254,12 +255,12 @@ export default function Header() {
           </div>
         </header>
 
-        {/* Mobile search bar — slides down when not ghost */}
+        {/* Mobile search bar — only on shop/product pages */}
         <div style={{
           background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          padding: ghost ? 0 : '8px 16px',
-          maxHeight: ghost ? 0 : 56, overflow: 'hidden',
-          borderBottom: ghost ? 'none' : `1px solid ${BORDER}`,
+          padding: isShop ? '8px 16px' : 0,
+          maxHeight: isShop ? 56 : 0, overflow: 'hidden',
+          borderBottom: isShop ? `1px solid ${BORDER}` : 'none',
           transition: 'max-height 0.4s ease, padding 0.4s ease',
         }} className="mob-search-bar">
           <div style={{ position: 'relative' }}>
