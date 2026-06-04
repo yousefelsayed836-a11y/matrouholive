@@ -1,7 +1,5 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const STATUS_LABELS = {
   pending: 'قيد الانتظار',
   processing: 'جاري التجهيز',
@@ -157,6 +155,7 @@ function buildOrderEmailHtml(order, items) {
 }
 
 async function sendOrderEmail(order, items) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const orderId = String(order.id).slice(-6).toUpperCase();
   const html = buildOrderEmailHtml(order, items);
 

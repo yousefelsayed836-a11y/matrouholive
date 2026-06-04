@@ -79,6 +79,21 @@ router.get('/', async (req, res) => {
   } catch (error) { console.error('Get products error:', error); res.status(500).json({ error: 'Failed to fetch products', details: error.message }); }
 });
 
+router.get('/:id/buyers', async (req, res) => {
+  try {
+    const buyers = await allQuery(`
+      SELECT o.id as order_id, o.customer_name, o.customer_phone, o.shipping_address,
+             o.city, o.governorate, o.status, o.created_at,
+             oi.quantity, oi.price, oi.size, oi.total
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE oi.product_id = ?
+      ORDER BY o.created_at DESC
+    `, [req.params.id]);
+    res.json(buyers);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const p = await getQuery(`SELECT p.*, c.id as category_id, c.name_en as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`, [req.params.id]);

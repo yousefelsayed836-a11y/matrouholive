@@ -38,6 +38,40 @@ router.post('/', async (req, res) => {
   } catch (error) { console.error('Order creation error:', error); res.status(500).json({ error: error.message }); }
 });
 
+router.get('/customers', async (req, res) => {
+  try {
+    const customers = await allQuery(`
+      SELECT
+        customer_phone,
+        MAX(customer_name) as customer_name,
+        MAX(shipping_address) as shipping_address,
+        MAX(city) as city,
+        MAX(governorate) as governorate,
+        COUNT(*) as order_count,
+        SUM(total_amount) as total_spent,
+        MAX(created_at) as last_order_date,
+        MIN(created_at) as first_order_date
+      FROM orders
+      GROUP BY customer_phone
+      ORDER BY last_order_date DESC
+    `);
+    res.json(customers);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+router.get('/customer/:phone', async (req, res) => {
+  try {
+    const orders = await allQuery(
+      'SELECT * FROM orders WHERE customer_phone = ? ORDER BY created_at DESC',
+      [req.params.phone]
+    );
+    const result = await Promise.all(orders.map(async o => ({
+      ...o, items: await allQuery('SELECT * FROM order_items WHERE order_id = ?', [o.id])
+    })));
+    res.json(result);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 router.get('/', async (req, res) => {
   try {
     const orders = await allQuery('SELECT * FROM orders ORDER BY created_at DESC');
