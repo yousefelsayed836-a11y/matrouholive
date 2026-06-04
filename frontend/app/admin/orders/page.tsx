@@ -67,6 +67,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFreeReport, setShowFreeReport] = useState(false);
+  const [showShipperReport, setShowShipperReport] = useState(false);
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
 
   useEffect(() => {
@@ -333,10 +334,53 @@ export default function OrdersPage() {
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>📦 الطلبات</h1>
             </div>
             <div className="orders-header-btns" style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowShipperReport(v => !v)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: showShipperReport ? "#1a1a2e" : "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>👥 تقرير المندوبين</button>
               <button onClick={() => setShowFreeReport(true)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>📊 تقرير الشحن</button>
-              <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 Refresh</button>
+              <button onClick={fetchOrders} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>🔄 تحديث</button>
             </div>
           </div>
+
+          {/* Shipper Report */}
+          {showShipperReport && (() => {
+            const shippers = ["علاء", "سامح", "شخص آخر"];
+            const unassigned = orders.filter(o => !o.shipped_by && o.status !== "cancelled");
+            const stats = shippers.map(name => {
+              const s = orders.filter(o => o.shipped_by === name);
+              return {
+                name,
+                total: s.length,
+                revenue: s.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+                delivered: s.filter(o => o.status === "delivered" || o.status === "completed").length,
+                pending: s.filter(o => o.status === "pending" || o.status === "processing" || o.status === "shipped").length,
+              };
+            });
+            return (
+              <div style={{ background: "#fff", borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", direction: "rtl" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1a1a2e" }}>👥 تقرير المندوبين</h2>
+                  <span style={{ fontSize: 13, color: "#888" }}>إجمالي الطلبات: {orders.length} | غير محدد: {unassigned.length}</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+                  {stats.map(s => (
+                    <div key={s.name} style={{ background: s.total > 0 ? "#f5f9ee" : "#f9f9f9", borderRadius: 14, padding: "18px 20px", border: `2px solid ${s.total > 0 ? "#c8d9b0" : "#eee"}` }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>👤 {s.name}</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, color: "#4B6741", marginBottom: 4 }}>{s.total} طلب</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#666", marginBottom: 8 }}>{s.revenue.toLocaleString()} ج.م</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>✅ {s.delivered} تسليم</span>
+                        <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>⏳ {s.pending} معلق</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ background: "#fff8f0", borderRadius: 14, padding: "18px 20px", border: "2px solid #fed7aa" }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>⚠️ غير محدد</div>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: "#ea580c", marginBottom: 4 }}>{unassigned.length} طلب</div>
+                    <div style={{ fontSize: 13, color: "#888" }}>لم يُحدد المندوب بعد</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Free Shipping Report Modal */}
           {showFreeReport && (() => {
@@ -620,9 +664,18 @@ export default function OrdersPage() {
                   </div>
                   {order.shipped_by && (
                     <div style={{ fontSize: 12, color: "#4B6741", fontWeight: 700, marginBottom: 6, background: "#f0f5eb", borderRadius: 8, padding: "4px 10px", display: "inline-block" }}>
-                      🚚 شحن: {order.shipped_by}
+                      🚚 {order.shipped_by}
                     </div>
                   )}
+                  {/* Shipped By quick buttons */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                    {["علاء", "سامح", "شخص آخر"].map(p => (
+                      <button key={p} onClick={e => { e.stopPropagation(); updateShippedBy(order.id, order.shipped_by === p ? "" : p); }}
+                        style={{ padding: "5px 12px", borderRadius: 16, border: "1.5px solid", borderColor: order.shipped_by === p ? "#4B6741" : "#ddd", background: order.shipped_by === p ? "#4B6741" : "#f9f9f9", color: order.shipped_by === p ? "#fff" : "#666", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "Cairo, sans-serif" }}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     <button onClick={() => openOrder(order)}
                       style={{ padding: "10px 0", borderRadius: 10, border: "none", background: "#1a1a2e", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -722,7 +775,7 @@ export default function OrdersPage() {
                 <div style={{ marginTop: 12 }}>
                   <label style={{ fontSize: 12, color: "#888", fontWeight: 700, display: "block", marginBottom: 8 }}>تم الشحن بواسطة</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {["علاء", "سام", "شخص آخر", ""].map(person => (
+                    {["علاء", "سامح", "شخص آخر", ""].map(person => (
                       <button key={person} onClick={() => updateShippedBy(selectedOrder.id, person)}
                         style={{
                           padding: "8px 18px", borderRadius: 20, border: "2px solid",
