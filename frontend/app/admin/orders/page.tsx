@@ -794,7 +794,7 @@ export default function OrdersPage() {
                           color: selectedOrder.shipped_by === person && person !== "" ? "#fff" : "#555",
                           fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "Cairo, sans-serif",
                         }}>
-                        {person === "" ? "🗑️ إلغاء" : person === "علاء" ? "👤 علاء" : person === "سام" ? "👤 سام" : "👤 شخص آخر"}
+                        {person === "" ? "🗑️ إلغاء" : person === "علاء" ? "👤 علاء" : person === "سامح" ? "👤 سامح" : "👤 شخص آخر"}
                       </button>
                     ))}
                   </div>
