@@ -112,9 +112,10 @@ export default function Header() {
 
         {/* Ticker — slides in when scrolled */}
         <div style={{
-          background: GD, overflow: 'hidden', padding: '7px 0',
+          background: GD, overflow: 'hidden',
+          padding: scrolled ? '7px 0' : 0,
           maxHeight: scrolled ? 34 : 0,
-          transition: 'max-height 0.4s ease',
+          transition: 'max-height 0.4s ease, padding 0.4s ease',
         }}>
           <div style={{ display: 'flex', width: '200%', animation: 'tickerScroll 28s linear infinite' }}>
             {[0, 1].map(k => (
