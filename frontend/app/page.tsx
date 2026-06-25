@@ -18,7 +18,7 @@ interface Product {
   id: string; name_en: string; name_ar?: string;
   price: number; old_price?: number;
   images?: string[]; main_image?: string;
-  matruh_only?: boolean; created_at?: string;
+  matruh_only?: boolean; is_new?: boolean; created_at?: string;
 }
 interface CartItem {
   product: { id: string; name_ar: string; name_en: string; price: number; image_url?: string };
@@ -504,7 +504,7 @@ export default function HomePage() {
                 const hasDisc = p.old_price && p.old_price > p.price;
                 const disc = hasDisc ? Math.round((1 - p.price / p.old_price!) * 100) : 0;
                 const isAdded = addedId === p.id;
-                const isNewest = i === 0;
+                const isNewest = !!(p as any).is_new;
                 return (
                   <div key={p.id} className="prod-card"
                     style={{ width:CARD_W,background:"#fff",borderRadius:20,overflow:"hidden",

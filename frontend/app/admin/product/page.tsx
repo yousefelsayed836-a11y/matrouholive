@@ -28,6 +28,7 @@ const emptyForm = {
   price: "", old_price: "", stock: "", material: "", main_image: "",
   images: [] as string[],
   category_id: "", category_ids: [] as string[], water_resistance: "", size_info: "", is_active: true,
+  matruh_only: false, is_new: false,
   variants: [] as Variant[],
 };
 
@@ -210,6 +211,8 @@ export default function ProductsPage() {
       category_ids: p.category_ids || (p.categories?.map(c => c.id)) || (p.category_id ? [p.category_id] : []),
       water_resistance: p.water_resistance || "", size_info: p.size_info || "",
       is_active: p.is_active ?? true,
+      matruh_only: !!(p as any).matruh_only,
+      is_new: !!(p as any).is_new,
       variants: (p.variants || []).map(v => ({
         option_name: v.option_name, option_value: v.option_value,
         quantity: v.quantity, price_override: v.price_override, sku: v.sku || "",
