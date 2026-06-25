@@ -20,6 +20,7 @@ interface Product {
   category_name?: string; category_name_ar?: string;
   stock?: number; is_active: boolean;
   variants?: Variant[];
+  matruh_only?: boolean;
 }
 interface CartItem {
   product: { id: string; name_ar: string; name_en: string; price: number; image_url?: string; };
@@ -150,6 +151,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               <img src={imgs[imgIdx]} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "opacity .3s" }}
                 onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/600x600/4f7032/fff?text=${encodeURIComponent(name.slice(0, 4))}`; }} />
               {hasDiscount && <span style={{ position: "absolute", top: 14, right: 14, background: "#ef4444", color: "#fff", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>-{discount}%</span>}
+              {product.matruh_only && <span style={{ position: "absolute", bottom: 14, right: 14, background: "#f59e0b", color: "#fff", padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 800, fontFamily: "Cairo, sans-serif" }}>📍 شحن داخل مطروح فقط</span>}
             </div>
             {imgs.length > 1 && (
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>

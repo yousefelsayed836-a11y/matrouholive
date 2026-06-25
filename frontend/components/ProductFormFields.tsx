@@ -217,6 +217,22 @@ export default function ProductFormFields({
         </span>
       </div>
 
+      <div style={{
+        gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 16px", background: form.matruh_only ? "#fef3c7" : "#fff", borderRadius: 10,
+        border: form.matruh_only ? "1.5px solid #f59e0b" : "1.5px solid #e5e7eb", transition: "all 0.2s"
+      }}>
+        <input type="checkbox" id={`${formId}_matruh_only`} checked={!!form.matruh_only}
+          onChange={e => onChange("matruh_only", e.target.checked)}
+          style={{ width: 20, height: 20, cursor: "pointer", accentColor: "#f59e0b" }} />
+        <label htmlFor={`${formId}_matruh_only`} style={{ fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "Cairo, sans-serif" }}>
+          📍 شحن داخل مطروح فقط — العميل لازم يكون من محافظة مطروح
+        </label>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: form.matruh_only ? "#92400e" : "#aaa", fontWeight: 700 }}>
+          {form.matruh_only ? "🔒 مطروح فقط" : "🌍 متاح للكل"}
+        </span>
+      </div>
+
       {/* ===== Variants Section ===== */}
       <div style={{ gridColumn: "1 / -1", borderRadius: 12, border: `1.5px solid #e0ebd6`, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#f0f5eb" }}>

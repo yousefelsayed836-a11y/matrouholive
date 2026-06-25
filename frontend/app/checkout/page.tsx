@@ -56,6 +56,7 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [hasMatruhOnly, setHasMatruhOnly] = useState(false);
   // govName -> { cost, cities: [{name, cost}] }
   const [govData, setGovData] = useState<Record<string, { cost: number; cities: { name: string; cost: number }[] }>>({});
   const [freeThreshold, setFreeThreshold] = useState(900);
@@ -73,6 +74,13 @@ export default function CheckoutPage() {
         sessionStorage.setItem("sid", sid);
         fetch(`${API_BASE}/analytics/event`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ event_type: "checkout_start", session_id: sid, metadata: { items: items.length, total } }) }).catch(() => {});
+        // Check if any product in cart is matruh_only
+        const ids: string[] = [...new Set(items.map((i: any) => i.product.id))];
+        Promise.all(ids.map(id => fetch(`${API_BASE}/products/${id}`).then(r => r.json()).catch(() => null)))
+          .then(results => {
+            const anyMatruhOnly = results.some(r => r && (r.product || r)?.matruh_only);
+            setHasMatruhOnly(anyMatruhOnly);
+          });
       }
     } catch {}
 
@@ -119,8 +127,12 @@ export default function CheckoutPage() {
     if (!form.fullName.trim()) { setErrorMsg("Please enter your full name"); return; }
     if (!form.phone.trim() || form.phone.length < 10) { setErrorMsg("Please enter a valid phone number (10+ digits)"); return; }
     if (!form.phone2.trim() || form.phone2.length < 10) { setErrorMsg("Please enter WhatsApp number for deposit confirmation"); return; }
-    if (!form.governorate) { setErrorMsg("Please select your governorate"); return; }
-    if (!form.city) { setErrorMsg("Please select your city"); return; }
+    if (!form.governorate) { setErrorMsg("من فضلك اختار المحافظة"); return; }
+    if (hasMatruhOnly && form.governorate !== "Matrouh") {
+      setErrorMsg("⚠️ بعض المنتجات في سلتك متاحة للشحن داخل محافظة مطروح فقط. من فضلك اختار محافظة مطروح للمتابعة.");
+      return;
+    }
+    if (!form.city) { setErrorMsg("من فضلك اختار المدينة"); return; }
     if (!form.address.trim()) { setErrorMsg("Please enter your address"); return; }
 
     setSubmitting(true);
@@ -215,6 +227,15 @@ export default function CheckoutPage() {
           <div style={{ background: "#f1f7c9", borderRadius: 20, padding: "20px 18px", boxShadow: "0 4px 20px rgba(75,103,65,0.08)" }}>
             <h2 style={{ margin: "0 0 18px", fontSize: 17, fontWeight: 700, color: "#2a3a20", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>📋 بيانات التوصيل</h2>
 
+            {hasMatruhOnly && (
+              <div style={{ background: "#fef3c7", border: "1.5px solid #f59e0b", borderRadius: 12, padding: "12px 16px", marginBottom: 12, direction: "rtl", display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <span style={{ fontSize: 22 }}>📍</span>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#92400e", fontFamily: "Cairo, sans-serif" }}>شحن داخل مطروح فقط</div>
+                  <div style={{ fontSize: 13, color: "#78350f", fontFamily: "Cairo, sans-serif", marginTop: 2 }}>بعض المنتجات في سلتك متاحة للتوصيل داخل محافظة مطروح فقط. اختار محافظة مطروح عشان تكمل الطلب.</div>
+                </div>
+              </div>
+            )}
             {errorMsg && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 10, padding: 12, marginBottom: 16, color: "#ef4444", fontWeight: 600, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>⚠️ {errorMsg}</div>}
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>

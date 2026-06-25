@@ -18,6 +18,7 @@ interface Product {
   id: string; name_en: string; name_ar?: string;
   price: number; old_price?: number;
   images?: string[]; main_image?: string;
+  matruh_only?: boolean; created_at?: string;
 }
 interface CartItem {
   product: { id: string; name_ar: string; name_en: string; price: number; image_url?: string };
@@ -503,10 +504,12 @@ export default function HomePage() {
                 const hasDisc = p.old_price && p.old_price > p.price;
                 const disc = hasDisc ? Math.round((1 - p.price / p.old_price!) * 100) : 0;
                 const isAdded = addedId === p.id;
+                const isNewest = i === 0;
                 return (
                   <div key={p.id} className="prod-card"
                     style={{ width:CARD_W,background:"#fff",borderRadius:20,overflow:"hidden",
-                      boxShadow:"0 4px 18px rgba(0,0,0,.22)",
+                      boxShadow: isNewest ? "0 4px 24px rgba(79,112,50,.4)" : "0 4px 18px rgba(0,0,0,.22)",
+                      border: isNewest ? `2px solid ${G}` : "2px solid transparent",
                       opacity:bsec.vis?1:0,transform:bsec.vis?"translateY(0)":"translateY(28px)",
                       transition:`opacity .5s ease ${i*.07}s,transform .5s cubic-bezier(.23,1,.32,1) ${i*.07}s` }}>
                     <Link href={`/products/${p.id}`} style={{ textDecoration:"none",display:"block" }}>
@@ -514,8 +517,12 @@ export default function HomePage() {
                         <img className="prod-img" src={img} alt={name}
                           style={{ width:"100%",height:"100%",objectFit:"cover",pointerEvents:"none" }} loading="lazy"
                           onError={e => { (e.target as HTMLImageElement).src = `https://placehold.co/400x400/4f7032/d7f7b3?text=${encodeURIComponent(name.slice(0,4))}`; }} />
+                        {isNewest && <span style={{ position:"absolute",top:10,left:10,background:G,
+                          color:"#fff",padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:800,fontFamily:"Cairo,sans-serif" }}>✨ أحدث المنتجات</span>}
                         {hasDisc && <span style={{ position:"absolute",top:10,right:10,background:"#ef4444",
                           color:"#fff",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:800 }}>-{disc}%</span>}
+                        {p.matruh_only && <span style={{ position:"absolute",bottom:8,right:8,background:"#f59e0b",
+                          color:"#fff",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:800,fontFamily:"Cairo,sans-serif" }}>📍 مطروح فقط</span>}
                       </div>
                       <div style={{ padding:"14px 14px 8px",direction:"rtl" }}>
                         <p style={{ margin:"0 0 6px",fontSize:13,fontWeight:700,color:DK,lineHeight:1.4,
