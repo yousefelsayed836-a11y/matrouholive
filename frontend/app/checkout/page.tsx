@@ -75,7 +75,7 @@ export default function CheckoutPage() {
         fetch(`${API_BASE}/analytics/event`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ event_type: "checkout_start", session_id: sid, metadata: { items: items.length, total } }) }).catch(() => {});
         // Check if any product in cart is matruh_only
-        const ids: string[] = [...new Set(items.map((i: any) => i.product.id))];
+        const ids = [...new Set<string>(items.map((i: any) => String(i.product.id)))];
         Promise.all(ids.map(id => fetch(`${API_BASE}/products/${id}`).then(r => r.json()).catch(() => null)))
           .then(results => {
             const anyMatruhOnly = results.some(r => r && (r.product || r)?.matruh_only);
