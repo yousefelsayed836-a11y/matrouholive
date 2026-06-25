@@ -205,10 +205,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             ))}
 
             {/* التوفر */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, background: "#dcfce7", color: "#166534", width: "fit-content" }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-              متوفر في المخزون
-            </div>
+            {product.stock === 0 ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, background: "#fee2e2", color: "#991b1b", width: "fit-content" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", display: "inline-block" }} />
+                نفذ المخزون
+              </div>
+            ) : (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, background: "#dcfce7", color: "#166534", width: "fit-content" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+                متوفر في المخزون
+              </div>
+            )}
 
             {/* الكمية */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -222,18 +229,26 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
             {/* أزرار */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto" }}>
-              <button onClick={addToCart}
-                style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: added ? "#22c55e" : GREEN, color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "'Readex Pro', 'Cairo', sans-serif", transition: "all .2s", boxShadow: `0 4px 16px rgba(79,112,50,${added ? 0.4 : 0.3})` }}
-                onMouseEnter={e => { if (!added) (e.currentTarget as HTMLButtonElement).style.background = GREEN_DARK; }}
-                onMouseLeave={e => { if (!added) (e.currentTarget as HTMLButtonElement).style.background = GREEN; }}>
-                {added ? "تمت الإضافة للسلة" : "أضف للسلة"}
-              </button>
-              <Link href="/checkout"
-                style={{ display: "block", padding: "15px 20px", borderRadius: 14, border: `2px solid ${GREEN}`, color: GREEN, fontSize: 16, fontWeight: 800, cursor: "pointer", textAlign: "center", textDecoration: "none", transition: "all .2s", boxSizing: "border-box" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = GREEN; (e.currentTarget as HTMLAnchorElement).style.color = "#fff"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = GREEN; }}>
-                اشتري الآن
-              </Link>
+              {product.stock === 0 ? (
+                <div style={{ padding: "15px 20px", borderRadius: 14, background: "#f3f4f6", color: "#9ca3af", fontSize: 16, fontWeight: 800, textAlign: "center", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
+                  نفذ المخزون
+                </div>
+              ) : (
+                <>
+                  <button onClick={addToCart}
+                    style={{ padding: "15px 20px", borderRadius: 14, border: "none", background: added ? "#22c55e" : GREEN, color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "'Readex Pro', 'Cairo', sans-serif", transition: "all .2s", boxShadow: `0 4px 16px rgba(79,112,50,${added ? 0.4 : 0.3})` }}
+                    onMouseEnter={e => { if (!added) (e.currentTarget as HTMLButtonElement).style.background = GREEN_DARK; }}
+                    onMouseLeave={e => { if (!added) (e.currentTarget as HTMLButtonElement).style.background = GREEN; }}>
+                    {added ? "تمت الإضافة للسلة" : "أضف للسلة"}
+                  </button>
+                  <Link href="/checkout"
+                    style={{ display: "block", padding: "15px 20px", borderRadius: 14, border: `2px solid ${GREEN}`, color: GREEN, fontSize: 16, fontWeight: 800, cursor: "pointer", textAlign: "center", textDecoration: "none", transition: "all .2s", boxSizing: "border-box" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = GREEN; (e.currentTarget as HTMLAnchorElement).style.color = "#fff"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = GREEN; }}>
+                    اشتري الآن
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
