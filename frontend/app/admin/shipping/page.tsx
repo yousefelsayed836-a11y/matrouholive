@@ -53,6 +53,26 @@ function normalizeCities(cities: (string | CityRate)[], defaultCost: number): Ci
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api";
 
+interface FreeOrder {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  city: string;
+  governorate: string;
+  total_amount: number;
+  shipping_cost: number;
+  status: string;
+  created_at: string;
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function monthStartStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
 export default function ShippingPage() {
   const [rates, setRates] = useState<GovRate[]>(DEFAULT_RATES);
   const [freeThreshold, setFreeThreshold] = useState(900);
@@ -63,6 +83,11 @@ export default function ShippingPage() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [newCity, setNewCity] = useState<Record<string, { name: string; cost: string }>>({});
+  const [activeTab, setActiveTab] = useState<"rates" | "reports">("rates");
+  const [reportFrom, setReportFrom] = useState(monthStartStr());
+  const [reportTo, setReportTo] = useState(todayStr());
+  const [reportOrders, setReportOrders] = useState<FreeOrder[]>([]);
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/settings/shipping_rates`)
@@ -126,6 +151,19 @@ export default function ShippingPage() {
     setNewCity(p => ({ ...p, [govName]: { name: "", cost: String(rates.find(r => r.name === govName)?.cost || 80) } }));
   };
 
+  const fetchReport = async () => {
+    setReportLoading(true);
+    try {
+      const params = new URLSearchParams({ free_shipping: "true" });
+      if (reportFrom) params.set("date_from", reportFrom);
+      if (reportTo)   params.set("date_to", reportTo);
+      const r = await fetch(`${API_BASE}/orders?${params}`);
+      const data = await r.json();
+      setReportOrders(Array.isArray(data) ? data : []);
+    } catch {}
+    setReportLoading(false);
+  };
+
   const filtered = rates.filter(r =>
     !search.trim() ||
     r.nameAr.includes(search) ||
@@ -142,16 +180,129 @@ export default function ShippingPage() {
       <div>
 
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>🚚 أسعار الشحن</h1>
-              <p style={{ margin: "4px 0 0", color: "#888", fontSize: 13 }}>عدّل سعر كل محافظة أو كل مدينة على حدة — يُحفظ في DB ويظهر للعملاء فوراً</p>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>🚚 الشحن</h1>
             </div>
-            <button onClick={save} disabled={saving}
-              style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: saved ? "#22c55e" : "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 15, opacity: saving ? 0.7 : 1 }}>
-              {saved ? "✅ تم الحفظ!" : saving ? "جاري الحفظ..." : "💾 حفظ التغييرات"}
-            </button>
+            {activeTab === "rates" && (
+              <button onClick={save} disabled={saving}
+                style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: saved ? "#22c55e" : "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 15, opacity: saving ? 0.7 : 1 }}>
+                {saved ? "✅ تم الحفظ!" : saving ? "جاري الحفظ..." : "💾 حفظ التغييرات"}
+              </button>
+            )}
           </div>
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 4, marginBottom: 24, background: "#f3f4f6", borderRadius: 12, padding: 4, width: "fit-content" }}>
+            {([["rates", "🚚 أسعار الشحن"], ["reports", "📊 تقارير الشحن المجاني"]] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setActiveTab(key)}
+                style={{ padding: "9px 20px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "inherit",
+                  background: activeTab === key ? "#fff" : "transparent",
+                  color: activeTab === key ? "#4B6741" : "#888",
+                  boxShadow: activeTab === key ? "0 1px 4px rgba(0,0,0,.1)" : "none",
+                  transition: "all .15s" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ===== REPORTS TAB ===== */}
+          {activeTab === "reports" && (
+            <div>
+              {/* Date filter */}
+              <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#666" }}>من تاريخ</p>
+                  <input type="date" value={reportFrom} onChange={e => setReportFrom(e.target.value)}
+                    style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", outline: "none" }} />
+                </div>
+                <div>
+                  <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#666" }}>إلى تاريخ</p>
+                  <input type="date" value={reportTo} onChange={e => setReportTo(e.target.value)}
+                    style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", outline: "none" }} />
+                </div>
+                <button onClick={fetchReport} disabled={reportLoading}
+                  style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#4B6741,#3a5232)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: reportLoading ? "not-allowed" : "pointer", opacity: reportLoading ? 0.7 : 1 }}>
+                  {reportLoading ? "جاري البحث..." : "🔍 عرض التقرير"}
+                </button>
+                {/* Quick ranges */}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { label: "هذا الشهر", from: monthStartStr(), to: todayStr() },
+                    { label: "آخر 7 أيام", from: (() => { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0,10); })(), to: todayStr() },
+                    { label: "آخر 30 يوم",  from: (() => { const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0,10); })(), to: todayStr() },
+                  ].map(q => (
+                    <button key={q.label} onClick={() => { setReportFrom(q.from); setReportTo(q.to); }}
+                      style={{ padding: "8px 14px", borderRadius: 8, border: "1.5px solid #ddd", background: "#f9fafb", color: "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary cards */}
+              {reportOrders.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 20 }}>
+                  {[
+                    { label: "عدد أوردرات الشحن المجاني", value: reportOrders.length, color: "#4B6741" },
+                    { label: "إجمالي مبيعات هذه الأوردرات", value: `${reportOrders.reduce((s, o) => s + Number(o.total_amount), 0).toLocaleString("ar-EG")} ج.م`, color: "#1e40af" },
+                    { label: "توفير الشحن (لو اتحسب)", value: `${(reportOrders.length * 80).toLocaleString("ar-EG")} ج.م`, color: "#92400e" },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", textAlign: "center" }}>
+                      <p style={{ margin: 0, fontSize: 11, color: "#888", lineHeight: 1.4 }}>{s.label}</p>
+                      <p style={{ margin: "6px 0 0", fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Table */}
+              {reportOrders.length === 0 && !reportLoading ? (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: "#aaa", background: "#fff", borderRadius: 16 }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+                  <p style={{ margin: 0, fontSize: 15 }}>اضغط "عرض التقرير" لعرض أوردرات الشحن المجاني</p>
+                </div>
+              ) : (
+                <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, direction: "rtl" }}>
+                      <thead>
+                        <tr style={{ background: "#f9fafb", borderBottom: "2px solid #f0f0f0" }}>
+                          {["التاريخ", "الاسم", "الهاتف", "المدينة", "المحافظة", "الإجمالي", "الحالة"].map(h => (
+                            <th key={h} style={{ padding: "12px 14px", textAlign: "right", fontWeight: 700, color: "#555", whiteSpace: "nowrap" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportOrders.map((o, i) => (
+                          <tr key={o.id} style={{ borderBottom: "1px solid #f5f5f5", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                            <td style={{ padding: "11px 14px", color: "#666", whiteSpace: "nowrap" }}>
+                              {new Date(o.created_at).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            </td>
+                            <td style={{ padding: "11px 14px", fontWeight: 600, color: "#1a1a2e" }}>{o.customer_name}</td>
+                            <td style={{ padding: "11px 14px", color: "#555", direction: "ltr", textAlign: "right" }}>{o.customer_phone}</td>
+                            <td style={{ padding: "11px 14px", color: "#555" }}>{o.city || "—"}</td>
+                            <td style={{ padding: "11px 14px", color: "#555" }}>{o.governorate || "—"}</td>
+                            <td style={{ padding: "11px 14px", fontWeight: 700, color: "#4B6741" }}>{Number(o.total_amount).toLocaleString("ar-EG")} ج.م</td>
+                            <td style={{ padding: "11px 14px" }}>
+                              <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                background: o.status === "delivered" ? "#dcfce7" : o.status === "cancelled" ? "#fee2e2" : "#fef3c7",
+                                color: o.status === "delivered" ? "#166534" : o.status === "cancelled" ? "#991b1b" : "#92400e" }}>
+                                {o.status === "pending" ? "قيد الانتظار" : o.status === "processing" ? "جاري" : o.status === "shipped" ? "شُحن" : o.status === "delivered" ? "تم التسليم" : o.status === "cancelled" ? "ملغي" : o.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===== RATES TAB ===== */}
+          {activeTab === "rates" && <>
 
           {/* Free Shipping Toggle */}
           <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -279,6 +430,7 @@ export default function ShippingPage() {
               {saved ? "✅ تم الحفظ!" : saving ? "جاري الحفظ..." : "💾 حفظ كل التغييرات"}
             </button>
           </div>
+          </>}
       </div>
     </>
   );

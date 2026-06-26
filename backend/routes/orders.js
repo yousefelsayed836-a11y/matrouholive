@@ -74,7 +74,12 @@ router.get('/customer/:phone', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const orders = await allQuery('SELECT * FROM orders ORDER BY created_at DESC');
+    const { date_from, date_to, free_shipping } = req.query;
+    let where = '1=1'; const params = [];
+    if (date_from) { where += ' AND DATE(created_at) >= ?'; params.push(date_from); }
+    if (date_to)   { where += ' AND DATE(created_at) <= ?'; params.push(date_to); }
+    if (free_shipping === 'true') { where += ' AND shipping_cost = 0'; }
+    const orders = await allQuery(`SELECT * FROM orders WHERE ${where} ORDER BY created_at DESC`, params);
     const result = await Promise.all(orders.map(async o => ({ ...o, items: await allQuery('SELECT * FROM order_items WHERE order_id = ?', [o.id]) })));
     res.json(result);
   } catch (error) { res.status(500).json({ error: error.message }); }
