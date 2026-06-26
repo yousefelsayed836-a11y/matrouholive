@@ -114,6 +114,7 @@ export default function ProductsPage() {
           category_ids: addForm.category_ids.length > 0 ? addForm.category_ids : undefined,
           water_resistance: addForm.water_resistance || undefined,
           size_info: addForm.size_info || undefined, is_active: addForm.is_active,
+          matruh_only: !!addForm.matruh_only, is_new: !!addForm.is_new,
           variants: addForm.variants || [],
         }),
       });
@@ -146,6 +147,7 @@ export default function ProductsPage() {
           category_ids: fullEditForm.category_ids.length > 0 ? fullEditForm.category_ids : undefined,
           water_resistance: fullEditForm.water_resistance || undefined,
           size_info: fullEditForm.size_info || undefined, is_active: fullEditForm.is_active,
+          matruh_only: !!fullEditForm.matruh_only, is_new: !!fullEditForm.is_new,
           variants: fullEditForm.variants || [],
         }),
       });

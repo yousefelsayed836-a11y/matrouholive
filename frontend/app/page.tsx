@@ -18,6 +18,7 @@ interface Product {
   id: string; name_en: string; name_ar?: string;
   price: number; old_price?: number;
   images?: string[]; main_image?: string;
+  stock?: number;
   matruh_only?: boolean; is_new?: boolean; created_at?: string;
 }
 interface CartItem {
@@ -535,11 +536,17 @@ export default function HomePage() {
                       </div>
                     </Link>
                     <div style={{ padding:"0 14px 14px" }}>
-                      <button onClick={() => addToCart(p)} className="btn-primary"
-                        style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"none",
-                          background:isAdded?"#22c55e":G,color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer" }}>
-                        {isAdded?"تمت الإضافة":"أضف للسلة"}
-                      </button>
+                      {p.stock === 0 ? (
+                        <div style={{ width:"100%",padding:"9px 0",borderRadius:10,background:"#f3f4f6",color:"#9ca3af",fontSize:13,fontWeight:800,textAlign:"center" }}>
+                          نفذ المخزون
+                        </div>
+                      ) : (
+                        <button onClick={() => addToCart(p)} className="btn-primary"
+                          style={{ width:"100%",padding:"9px 0",borderRadius:10,border:"none",
+                            background:isAdded?"#22c55e":G,color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer" }}>
+                          {isAdded?"تمت الإضافة":"أضف للسلة"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
