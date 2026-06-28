@@ -284,6 +284,59 @@ export default function ShippingPage() {
                 );
               })()}
 
+              {/* Breakdown by governorate */}
+              {reportOrders.length > 0 && (() => {
+                type GovStat = { gov: string; orders: number; totalSales: number; totalSaved: number; cities: Record<string, { orders: number; saved: number }> };
+                const govMap: Record<string, GovStat> = {};
+                reportOrders.forEach(o => {
+                  const gov = o.governorate || "غير محدد";
+                  const city = o.city || "غير محدد";
+                  const saved = getExpectedShipping(o);
+                  if (!govMap[gov]) govMap[gov] = { gov, orders: 0, totalSales: 0, totalSaved: 0, cities: {} };
+                  govMap[gov].orders++;
+                  govMap[gov].totalSales += Number(o.total_amount);
+                  govMap[gov].totalSaved += saved;
+                  if (!govMap[gov].cities[city]) govMap[gov].cities[city] = { orders: 0, saved: 0 };
+                  govMap[gov].cities[city].orders++;
+                  govMap[gov].cities[city].saved += saved;
+                });
+                const govList = Object.values(govMap).sort((a, b) => b.totalSaved - a.totalSaved);
+                return (
+                  <div style={{ marginBottom: 24 }}>
+                    <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800, color: "#1a1a2e", direction: "rtl" }}>📍 تفصيل الخصم حسب المحافظة والمنطقة</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {govList.map(g => (
+                        <div key={g.gov} style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", border: "1.5px solid #e5e7eb" }}>
+                          {/* Governorate header */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: 16, padding: "14px 18px", background: "#f9fafb", borderBottom: "1px solid #f0f0f0", direction: "rtl" }}>
+                            <span style={{ fontWeight: 800, fontSize: 15, color: "#1a1a2e" }}>🏙️ {g.gov}</span>
+                            <span style={{ fontSize: 12, color: "#888", whiteSpace: "nowrap" }}>{g.orders} أوردر</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#4B6741", whiteSpace: "nowrap" }}>{g.totalSales.toLocaleString("ar-EG")} ج.م مبيعات</span>
+                            <span style={{ padding: "4px 14px", borderRadius: 20, background: "#fee2e2", color: "#dc2626", fontWeight: 800, fontSize: 13, whiteSpace: "nowrap" }}>
+                              خصم -{g.totalSaved.toLocaleString("ar-EG")} ج.م
+                            </span>
+                          </div>
+                          {/* Cities breakdown */}
+                          {Object.keys(g.cities).length > 1 && (
+                            <div style={{ padding: "10px 18px 12px", display: "flex", flexDirection: "column", gap: 6, direction: "rtl" }}>
+                              {Object.entries(g.cities).sort((a, b) => b[1].saved - a[1].saved).map(([city, cs]) => (
+                                <div key={city} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 12px", background: "#f9fafb", borderRadius: 10 }}>
+                                  <span style={{ flex: 1, fontSize: 13, color: "#555" }}>📌 {city}</span>
+                                  <span style={{ fontSize: 12, color: "#888" }}>{cs.orders} أوردر</span>
+                                  <span style={{ padding: "3px 10px", borderRadius: 20, background: "#fee2e2", color: "#dc2626", fontWeight: 700, fontSize: 12 }}>
+                                    -{cs.saved.toLocaleString("ar-EG")} ج.م
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Table */}
               {reportOrders.length === 0 && !reportLoading ? (
                 <div style={{ textAlign: "center", padding: "60px 20px", color: "#aaa", background: "#fff", borderRadius: 16 }}>
