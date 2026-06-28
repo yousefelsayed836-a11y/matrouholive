@@ -164,6 +164,28 @@ export default function ShippingPage() {
     setReportLoading(false);
   };
 
+  // Look up the shipping cost that would have been charged for an order
+  const getExpectedShipping = (order: FreeOrder): number => {
+    const govName = (order.governorate || "").trim();
+    const cityName = (order.city || "").trim();
+    const gov = rates.find(r =>
+      r.nameAr === govName ||
+      r.name.toLowerCase() === govName.toLowerCase() ||
+      r.nameAr.includes(govName) ||
+      govName.includes(r.nameAr)
+    );
+    if (!gov) return 80; // fallback
+    if (cityName) {
+      const city = gov.cities.find(c =>
+        c.name.toLowerCase() === cityName.toLowerCase() ||
+        c.name.toLowerCase().includes(cityName.toLowerCase()) ||
+        cityName.toLowerCase().includes(c.name.toLowerCase())
+      );
+      if (city) return city.cost;
+    }
+    return gov.cost;
+  };
+
   const filtered = rates.filter(r =>
     !search.trim() ||
     r.nameAr.includes(search) ||
@@ -241,20 +263,26 @@ export default function ShippingPage() {
               </div>
 
               {/* Summary cards */}
-              {reportOrders.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 20 }}>
-                  {[
-                    { label: "عدد أوردرات الشحن المجاني", value: reportOrders.length, color: "#4B6741" },
-                    { label: "إجمالي مبيعات هذه الأوردرات", value: `${reportOrders.reduce((s, o) => s + Number(o.total_amount), 0).toLocaleString("ar-EG")} ج.م`, color: "#1e40af" },
-                    { label: "توفير الشحن (لو اتحسب)", value: `${(reportOrders.length * 80).toLocaleString("ar-EG")} ج.م`, color: "#92400e" },
-                  ].map(s => (
-                    <div key={s.label} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", textAlign: "center" }}>
-                      <p style={{ margin: 0, fontSize: 11, color: "#888", lineHeight: 1.4 }}>{s.label}</p>
-                      <p style={{ margin: "6px 0 0", fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {reportOrders.length > 0 && (() => {
+                const totalSaved = reportOrders.reduce((s, o) => s + getExpectedShipping(o), 0);
+                const totalSales = reportOrders.reduce((s, o) => s + Number(o.total_amount), 0);
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, marginBottom: 20 }}>
+                    {[
+                      { label: "عدد أوردرات الشحن المجاني", value: String(reportOrders.length), color: "#4B6741", icon: "📦" },
+                      { label: "إجمالي مبيعات هذه الأوردرات", value: `${totalSales.toLocaleString("ar-EG")} ج.م`, color: "#1e40af", icon: "💰" },
+                      { label: "إجمالي تكلفة الشحن المتنازل عنها", value: `${totalSaved.toLocaleString("ar-EG")} ج.م`, color: "#dc2626", icon: "🚚" },
+                      { label: "متوسط خصم الشحن لكل أوردر", value: `${Math.round(totalSaved / reportOrders.length).toLocaleString("ar-EG")} ج.م`, color: "#92400e", icon: "📊" },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: "#fff", borderRadius: 12, padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", textAlign: "center" }}>
+                        <div style={{ fontSize: 28, marginBottom: 6 }}>{s.icon}</div>
+                        <p style={{ margin: 0, fontSize: 11, color: "#888", lineHeight: 1.5 }}>{s.label}</p>
+                        <p style={{ margin: "6px 0 0", fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* Table */}
               {reportOrders.length === 0 && !reportLoading ? (
@@ -268,13 +296,15 @@ export default function ShippingPage() {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, direction: "rtl" }}>
                       <thead>
                         <tr style={{ background: "#f9fafb", borderBottom: "2px solid #f0f0f0" }}>
-                          {["التاريخ", "الاسم", "الهاتف", "المدينة", "المحافظة", "الإجمالي", "الحالة"].map(h => (
+                          {["التاريخ", "الاسم", "الهاتف", "المدينة", "المحافظة", "إجمالي الأوردر", "خصم الشحن", "الحالة"].map(h => (
                             <th key={h} style={{ padding: "12px 14px", textAlign: "right", fontWeight: 700, color: "#555", whiteSpace: "nowrap" }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {reportOrders.map((o, i) => (
+                        {reportOrders.map((o, i) => {
+                          const savedShipping = getExpectedShipping(o);
+                          return (
                           <tr key={o.id} style={{ borderBottom: "1px solid #f5f5f5", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                             <td style={{ padding: "11px 14px", color: "#666", whiteSpace: "nowrap" }}>
                               {new Date(o.created_at).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit", year: "numeric" })}
@@ -285,6 +315,11 @@ export default function ShippingPage() {
                             <td style={{ padding: "11px 14px", color: "#555" }}>{o.governorate || "—"}</td>
                             <td style={{ padding: "11px 14px", fontWeight: 700, color: "#4B6741" }}>{Number(o.total_amount).toLocaleString("ar-EG")} ج.م</td>
                             <td style={{ padding: "11px 14px" }}>
+                              <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, fontWeight: 800, fontSize: 13, background: "#fee2e2", color: "#dc2626" }}>
+                                -{savedShipping} ج.م
+                              </span>
+                            </td>
+                            <td style={{ padding: "11px 14px" }}>
                               <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
                                 background: o.status === "delivered" ? "#dcfce7" : o.status === "cancelled" ? "#fee2e2" : "#fef3c7",
                                 color: o.status === "delivered" ? "#166534" : o.status === "cancelled" ? "#991b1b" : "#92400e" }}>
@@ -292,8 +327,27 @@ export default function ShippingPage() {
                               </span>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
+                      {reportOrders.length > 0 && (
+                        <tfoot>
+                          <tr style={{ background: "#f0f5eb", borderTop: "2px solid #c8d9b0" }}>
+                            <td colSpan={5} style={{ padding: "12px 14px", fontWeight: 800, fontSize: 13, color: "#1a1a2e", textAlign: "right" }}>
+                              الإجمالي ({reportOrders.length} أوردر)
+                            </td>
+                            <td style={{ padding: "12px 14px", fontWeight: 800, fontSize: 14, color: "#4B6741" }}>
+                              {reportOrders.reduce((s, o) => s + Number(o.total_amount), 0).toLocaleString("ar-EG")} ج.م
+                            </td>
+                            <td style={{ padding: "12px 14px" }}>
+                              <span style={{ display: "inline-block", padding: "5px 14px", borderRadius: 20, fontWeight: 800, fontSize: 14, background: "#fee2e2", color: "#dc2626" }}>
+                                -{reportOrders.reduce((s, o) => s + getExpectedShipping(o), 0).toLocaleString("ar-EG")} ج.م
+                              </span>
+                            </td>
+                            <td />
+                          </tr>
+                        </tfoot>
+                      )}
                     </table>
                   </div>
                 </div>
