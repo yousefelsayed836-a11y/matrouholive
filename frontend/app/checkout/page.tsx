@@ -286,18 +286,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Progress bar when close to free shipping */}
-              {freeShippingEnabled && !freeShipping && subtotal > 0 && (
-                <div style={{ background: "#fff8e1", borderRadius: 10, padding: "10px 14px", border: "1px solid #fde68a" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#92400e", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>🚚 أضف {(freeThreshold - subtotal).toLocaleString()} ج.م للشحن المجاني!</span>
-                    <span style={{ fontSize: 12, color: "#b45309", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>{subtotal}/{freeThreshold}</span>
-                  </div>
-                  <div style={{ height: 6, background: "#fde68a", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${Math.min(100, (subtotal / freeThreshold) * 100)}%`, background: "#f59e0b", borderRadius: 3, transition: "width 0.3s" }} />
-                  </div>
-                </div>
-              )}
 
               <div>
                 <label style={labelStyle}>العنوان التفصيلي *</label>
