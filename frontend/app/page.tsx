@@ -786,7 +786,12 @@ export default function HomePage() {
           </div>
           <div style={{ borderTop:"1px solid #3d4a2a",paddingTop:22,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8 }}>
             <p style={{ margin:0,fontSize:12,color:"#5a7050" }}>© 2026 مطروح أوليفي — صدق .. أمانة .. خبرة</p>
-            <p style={{ margin:0,fontSize:12,color:"#5a7050" }}>الدفع عند الاستلام</p>
+            <div style={{ display:"flex",gap:16,alignItems:"center",flexWrap:"wrap" }}>
+              <p style={{ margin:0,fontSize:12,color:"#5a7050" }}>الدفع عند الاستلام</p>
+              <a href="/refund-policy" style={{ fontSize:12,color:"#5a7050",textDecoration:"none",transition:"color .2s" }}
+                onMouseEnter={e => (e.target as HTMLAnchorElement).style.color=GL}
+                onMouseLeave={e => (e.target as HTMLAnchorElement).style.color="#5a7050"}>سياسة الإرجاع</a>
+            </div>
           </div>
         </div>
       </footer>
