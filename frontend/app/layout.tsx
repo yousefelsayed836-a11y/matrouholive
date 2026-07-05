@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl">
       <head>
+        <meta name="google-site-verification" content="-CSPBwBtJeqnJX_gBS7-__Qkdi1idIODsp3ogNMcG4A" />
         <link rel="icon" type="image/png" href="https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png" />
         <link rel="apple-touch-icon" href="https://assets.wuiltstore.com/cm5tcbuy002ue01n3dqyt5fy9_IMG_5462.png" />
         {/* Apply cached favicon instantly before hydration to avoid flicker */}
