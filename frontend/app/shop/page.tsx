@@ -200,15 +200,8 @@ function ShopContent() {
       {/* بانر المتجر */}
       <div className="shop-hero">
         <div className="shop-hero-inner">
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <Link href="/" style={{ color: "rgba(255,255,255,0.75)", textDecoration: "none", fontSize: 13 }}>الرئيسية</Link>
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>←</span>
-            <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>
-              {searchQuery ? `بحث: ${searchQuery}` : collectionFilter ? collectionFilter : "المتجر"}
-            </span>
-          </div>
           <h1 className="shop-hero-title">
-            {searchQuery ? `نتائج: "${searchQuery}"` : collectionFilter ? `قسم: ${collectionFilter}` : " تسوق الآن"}
+            {searchQuery ? `نتائج: "${searchQuery}"` : collectionFilter ? collectionFilter : "تسوق الآن"}
           </h1>
           <p className="shop-hero-sub">منتجات طبيعية أصيلة من مطروح • جودة عالية • توصيل سريع</p>
         </div>
