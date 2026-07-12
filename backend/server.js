@@ -94,6 +94,17 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
   } catch (error) { console.error('Upload error:', error); res.status(500).json({ error: String(error.message) }); }
 });
 
+app.post('/api/upload/video', upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No video uploaded' });
+    const ext = (req.file.originalname.split('.').pop() || 'mp4').toLowerCase();
+    if (!['mp4','webm','mov','avi','mkv'].includes(ext)) return res.status(400).json({ error: 'Invalid video format' });
+    const filename = `video-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
+    res.json({ success: true, url: getPublicUrl(req, filename) });
+  } catch (error) { res.status(500).json({ error: String(error.message) }); }
+});
+
 app.post('/api/upload/multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No images uploaded' });
