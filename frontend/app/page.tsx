@@ -26,6 +26,7 @@ interface CartItem {
   qty: number; size: string;
 }
 interface Review { id?: number; name: string; text: string; stars?: number; }
+interface VideoReview { id: string; url: string; name: string; caption: string; }
 interface HeroSlide { id: string; desktop: string; mobile?: string; show: "both" | "desktop" | "mobile"; pos?: string; mobilePos?: string; }
 
 const FALLBACK_REVIEWS: Review[] = [
@@ -79,6 +80,7 @@ export default function HomePage() {
   const [scrollIdx, setScrollIdx]       = useState(0);        // current first visible card
 
   const [reviews, setReviews]           = useState<Review[]>(FALLBACK_REVIEWS);
+  const [videos, setVideos]             = useState<VideoReview[]>([]);
   const [currentRev, setCurrentRev]     = useState(0);
   const [showForm, setShowForm]         = useState(false);
   const [newReview, setNewReview]       = useState({ text: "", name: "" });
@@ -90,7 +92,6 @@ export default function HomePage() {
   const stats  = useVisible();
   const cats   = useVisible(0.08);
   const bsec   = useVisible(0.05);
-  const about  = useVisible(0.1);
   const rvw    = useVisible(0.1);
 
   /* fetch products + reviews + hero slides on mount */
@@ -133,6 +134,14 @@ export default function HomePage() {
         const r = await fetch(`${API_BASE}/reviews`);
         const d = await r.json();
         if (d.reviews?.length) setReviews(d.reviews);
+      } catch {}
+    })();
+
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/settings/customer_videos`);
+        const d = await r.json();
+        if (d.value) setVideos(JSON.parse(d.value));
       } catch {}
     })();
   }, []);
@@ -582,46 +591,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══ ABOUT ══ */}
-      <section style={{ background:`linear-gradient(135deg,${GL} 0%,#dde8c4 100%)`,padding:"68px 20px" }}>
-        <div ref={about.ref} className="about-flex"
-          style={{ maxWidth:920,margin:"0 auto",display:"flex",alignItems:"center",gap:52,direction:"rtl" }}>
-          <div className={`about-img anim-r${about.vis?" vis":""}`}
-            style={{ flex:"0 0 auto",width:190,height:190,background:CB,borderRadius:"50%",
-              display:"flex",alignItems:"center",justifyContent:"center",
-              border:`4px solid ${AU}`,overflow:"hidden",boxShadow:"0 8px 32px rgba(189,154,82,.3)",
-              animation:about.vis?"float 4s ease-in-out infinite":"none" }}>
-            <img src={LOGO} alt="مطروح أوليفي" style={{ width:"88%",height:"88%",objectFit:"contain" }} />
-          </div>
-          <div className={`anim-l${about.vis?" vis":""}`} style={{ flex:1 }}>
-            <span style={{ display:"inline-block",background:G,color:"#fff",fontWeight:800,
-              fontSize:11,letterSpacing:3,padding:"4px 16px",borderRadius:20,marginBottom:16 }}>قصتنا</span>
-            <h2 style={{ fontSize:28,fontWeight:700,color:DK,margin:"0 0 16px" }}>مطروح أوليفي</h2>
-            <p style={{ fontSize:15,color:"#5a7050",lineHeight:2,marginBottom:24 }}>
-              نحن شركة متخصصة في تقديم أجود أنواع زيت الزيتون الطبيعي من مطروح. شعارنا الدائم{" "}
-              <strong style={{ color:G }}>صدق .. أمانة .. خبرة</strong>، ونسعى دائماً لأن نخلق لك من الطبيعة حياة أفضل.
-            </p>
-            <div style={{ display:"flex",gap:10,flexWrap:"wrap" }}>
-              {["صدق","أمانة","خبرة","جودة"].map((tag,i) => (
-                <span key={tag} style={{ padding:"7px 22px",borderRadius:50,background:CB,color:G,
-                  fontSize:13,fontWeight:800,border:`2px solid ${G}`,
-                  opacity:about.vis?1:0,animation:about.vis?`fadeUp .5s ease ${i*.1+.3}s both`:"none" }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ══ REVIEWS ══ */}
       <section style={{ background:CB,padding:"68px 20px" }}>
-        <div ref={rvw.ref} style={{ maxWidth:700,margin:"0 auto",direction:"rtl" }}>
+        <div ref={rvw.ref} style={{ maxWidth:900,margin:"0 auto",direction:"rtl" }}>
           <div className={`anim-up${rvw.vis?" vis":""}`} style={{ textAlign:"center",marginBottom:44 }}>
             <span style={{ display:"inline-block",background:GL,color:G,fontWeight:800,
               fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:14 }}>آراء العملاء</span>
             <h2 style={{ fontSize:32,fontWeight:700,color:DK,margin:0 }}>ماذا يقول عملاؤنا</h2>
           </div>
+
+          {/* video reviews grid */}
+          {videos.length > 0 && (
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:20,marginBottom:52 }}>
+              {videos.map(v => {
+                const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
+                return (
+                  <div key={v.id} style={{ borderRadius:16,overflow:"hidden",background:"#fff",
+                    boxShadow:"0 4px 20px rgba(79,112,50,.1)",border:`1.5px solid ${GL}` }}>
+                    {embedUrl ? (
+                      <iframe src={embedUrl} title={v.caption||v.name} allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+                        allowFullScreen style={{ width:"100%",height:200,border:"none",display:"block" }} />
+                    ) : (
+                      <div style={{ height:200,background:GL,display:"flex",alignItems:"center",
+                        justifyContent:"center",fontSize:40 }}>🎬</div>
+                    )}
+                    <div style={{ padding:"12px 14px" }}>
+                      <div style={{ fontWeight:800,fontSize:14,color:DK }}>{v.name}</div>
+                      {v.caption && <div style={{ fontSize:13,color:"#666",marginTop:4 }}>{v.caption}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* text review carousel */}
+          <div style={{ maxWidth:700,margin:"0 auto" }}>
 
           {/* single review card */}
           <div className={`anim-up${rvw.vis?" vis":""}`} style={{ position:"relative" }}>
@@ -703,6 +709,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
+          </div>{/* end text review carousel */}
         </div>
       </section>
 
