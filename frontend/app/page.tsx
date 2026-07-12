@@ -82,6 +82,7 @@ export default function HomePage() {
   const [reviews, setReviews]           = useState<Review[]>(FALLBACK_REVIEWS);
   const [videos, setVideos]             = useState<VideoReview[]>([]);
   const [currentRev, setCurrentRev]     = useState(0);
+  const [videoIdx, setVideoIdx]         = useState(0);
   const [showForm, setShowForm]         = useState(false);
   const [newReview, setNewReview]       = useState({ text: "", name: "" });
   const [submitting, setSubmitting]     = useState(false);
@@ -600,32 +601,63 @@ export default function HomePage() {
             <h2 style={{ fontSize:32,fontWeight:700,color:DK,margin:0 }}>ماذا يقول عملاؤنا</h2>
           </div>
 
-          {/* video reviews grid */}
+          {/* video reviews carousel */}
           {videos.length > 0 && (
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:20,marginBottom:52 }}>
-              {videos.map((v: any) => {
+            <div style={{ maxWidth:560,margin:"0 auto 52px",position:"relative" }}>
+              {(() => {
+                const v = videos[videoIdx] as any;
                 const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
                 const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
                 const isLocal = v.isLocal || (!embedUrl && (v.url.includes('/uploads/') || v.url.startsWith('http')));
                 return (
-                  <div key={v.id} style={{ borderRadius:16,overflow:"hidden",background:"#fff",
+                  <div style={{ borderRadius:16,overflow:"hidden",background:"#fff",
                     boxShadow:"0 4px 20px rgba(79,112,50,.1)",border:`1.5px solid ${GL}` }}>
                     {embedUrl ? (
-                      <iframe src={embedUrl} title={v.caption||v.name} allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
-                        allowFullScreen style={{ width:"100%",height:200,border:"none",display:"block" }} />
+                      <iframe src={embedUrl} title={v.caption||v.name}
+                        allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+                        allowFullScreen style={{ width:"100%",height:280,border:"none",display:"block" }} />
                     ) : isLocal ? (
-                      <video src={v.url} controls style={{ width:"100%",height:200,objectFit:"cover",display:"block",background:"#000" }} />
+                      <video src={v.url} controls style={{ width:"100%",height:280,objectFit:"cover",display:"block",background:"#000" }} />
                     ) : (
-                      <div style={{ height:200,background:GL,display:"flex",alignItems:"center",
-                        justifyContent:"center",fontSize:40 }}>🎬</div>
+                      <div style={{ height:280,background:GL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40 }}>🎬</div>
                     )}
-                    <div style={{ padding:"12px 14px" }}>
+                    <div style={{ padding:"12px 14px",direction:"rtl" }}>
                       <div style={{ fontWeight:800,fontSize:14,color:DK }}>{v.name}</div>
                       {v.caption && <div style={{ fontSize:13,color:"#666",marginTop:4 }}>{v.caption}</div>}
                     </div>
                   </div>
                 );
-              })}
+              })()}
+              {/* Arrows + dots — only when more than 1 video */}
+              {videos.length > 1 && (
+                <>
+                  <button onClick={() => setVideoIdx(i => (i - 1 + videos.length) % videos.length)}
+                    style={{ position:"absolute",top:"42%",right:-22,transform:"translateY(-50%)",
+                      width:44,height:44,borderRadius:"50%",border:`2px solid ${GL}`,background:"#fff",
+                      color:G,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                      boxShadow:"0 2px 12px rgba(79,112,50,.15)",transition:"all .2s" }}
+                    onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background=G;(e.currentTarget as HTMLButtonElement).style.color="#fff";}}
+                    onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background="#fff";(e.currentTarget as HTMLButtonElement).style.color=G;}}>
+                    <i className="fas fa-chevron-right" />
+                  </button>
+                  <button onClick={() => setVideoIdx(i => (i + 1) % videos.length)}
+                    style={{ position:"absolute",top:"42%",left:-22,transform:"translateY(-50%)",
+                      width:44,height:44,borderRadius:"50%",border:`2px solid ${GL}`,background:"#fff",
+                      color:G,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                      boxShadow:"0 2px 12px rgba(79,112,50,.15)",transition:"all .2s" }}
+                    onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background=G;(e.currentTarget as HTMLButtonElement).style.color="#fff";}}
+                    onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background="#fff";(e.currentTarget as HTMLButtonElement).style.color=G;}}>
+                    <i className="fas fa-chevron-left" />
+                  </button>
+                  <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:16 }}>
+                    {videos.map((_,i) => (
+                      <button key={i} onClick={() => setVideoIdx(i)}
+                        style={{ width:i===videoIdx?24:8,height:8,borderRadius:4,border:"none",cursor:"pointer",padding:0,
+                          background:i===videoIdx?G:GL,transition:"all .3s" }} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
