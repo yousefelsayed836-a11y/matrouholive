@@ -603,15 +603,18 @@ export default function HomePage() {
           {/* video reviews grid */}
           {videos.length > 0 && (
             <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:20,marginBottom:52 }}>
-              {videos.map(v => {
+              {videos.map((v: any) => {
                 const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
                 const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
+                const isLocal = v.isLocal || (!embedUrl && (v.url.includes('/uploads/') || v.url.startsWith('http')));
                 return (
                   <div key={v.id} style={{ borderRadius:16,overflow:"hidden",background:"#fff",
                     boxShadow:"0 4px 20px rgba(79,112,50,.1)",border:`1.5px solid ${GL}` }}>
                     {embedUrl ? (
                       <iframe src={embedUrl} title={v.caption||v.name} allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
                         allowFullScreen style={{ width:"100%",height:200,border:"none",display:"block" }} />
+                    ) : isLocal ? (
+                      <video src={v.url} controls style={{ width:"100%",height:200,objectFit:"cover",display:"block",background:"#000" }} />
                     ) : (
                       <div style={{ height:200,background:GL,display:"flex",alignItems:"center",
                         justifyContent:"center",fontSize:40 }}>🎬</div>
