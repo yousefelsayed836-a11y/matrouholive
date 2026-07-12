@@ -55,6 +55,27 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Separate disk-based uploader for videos — avoids loading large files into RAM
+const videoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(__dirname, 'uploads');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = (file.originalname.split('.').pop() || 'mp4').toLowerCase();
+      cb(null, `video-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
+    },
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+  fileFilter: (req, file, cb) => {
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)) cb(null, true);
+    else cb(new Error('Invalid video format'));
+  },
+});
+
 const server = http.createServer(app);
 const io = initSocket(server);
 app.set('io', io);
@@ -94,14 +115,18 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
   } catch (error) { console.error('Upload error:', error); res.status(500).json({ error: String(error.message) }); }
 });
 
-app.post('/api/upload/video', upload.single('video'), async (req, res) => {
+app.post('/api/upload/video', (req, res, next) => {
+  videoUpload.single('video')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'الملف أكبر من 500MB' });
+      return res.status(400).json({ error: err.message || 'Upload error' });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No video uploaded' });
-    const ext = (req.file.originalname.split('.').pop() || 'mp4').toLowerCase();
-    if (!['mp4','webm','mov','avi','mkv'].includes(ext)) return res.status(400).json({ error: 'Invalid video format' });
-    const filename = `video-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
-    res.json({ success: true, url: getPublicUrl(req, filename) });
+    res.json({ success: true, url: getPublicUrl(req, req.file.filename) });
   } catch (error) { res.status(500).json({ error: String(error.message) }); }
 });
 

@@ -121,10 +121,13 @@ export default function ReviewsAdminPage() {
       };
       const result = await new Promise<{ url: string }>((resolve, reject) => {
         xhr.onload = () => {
-          if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
-          else reject(new Error("Upload failed"));
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (xhr.status === 200 && data.url) resolve(data);
+            else reject(new Error(data.error || `خطأ ${xhr.status}`));
+          } catch { reject(new Error(`خطأ في الاستجابة (${xhr.status})`)); }
         };
-        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.onerror = () => reject(new Error("خطأ في الشبكة - تحقق من الاتصال"));
         xhr.open("POST", `${API_BASE}/upload/video`);
         xhr.send(formData);
       });
@@ -140,7 +143,7 @@ export default function ReviewsAdminPage() {
       await saveVideos(updated);
       setUploadName(""); setUploadCaption("");
       if (fileRef.current) fileRef.current.value = "";
-    } catch (e) { alert("فشل الرفع، حاول مرة أخرى"); }
+    } catch (e: any) { alert("فشل الرفع: " + (e?.message || "خطأ غير معروف")); }
     setUploading(false);
     setUploadProgress(0);
   };
