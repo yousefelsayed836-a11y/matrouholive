@@ -77,16 +77,12 @@ export default function ReviewsAdminPage() {
   };
 
   const saveVideos = async (list: VideoReview[]) => {
-    setVideoSaving(true);
     try {
       await fetch(`${API_BASE}/settings/customer_videos`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: JSON.stringify(list) }),
       });
-      setVideoSaved(true);
-      setTimeout(() => setVideoSaved(false), 2000);
     } catch {}
-    setVideoSaving(false);
   };
 
   const uploadVideoFile = async () => {
