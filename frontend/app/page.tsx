@@ -601,70 +601,8 @@ export default function HomePage() {
             <h2 style={{ fontSize:32,fontWeight:700,color:DK,margin:0 }}>ماذا يقول عملاؤنا</h2>
           </div>
 
-          {/* video reviews carousel */}
-          {videos.length > 0 && (
-            <div style={{ maxWidth:560,margin:"0 auto 52px",position:"relative" }}>
-              {(() => {
-                const v = videos[videoIdx] as any;
-                const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-                const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
-                const isLocal = v.isLocal || (!embedUrl && (v.url.includes('/uploads/') || v.url.startsWith('http')));
-                return (
-                  <div style={{ borderRadius:16,overflow:"hidden",background:"#fff",
-                    boxShadow:"0 4px 20px rgba(79,112,50,.1)",border:`1.5px solid ${GL}` }}>
-                    {embedUrl ? (
-                      <iframe src={embedUrl} title={v.caption||v.name}
-                        allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
-                        allowFullScreen style={{ width:"100%",height:280,border:"none",display:"block" }} />
-                    ) : isLocal ? (
-                      <video src={v.url} controls style={{ width:"100%",height:280,objectFit:"cover",display:"block",background:"#000" }} />
-                    ) : (
-                      <div style={{ height:280,background:GL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40 }}>🎬</div>
-                    )}
-                    <div style={{ padding:"12px 14px",direction:"rtl" }}>
-                      <div style={{ fontWeight:800,fontSize:14,color:DK }}>{v.name}</div>
-                      {v.caption && <div style={{ fontSize:13,color:"#666",marginTop:4 }}>{v.caption}</div>}
-                    </div>
-                  </div>
-                );
-              })()}
-              {/* Arrows + dots — only when more than 1 video */}
-              {videos.length > 1 && (
-                <>
-                  <button onClick={() => setVideoIdx(i => (i - 1 + videos.length) % videos.length)}
-                    style={{ position:"absolute",top:"42%",right:-22,transform:"translateY(-50%)",
-                      width:44,height:44,borderRadius:"50%",border:`2px solid ${GL}`,background:"#fff",
-                      color:G,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
-                      boxShadow:"0 2px 12px rgba(79,112,50,.15)",transition:"all .2s" }}
-                    onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background=G;(e.currentTarget as HTMLButtonElement).style.color="#fff";}}
-                    onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background="#fff";(e.currentTarget as HTMLButtonElement).style.color=G;}}>
-                    <i className="fas fa-chevron-right" />
-                  </button>
-                  <button onClick={() => setVideoIdx(i => (i + 1) % videos.length)}
-                    style={{ position:"absolute",top:"42%",left:-22,transform:"translateY(-50%)",
-                      width:44,height:44,borderRadius:"50%",border:`2px solid ${GL}`,background:"#fff",
-                      color:G,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
-                      boxShadow:"0 2px 12px rgba(79,112,50,.15)",transition:"all .2s" }}
-                    onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background=G;(e.currentTarget as HTMLButtonElement).style.color="#fff";}}
-                    onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background="#fff";(e.currentTarget as HTMLButtonElement).style.color=G;}}>
-                    <i className="fas fa-chevron-left" />
-                  </button>
-                  <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:16 }}>
-                    {videos.map((_,i) => (
-                      <button key={i} onClick={() => setVideoIdx(i)}
-                        style={{ width:i===videoIdx?24:8,height:8,borderRadius:4,border:"none",cursor:"pointer",padding:0,
-                          background:i===videoIdx?G:GL,transition:"all .3s" }} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* text review carousel */}
+          {/* text review carousel — on top */}
           <div style={{ maxWidth:700,margin:"0 auto" }}>
-
-          {/* single review card */}
           <div className={`anim-up${rvw.vis?" vis":""}`} style={{ position:"relative" }}>
             <div key={currentRev} className={revAnim?"rev-visible":""}
               style={{ background:"#fff",borderRadius:24,padding:"40px 36px",textAlign:"center",
@@ -676,8 +614,6 @@ export default function HomePage() {
               </p>
               <div style={{ fontSize:14,color:G,fontWeight:800 }}>— {reviews[currentRev]?.name}</div>
             </div>
-
-            {/* side arrows */}
             <button onClick={() => goReview(-1)}
               style={{ position:"absolute",top:"50%",right:-22,transform:"translateY(-50%)",
                 width:44,height:44,borderRadius:"50%",border:`2px solid ${GL}`,background:"#fff",
@@ -697,8 +633,6 @@ export default function HomePage() {
               <i className="fas fa-chevron-left" />
             </button>
           </div>
-
-          {/* dots */}
           <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:24 }}>
             {reviews.map((_,i) => (
               <button key={i} onClick={() => { setRevAnim(false); setTimeout(() => { setCurrentRev(i); setRevAnim(true); }, 200); }}
@@ -706,8 +640,6 @@ export default function HomePage() {
                   background:i===currentRev?G:GL,transition:"all .3s" }} />
             ))}
           </div>
-
-          {/* add review */}
           <div style={{ marginTop:40,textAlign:"center" }}>
             {submitted && (
               <div style={{ marginBottom:16,padding:"10px 24px",borderRadius:12,background:"#dcfce7",
@@ -744,9 +676,131 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          </div>{/* end text review carousel */}
+          </div>
         </div>
       </section>
+
+      {/* ══ VIDEO REVIEWS — TikTok style ══ */}
+      {videos.length > 0 && (
+        <section style={{ background:"#0d0d0d",padding:"64px 20px" }}>
+          <div style={{ maxWidth:1100,margin:"0 auto",direction:"rtl" }}>
+            <div style={{ textAlign:"center",marginBottom:44 }}>
+              <span style={{ display:"inline-block",background:"rgba(215,247,179,.12)",color:GL,
+                fontWeight:800,fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:14 }}>فيديوهات العملاء</span>
+              <h2 style={{ fontSize:30,fontWeight:700,color:"#fff",margin:0 }}>شاهد تجارب عملائنا</h2>
+            </div>
+
+            {/* Mobile: single carousel | Desktop: grid up to 3 */}
+            <div className="vid-tiktok-wrap">
+              {(() => {
+                // on desktop show up to 3, on mobile show one with arrows
+                const desktopShow = Math.min(videos.length, 3);
+                return (
+                  <>
+                    {/* DESKTOP grid */}
+                    <div className="vid-desktop-grid">
+                      {videos.slice(0, desktopShow).map((v: any, i) => {
+                        const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                        const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
+                        return (
+                          <div key={v.id} className="tiktok-card">
+                            <div className="tiktok-video-box">
+                              {embedUrl ? (
+                                <iframe src={embedUrl} title={v.name}
+                                  allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+                                  allowFullScreen style={{ width:"100%",height:"100%",border:"none",display:"block" }} />
+                              ) : (
+                                <video src={v.url} controls playsInline
+                                  style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
+                              )}
+                              <div className="tiktok-overlay">
+                                <div style={{ fontWeight:800,fontSize:15,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.8)" }}>{v.name}</div>
+                                {v.caption && <div style={{ fontSize:12,color:"rgba(255,255,255,.75)",marginTop:4 }}>{v.caption}</div>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* MOBILE single + arrows */}
+                    <div className="vid-mobile-single" style={{ position:"relative" }}>
+                      {(() => {
+                        const v = videos[videoIdx] as any;
+                        const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                        const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
+                        return (
+                          <div className="tiktok-card" style={{ margin:"0 auto" }}>
+                            <div className="tiktok-video-box">
+                              {embedUrl ? (
+                                <iframe src={embedUrl} title={v.name}
+                                  allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+                                  allowFullScreen style={{ width:"100%",height:"100%",border:"none",display:"block" }} />
+                              ) : (
+                                <video src={v.url} controls playsInline
+                                  style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
+                              )}
+                              <div className="tiktok-overlay">
+                                <div style={{ fontWeight:800,fontSize:15,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.8)" }}>{v.name}</div>
+                                {v.caption && <div style={{ fontSize:12,color:"rgba(255,255,255,.75)",marginTop:4 }}>{v.caption}</div>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {videos.length > 1 && (
+                        <>
+                          <button onClick={() => setVideoIdx(i => (i - 1 + videos.length) % videos.length)}
+                            style={{ position:"absolute",top:"45%",right:-4,transform:"translateY(-50%)",
+                              width:40,height:40,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",
+                              background:"rgba(255,255,255,.12)",color:"#fff",fontSize:15,cursor:"pointer",
+                              display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)" }}>
+                            <i className="fas fa-chevron-right" />
+                          </button>
+                          <button onClick={() => setVideoIdx(i => (i + 1) % videos.length)}
+                            style={{ position:"absolute",top:"45%",left:-4,transform:"translateY(-50%)",
+                              width:40,height:40,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",
+                              background:"rgba(255,255,255,.12)",color:"#fff",fontSize:15,cursor:"pointer",
+                              display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)" }}>
+                            <i className="fas fa-chevron-left" />
+                          </button>
+                          <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:16 }}>
+                            {videos.map((_,i) => (
+                              <button key={i} onClick={() => setVideoIdx(i)}
+                                style={{ width:i===videoIdx?24:8,height:8,borderRadius:4,border:"none",cursor:"pointer",padding:0,
+                                  background:i===videoIdx?"#fff":"rgba(255,255,255,.3)",transition:"all .3s" }} />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          <style jsx>{`
+            .tiktok-card { width:300px; border-radius:20px; overflow:hidden; background:#111;
+              box-shadow:0 8px 32px rgba(0,0,0,.5); flex-shrink:0; }
+            .tiktok-video-box { position:relative; aspect-ratio:9/16; background:#000; overflow:hidden; }
+            .tiktok-overlay { position:absolute; bottom:0; left:0; right:0;
+              background:linear-gradient(transparent,rgba(0,0,0,.75));
+              padding:20px 14px 14px; direction:rtl; }
+
+            /* Desktop: show grid, hide mobile single */
+            .vid-desktop-grid { display:flex; gap:20px; justify-content:center; }
+            .vid-mobile-single { display:none; }
+
+            /* Mobile: hide grid, show single */
+            @media (max-width:768px) {
+              .vid-desktop-grid { display:none; }
+              .vid-mobile-single { display:block; }
+              .tiktok-card { width:100%; max-width:360px; }
+            }
+          `}</style>
+        </section>
+      )}
 
       {/* ══ FLOATING BUTTONS ══ */}
       <div style={{ position:"fixed",bottom:28,left:28,display:"flex",flexDirection:"column",gap:12,zIndex:999 }}>
