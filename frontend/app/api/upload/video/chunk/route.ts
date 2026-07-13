@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// Use server-side env var to avoid going through the public internet
+const BACKEND = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +21,19 @@ export async function POST(req: NextRequest) {
     backendForm.append("totalChunks", totalChunks);
     backendForm.append("filename", filename);
 
-    const res = await fetch(`${BACKEND}/api/upload/video/chunk`, { method: "POST", body: backendForm });
+    let res: Response;
+    try {
+      res = await fetch(`${BACKEND}/api/upload/video/chunk`, { method: "POST", body: backendForm });
+    } catch (fetchErr: any) {
+      return NextResponse.json({ error: `Backend unreachable: ${fetchErr.message}` }, { status: 502 });
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      return NextResponse.json({ error: `Backend returned non-JSON: ${text.slice(0, 200)}` }, { status: 502 });
+    }
+
     const data = await res.json();
     if (!res.ok) return NextResponse.json({ error: data.error || "Upload failed" }, { status: res.status });
     return NextResponse.json(data);
