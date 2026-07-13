@@ -351,6 +351,21 @@ export default function HomePage() {
             opacity:1!important; transform:none!important; transition:none!important; animation:none!important;
           }
         }
+
+        /* TikTok-style video cards */
+        .tiktok-card { width:300px; border-radius:20px; overflow:hidden; background:#111;
+          box-shadow:0 8px 32px rgba(0,0,0,.5); flex-shrink:0; }
+        .tiktok-video-box { position:relative; aspect-ratio:9/16; background:#000; overflow:hidden; }
+        .tiktok-overlay { position:absolute; bottom:0; left:0; right:0;
+          background:linear-gradient(transparent,rgba(0,0,0,.75));
+          padding:20px 14px 14px; direction:rtl; }
+        .vid-desktop-grid { display:flex; gap:20px; justify-content:center; }
+        .vid-mobile-single { display:none; }
+        @media (max-width:768px) {
+          .vid-desktop-grid { display:none; }
+          .vid-mobile-single { display:block; }
+          .tiktok-card { width:100%; max-width:360px; }
+        }
       `}</style>
 
       {/* ══ ANNOUNCEMENT BAR ══ */}
@@ -780,25 +795,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <style jsx>{`
-            .tiktok-card { width:300px; border-radius:20px; overflow:hidden; background:#111;
-              box-shadow:0 8px 32px rgba(0,0,0,.5); flex-shrink:0; }
-            .tiktok-video-box { position:relative; aspect-ratio:9/16; background:#000; overflow:hidden; }
-            .tiktok-overlay { position:absolute; bottom:0; left:0; right:0;
-              background:linear-gradient(transparent,rgba(0,0,0,.75));
-              padding:20px 14px 14px; direction:rtl; }
-
-            /* Desktop: show grid, hide mobile single */
-            .vid-desktop-grid { display:flex; gap:20px; justify-content:center; }
-            .vid-mobile-single { display:none; }
-
-            /* Mobile: hide grid, show single */
-            @media (max-width:768px) {
-              .vid-desktop-grid { display:none; }
-              .vid-mobile-single { display:block; }
-              .tiktok-card { width:100%; max-width:360px; }
-            }
-          `}</style>
         </section>
       )}
 
