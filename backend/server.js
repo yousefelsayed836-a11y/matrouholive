@@ -51,7 +51,7 @@ app.use((req, res, next) => { req.user = { id: 'admin', role: 'admin' }; next();
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
-const _STATIC_UPLOADS = fs.existsSync('/data') ? '/data/uploads' : path.join(__dirname, 'uploads');
+const _STATIC_UPLOADS = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(_STATIC_UPLOADS));
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -60,8 +60,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const videoUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      // UPLOADS_DIR is defined below but we reference it via closure after init
-      const dir = fs.existsSync('/data') ? '/data/uploads' : path.join(__dirname, 'uploads');
+      const dir = path.join(__dirname, 'uploads');
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       cb(null, dir);
     },
@@ -95,8 +94,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 const bulkUploadRoutes = require('./routes/admin/bulkUpload');
 app.use('/api/admin/products/bulk-upload', upload.single('csv'), bulkUploadRoutes);
 
-// On Render.com, use the persistent disk at /data; fall back to local uploads/
-const UPLOADS_DIR = fs.existsSync('/data') ? '/data/uploads' : path.join(__dirname, 'uploads');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 function getPublicUrl(req, filename) {
