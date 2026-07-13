@@ -305,10 +305,10 @@ export default function HomePage() {
         .bs-scroll > * { scroll-snap-align:start;flex-shrink:0; }
 
         /* arrow buttons */
-        .arr-btn { width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.25);
-          background:rgba(255,255,255,.12);color:#fff;font-size:18px;cursor:pointer;
+        .arr-btn { width:46px;height:46px;border-radius:50%;border:2px solid ${G};
+          background:${GL};color:${G};font-size:18px;cursor:pointer;
           display:flex;align-items:center;justify-content:center;
-          transition:background .2s,transform .15s;backdrop-filter:blur(4px); }
+          transition:background .2s,transform .15s; }
         .arr-btn:disabled { opacity:.28;cursor:default;transform:none; }
 
         /* review card */
@@ -497,9 +497,9 @@ export default function HomePage() {
       <section ref={bsec.ref} style={{ background:CB,padding:"64px 0",
         opacity:bsec.vis?1:0,transform:bsec.vis?"none":"translateY(40px)",transition:"opacity .7s ease,transform .7s ease" }}>
 
-        <div style={{ padding:"0 24px",direction:"rtl",maxWidth:1300,margin:"0 auto" }}>
-          {/* heading + arrows */}
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:32,flexWrap:"wrap",gap:12 }}>
+        {/* heading */}
+        <div style={{ padding:"0 24px",direction:"rtl",maxWidth:1300,margin:"0 auto",marginBottom:32 }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12 }}>
             <div style={{ animation:bsec.vis?"fadeUp .6s ease .1s both":"none",opacity:bsec.vis?1:0 }}>
               <span style={{ display:"inline-block",background:GL,color:G,
                 fontWeight:800,fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:12 }}>
@@ -520,10 +520,12 @@ export default function HomePage() {
               </div>
             )}
           </div>
+        </div>
 
-          {/* cards row */}
+        {/* cards row — full screen width */}
+        <div style={{ direction:"rtl" }}>
           {bestSellers.length > 0 ? (
-            <div ref={scrollRef} className="bs-scroll" onScroll={onScroll}>
+            <div ref={scrollRef} className="bs-scroll" style={{ paddingRight:24,paddingLeft:24 }} onScroll={onScroll}>
               {bestSellers.map((p, i) => {
                 const img = getImg(p);
                 const name = p.name_ar || p.name_en;
@@ -586,13 +588,16 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* dots */}
+        </div>
+
+        {/* dots + button — back inside constrained wrapper */}
+        <div style={{ padding:"0 24px",maxWidth:1300,margin:"0 auto",direction:"rtl" }}>
           {bestSellers.length > visibleCards && (
             <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:28 }}>
               {Array.from({ length: maxIdx + 1 }).map((_,i) => (
                 <button key={i} onClick={() => scrollTo(i)}
                   style={{ width:i===scrollIdx?24:8,height:8,borderRadius:4,border:"none",cursor:"pointer",padding:0,
-                    background:i===scrollIdx?AU:"rgba(255,255,255,.25)",transition:"all .3s" }} />
+                    background:i===scrollIdx?G:"rgba(79,112,50,.25)",transition:"all .3s" }} />
               ))}
             </div>
           )}
