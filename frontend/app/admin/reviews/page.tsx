@@ -130,6 +130,17 @@ export default function ReviewsAdminPage() {
     await saveVideos(updated);
   };
 
+  const moveVideo = async (id: string, dir: -1 | 1) => {
+    const idx = videos.findIndex(v => v.id === id);
+    if (idx < 0) return;
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= videos.length) return;
+    const updated = [...videos];
+    [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
+    setVideos(updated);
+    await saveVideos(updated);
+  };
+
   if (loading) return <div style={{ padding: 60, textAlign: "center", color: "#888" }}>جاري التحميل...</div>;
 
   return (
@@ -232,13 +243,21 @@ export default function ReviewsAdminPage() {
 
           {/* Videos grid */}
           {videos.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#aaa", background: "#fff", borderRadius: 16 }}>لم تُضف فيديوهات بعد</div>}
+          <p style={{ margin: "0 0 12px", fontSize: 12, color: "#888", direction: "rtl" }}>
+            ⬆️ الفيديو الأول في القائمة هو الذي يظهر أولاً في الصفحة الرئيسية — رتّبهم كما تريد
+          </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
-            {videos.map(v => {
+            {videos.map((v, idx) => {
               const embed = getVideoEmbed(v.url);
               const thumb = getVideoThumb(v.url);
               const isLocal = v.isLocal || (!embed && !thumb && v.url.includes('/uploads/'));
               return (
-                <div key={v.id} style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                <div key={v.id} style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: idx === 0 ? "2px solid #4B6741" : "2px solid transparent" }}>
+                  {idx === 0 && (
+                    <div style={{ background: "#4B6741", color: "#fff", fontSize: 11, fontWeight: 800, padding: "4px 12px", textAlign: "center" }}>
+                      ⭐ يظهر أولاً في الصفحة الرئيسية
+                    </div>
+                  )}
                   {isLocal ? (
                     <video src={v.url} controls style={{ width: "100%", height: 180, objectFit: "cover", display: "block", background: "#000" }} />
                   ) : embed ? (
@@ -254,10 +273,20 @@ export default function ReviewsAdminPage() {
                   <div style={{ padding: "12px 14px", direction: "rtl" }}>
                     <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 14, color: "#1a1a2e" }}>{v.name}</p>
                     {v.caption && <p style={{ margin: "0 0 10px", fontSize: 12, color: "#888" }}>{v.caption}</p>}
-                    <button onClick={() => deleteVideo(v.id)}
-                      style={{ padding: "5px 14px", borderRadius: 8, border: "none", background: "#fee2e2", color: "#dc2626", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                      حذف
-                    </button>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button onClick={() => moveVideo(v.id, -1)} disabled={idx === 0}
+                        style={{ padding: "5px 12px", borderRadius: 8, border: "1.5px solid #d1e7c8", background: idx === 0 ? "#f3f4f6" : "#f0faf0", color: idx === 0 ? "#ccc" : "#4B6741", fontWeight: 700, fontSize: 13, cursor: idx === 0 ? "default" : "pointer" }}>
+                        ↑ تقديم
+                      </button>
+                      <button onClick={() => moveVideo(v.id, 1)} disabled={idx === videos.length - 1}
+                        style={{ padding: "5px 12px", borderRadius: 8, border: "1.5px solid #d1e7c8", background: idx === videos.length - 1 ? "#f3f4f6" : "#f0faf0", color: idx === videos.length - 1 ? "#ccc" : "#4B6741", fontWeight: 700, fontSize: 13, cursor: idx === videos.length - 1 ? "default" : "pointer" }}>
+                        ↓ تأخير
+                      </button>
+                      <button onClick={() => deleteVideo(v.id)}
+                        style={{ padding: "5px 14px", borderRadius: 8, border: "none", background: "#fee2e2", color: "#dc2626", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                        حذف
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
