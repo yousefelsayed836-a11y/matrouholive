@@ -83,6 +83,7 @@ export default function HomePage() {
   const [videos, setVideos]             = useState<VideoReview[]>([]);
   const [currentRev, setCurrentRev]     = useState(0);
   const [videoIdx, setVideoIdx]         = useState(0);
+  const [desktopPage, setDesktopPage]   = useState(0);
   const [showForm, setShowForm]         = useState(false);
   const [newReview, setNewReview]       = useState({ text: "", name: "" });
   const [submitting, setSubmitting]     = useState(false);
@@ -350,6 +351,9 @@ export default function HomePage() {
           .cat-card, .prod-card, .anim-up, .anim-r, .anim-l {
             opacity:1!important; transform:none!important; transition:none!important; animation:none!important;
           }
+
+          /* Remove letter-spacing on badges — Arabic looks bad with gaps on small screens */
+          .sec-badge { letter-spacing:0!important; }
         }
 
         /* TikTok-style video cards */
@@ -359,7 +363,7 @@ export default function HomePage() {
         .tiktok-overlay { position:absolute; bottom:0; left:0; right:0;
           background:linear-gradient(transparent,rgba(0,0,0,.75));
           padding:20px 14px 14px; direction:rtl; }
-        .vid-desktop-grid { display:flex; gap:20px; justify-content:center; }
+        .vid-desktop-grid { display:flex; gap:16px; align-items:center; justify-content:center; }
         .vid-mobile-single { display:none; }
         @media (max-width:768px) {
           .vid-desktop-grid { display:none; }
@@ -463,7 +467,7 @@ export default function HomePage() {
       <section style={{ background:CB,padding:"68px 20px" }}>
         <div style={{ maxWidth:1200,margin:"0 auto",direction:"rtl" }}>
           <div style={{ textAlign:"center",marginBottom:52,animation:"fadeUp .6s ease .1s both" }}>
-            <span style={{ display:"inline-block",background:GL,color:G,fontWeight:800,fontSize:11,
+            <span className="sec-badge" style={{ display:"inline-block",background:GL,color:G,fontWeight:800,fontSize:11,
               letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:14 }}>تسوق حسب القسم</span>
             <h2 style={{ fontSize:32,fontWeight:700,color:DK,margin:0 }}>منتجات مطروح أوليفي</h2>
           </div>
@@ -501,7 +505,7 @@ export default function HomePage() {
         <div style={{ padding:"0 24px",direction:"rtl",maxWidth:1300,margin:"0 auto",marginBottom:32 }}>
           <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12 }}>
             <div style={{ animation:bsec.vis?"fadeUp .6s ease .1s both":"none",opacity:bsec.vis?1:0 }}>
-              <span style={{ display:"inline-block",background:GL,color:G,
+              <span className="sec-badge" style={{ display:"inline-block",background:GL,color:G,
                 fontWeight:800,fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:12 }}>
                 المنتجات المميزة
               </span>
@@ -616,7 +620,7 @@ export default function HomePage() {
       <section style={{ background:CB,padding:"68px 20px" }}>
         <div ref={rvw.ref} style={{ maxWidth:900,margin:"0 auto",direction:"rtl" }}>
           <div className={`anim-up${rvw.vis?" vis":""}`} style={{ textAlign:"center",marginBottom:44 }}>
-            <span style={{ display:"inline-block",background:GL,color:G,fontWeight:800,
+            <span className="sec-badge" style={{ display:"inline-block",background:GL,color:G,fontWeight:800,
               fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:14 }}>آراء العملاء</span>
             <h2 style={{ fontSize:32,fontWeight:700,color:DK,margin:0 }}>ماذا يقول عملاؤنا</h2>
           </div>
@@ -705,21 +709,32 @@ export default function HomePage() {
         <section style={{ background:CB,padding:"64px 20px" }}>
           <div style={{ maxWidth:1100,margin:"0 auto",direction:"rtl" }}>
             <div style={{ textAlign:"center",marginBottom:44 }}>
-              <span style={{ display:"inline-block",background:GL,color:G,
+              <span className="sec-badge" style={{ display:"inline-block",background:GL,color:G,
                 fontWeight:800,fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:14 }}>فيديوهات العملاء</span>
               <h2 style={{ fontSize:30,fontWeight:700,color:DK,margin:0 }}>شاهد تجارب عملائنا</h2>
             </div>
 
-            {/* Mobile: single carousel | Desktop: grid up to 3 */}
+            {/* Desktop: grid of 3 with page arrows | Mobile: single with arrows */}
             <div className="vid-tiktok-wrap">
+              {/* DESKTOP grid — pages of 3 */}
               {(() => {
-                // on desktop show up to 3, on mobile show one with arrows
-                const desktopShow = Math.min(videos.length, 3);
+                const pageSize = 3;
+                const totalPages = Math.ceil(videos.length / pageSize);
+                const safePage = Math.min(desktopPage, totalPages - 1);
+                const pageVideos = videos.slice(safePage * pageSize, safePage * pageSize + pageSize) as any[];
                 return (
-                  <>
-                    {/* DESKTOP grid */}
-                    <div className="vid-desktop-grid">
-                      {videos.slice(0, desktopShow).map((v: any, i) => {
+                  <div className="vid-desktop-grid">
+                    {/* prev arrow */}
+                    {videos.length > pageSize && (
+                      <button onClick={() => setDesktopPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
+                        style={{ alignSelf:"center",flexShrink:0,width:44,height:44,borderRadius:"50%",
+                          border:`2px solid ${G}`,background:GL,color:G,fontSize:18,cursor:safePage===0?"default":"pointer",
+                          display:"flex",alignItems:"center",justifyContent:"center",opacity:safePage===0?.3:1,transition:"opacity .2s" }}>
+                        <i className="fas fa-chevron-right" />
+                      </button>
+                    )}
+                    <div style={{ display:"flex",gap:20,justifyContent:"center",flex:1 }}>
+                      {pageVideos.map((v: any) => {
                         const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
                         const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
                         return (
@@ -730,7 +745,7 @@ export default function HomePage() {
                                   allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
                                   allowFullScreen style={{ width:"100%",height:"100%",border:"none",display:"block" }} />
                               ) : (
-                                <video src={v.url} controls playsInline
+                                <video src={`${v.url}#t=0.001`} controls playsInline preload="metadata"
                                   style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
                               )}
                             </div>
@@ -738,57 +753,66 @@ export default function HomePage() {
                         );
                       })}
                     </div>
-
-                    {/* MOBILE single + arrows */}
-                    <div className="vid-mobile-single" style={{ position:"relative" }}>
-                      {(() => {
-                        const v = videos[videoIdx] as any;
-                        const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-                        const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
-                        return (
-                          <div className="tiktok-card" style={{ margin:"0 auto" }}>
-                            <div className="tiktok-video-box">
-                              {embedUrl ? (
-                                <iframe src={embedUrl} title={v.name}
-                                  allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
-                                  allowFullScreen style={{ width:"100%",height:"100%",border:"none",display:"block" }} />
-                              ) : (
-                                <video src={v.url} controls playsInline
-                                  style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      {videos.length > 1 && (
-                        <>
-                          <button onClick={() => setVideoIdx(i => (i - 1 + videos.length) % videos.length)}
-                            style={{ position:"absolute",top:"45%",right:-4,transform:"translateY(-50%)",
-                              width:40,height:40,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",
-                              background:"rgba(255,255,255,.12)",color:"#fff",fontSize:15,cursor:"pointer",
-                              display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)" }}>
-                            <i className="fas fa-chevron-right" />
-                          </button>
-                          <button onClick={() => setVideoIdx(i => (i + 1) % videos.length)}
-                            style={{ position:"absolute",top:"45%",left:-4,transform:"translateY(-50%)",
-                              width:40,height:40,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",
-                              background:"rgba(255,255,255,.12)",color:"#fff",fontSize:15,cursor:"pointer",
-                              display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)" }}>
-                            <i className="fas fa-chevron-left" />
-                          </button>
-                          <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:16 }}>
-                            {videos.map((_,i) => (
-                              <button key={i} onClick={() => setVideoIdx(i)}
-                                style={{ width:i===videoIdx?24:8,height:8,borderRadius:4,border:"none",cursor:"pointer",padding:0,
-                                  background:i===videoIdx?"#fff":"rgba(255,255,255,.3)",transition:"all .3s" }} />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </>
+                    {/* next arrow */}
+                    {videos.length > pageSize && (
+                      <button onClick={() => setDesktopPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
+                        style={{ alignSelf:"center",flexShrink:0,width:44,height:44,borderRadius:"50%",
+                          border:`2px solid ${G}`,background:GL,color:G,fontSize:18,cursor:safePage>=totalPages-1?"default":"pointer",
+                          display:"flex",alignItems:"center",justifyContent:"center",opacity:safePage>=totalPages-1?.3:1,transition:"opacity .2s" }}>
+                        <i className="fas fa-chevron-left" />
+                      </button>
+                    )}
+                  </div>
                 );
               })()}
+
+              {/* MOBILE single + arrows */}
+              <div className="vid-mobile-single" style={{ position:"relative" }}>
+                {(() => {
+                  const v = videos[videoIdx] as any;
+                  const ytMatch = v.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+                  const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : null;
+                  return (
+                    <div className="tiktok-card" style={{ margin:"0 auto" }}>
+                      <div className="tiktok-video-box">
+                        {embedUrl ? (
+                          <iframe src={embedUrl} title={v.name}
+                            allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+                            allowFullScreen style={{ width:"100%",height:"100%",border:"none",display:"block" }} />
+                        ) : (
+                          <video src={`${v.url}#t=0.001`} controls playsInline preload="metadata"
+                            style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {videos.length > 1 && (
+                  <>
+                    <button onClick={() => setVideoIdx(i => (i - 1 + videos.length) % videos.length)}
+                      style={{ position:"absolute",top:"45%",right:-4,transform:"translateY(-50%)",
+                        width:40,height:40,borderRadius:"50%",border:`2px solid ${G}`,
+                        background:GL,color:G,fontSize:15,cursor:"pointer",
+                        display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      <i className="fas fa-chevron-right" />
+                    </button>
+                    <button onClick={() => setVideoIdx(i => (i + 1) % videos.length)}
+                      style={{ position:"absolute",top:"45%",left:-4,transform:"translateY(-50%)",
+                        width:40,height:40,borderRadius:"50%",border:`2px solid ${G}`,
+                        background:GL,color:G,fontSize:15,cursor:"pointer",
+                        display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      <i className="fas fa-chevron-left" />
+                    </button>
+                    <div style={{ display:"flex",justifyContent:"center",gap:8,marginTop:16 }}>
+                      {videos.map((_,i) => (
+                        <button key={i} onClick={() => setVideoIdx(i)}
+                          style={{ width:i===videoIdx?24:8,height:8,borderRadius:4,border:"none",cursor:"pointer",padding:0,
+                            background:i===videoIdx?G:GL,transition:"all .3s" }} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
