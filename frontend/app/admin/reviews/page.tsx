@@ -103,7 +103,7 @@ export default function ReviewsAdminPage() {
         form.append("chunkIndex", String(i));
         form.append("totalChunks", String(total));
         form.append("filename", filename);
-        const res = await fetch(`${API_BASE}/upload/video/chunk`, { method: "POST", body: form });
+        const res = await fetch(`/api/upload/video/chunk`, { method: "POST", body: form });
         if (!res.ok) { const d = await res.json(); throw new Error(d.error || `خطأ ${res.status}`); }
         const data = await res.json();
         setUploadProgress(Math.round(((i + 1) / total) * 100));
