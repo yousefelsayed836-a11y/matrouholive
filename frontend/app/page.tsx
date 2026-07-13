@@ -494,18 +494,18 @@ export default function HomePage() {
       </section>
 
       {/* ══ BEST SELLERS ══ */}
-      <section ref={bsec.ref} style={{ background:DK,padding:"64px 0",
+      <section ref={bsec.ref} style={{ background:CB,padding:"64px 0",
         opacity:bsec.vis?1:0,transform:bsec.vis?"none":"translateY(40px)",transition:"opacity .7s ease,transform .7s ease" }}>
 
         <div style={{ padding:"0 24px",direction:"rtl",maxWidth:1300,margin:"0 auto" }}>
           {/* heading + arrows */}
           <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:32,flexWrap:"wrap",gap:12 }}>
             <div style={{ animation:bsec.vis?"fadeUp .6s ease .1s both":"none",opacity:bsec.vis?1:0 }}>
-              <span style={{ display:"inline-block",background:"rgba(215,247,179,.15)",color:GL,
+              <span style={{ display:"inline-block",background:GL,color:G,
                 fontWeight:800,fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:12 }}>
                 المنتجات المميزة
               </span>
-              <h2 style={{ fontSize:30,fontWeight:700,color:"#fff",margin:0 }}>الأكثر مبيعاً</h2>
+              <h2 style={{ fontSize:30,fontWeight:700,color:DK,margin:0 }}>الأكثر مبيعاً</h2>
             </div>
             {bestSellers.length > 0 && (
               <div style={{ display:"flex",gap:10 }}>
@@ -600,7 +600,7 @@ export default function HomePage() {
           <div style={{ textAlign:"center",marginTop:40 }}>
             <Link href="/shop" className="btn-outline"
               style={{ display:"inline-block",padding:"13px 48px",borderRadius:50,
-                border:`2px solid ${GL}`,color:GL,fontWeight:800,fontSize:15,textDecoration:"none" }}>
+                border:`2px solid ${G}`,color:G,fontWeight:800,fontSize:15,textDecoration:"none" }}>
               عرض كل المنتجات
             </Link>
           </div>
@@ -697,12 +697,12 @@ export default function HomePage() {
 
       {/* ══ VIDEO REVIEWS — TikTok style ══ */}
       {videos.length > 0 && (
-        <section style={{ background:"#0d0d0d",padding:"64px 20px" }}>
+        <section style={{ background:CB,padding:"64px 20px" }}>
           <div style={{ maxWidth:1100,margin:"0 auto",direction:"rtl" }}>
             <div style={{ textAlign:"center",marginBottom:44 }}>
-              <span style={{ display:"inline-block",background:"rgba(215,247,179,.12)",color:GL,
+              <span style={{ display:"inline-block",background:GL,color:G,
                 fontWeight:800,fontSize:11,letterSpacing:3,padding:"5px 20px",borderRadius:20,marginBottom:14 }}>فيديوهات العملاء</span>
-              <h2 style={{ fontSize:30,fontWeight:700,color:"#fff",margin:0 }}>شاهد تجارب عملائنا</h2>
+              <h2 style={{ fontSize:30,fontWeight:700,color:DK,margin:0 }}>شاهد تجارب عملائنا</h2>
             </div>
 
             {/* Mobile: single carousel | Desktop: grid up to 3 */}
@@ -728,10 +728,6 @@ export default function HomePage() {
                                 <video src={v.url} controls playsInline
                                   style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
                               )}
-                              <div className="tiktok-overlay">
-                                <div style={{ fontWeight:800,fontSize:15,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.8)" }}>{v.name}</div>
-                                {v.caption && <div style={{ fontSize:12,color:"rgba(255,255,255,.75)",marginTop:4 }}>{v.caption}</div>}
-                              </div>
                             </div>
                           </div>
                         );
@@ -755,10 +751,6 @@ export default function HomePage() {
                                 <video src={v.url} controls playsInline
                                   style={{ width:"100%",height:"100%",objectFit:"contain",display:"block",background:"#000" }} />
                               )}
-                              <div className="tiktok-overlay">
-                                <div style={{ fontWeight:800,fontSize:15,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.8)" }}>{v.name}</div>
-                                {v.caption && <div style={{ fontSize:12,color:"rgba(255,255,255,.75)",marginTop:4 }}>{v.caption}</div>}
-                              </div>
                             </div>
                           </div>
                         );
