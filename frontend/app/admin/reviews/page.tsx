@@ -88,7 +88,7 @@ export default function ReviewsAdminPage() {
   const uploadVideoFile = async () => {
     const file = fileRef.current?.files?.[0];
     if (!file) return;
-    const CHUNK = 4 * 1024 * 1024; // 4 MB per chunk
+    const CHUNK = 1 * 1024 * 1024; // 1 MB per chunk
     const total = Math.ceil(file.size / CHUNK);
     const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
     const filename = `video-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
