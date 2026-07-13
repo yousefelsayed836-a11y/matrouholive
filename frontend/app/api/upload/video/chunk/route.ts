@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export async function POST(req: NextRequest) {
+  console.log("[video-chunk-proxy] POST received");
   try {
     // Forward the raw multipart body directly — avoids rebuilding FormData server-side
     const contentType = req.headers.get("content-type") || "";
