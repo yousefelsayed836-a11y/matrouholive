@@ -28,6 +28,7 @@ const emptyForm = {
   price: "", old_price: "", stock: "", material: "", main_image: "",
   images: [] as string[],
   category_id: "", category_ids: [] as string[], water_resistance: "", size_info: "", is_active: true,
+  matruh_only: false, is_new: false,
   variants: [] as Variant[],
 };
 
@@ -113,6 +114,7 @@ export default function ProductsPage() {
           category_ids: addForm.category_ids.length > 0 ? addForm.category_ids : undefined,
           water_resistance: addForm.water_resistance || undefined,
           size_info: addForm.size_info || undefined, is_active: addForm.is_active,
+          matruh_only: !!addForm.matruh_only, is_new: !!addForm.is_new,
           variants: addForm.variants || [],
         }),
       });
@@ -145,6 +147,7 @@ export default function ProductsPage() {
           category_ids: fullEditForm.category_ids.length > 0 ? fullEditForm.category_ids : undefined,
           water_resistance: fullEditForm.water_resistance || undefined,
           size_info: fullEditForm.size_info || undefined, is_active: fullEditForm.is_active,
+          matruh_only: !!fullEditForm.matruh_only, is_new: !!fullEditForm.is_new,
           variants: fullEditForm.variants || [],
         }),
       });
@@ -210,6 +213,8 @@ export default function ProductsPage() {
       category_ids: p.category_ids || (p.categories?.map(c => c.id)) || (p.category_id ? [p.category_id] : []),
       water_resistance: p.water_resistance || "", size_info: p.size_info || "",
       is_active: p.is_active ?? true,
+      matruh_only: !!(p as any).matruh_only,
+      is_new: !!(p as any).is_new,
       variants: (p.variants || []).map(v => ({
         option_name: v.option_name, option_value: v.option_value,
         quantity: v.quantity, price_override: v.price_override, sku: v.sku || "",

@@ -273,12 +273,17 @@ export default function AnalyticsPage() {
               </p>
               {funnel && (
                 <>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {(funnel.funnel || []).map((step: any, i: number) => {
                       const firstCount = funnel.funnel[0]?.count || 1;
+                      const prevCount = i > 0 ? (funnel.funnel[i-1]?.count || 0) : firstCount;
                       const pct = firstCount > 0 ? Math.round((step.count / firstCount) * 100) : 0;
-                      const dropPct = i > 0 && funnel.funnel[i-1]?.count > 0
-                        ? Math.round((1 - step.count / funnel.funnel[i-1].count) * 100)
+                      const prevPct = i > 0 ? Math.round((funnel.funnel[i-1]?.count / firstCount) * 100) : 100;
+                      // Cap bar width so funnel always narrows visually
+                      const barPct = Math.min(pct, prevPct);
+                      const isAbove = i > 0 && step.count > prevCount;
+                      const dropPct = !isAbove && i > 0 && prevCount > 0
+                        ? Math.round((1 - step.count / prevCount) * 100)
                         : 0;
                       const colors = [G, "#1d4ed8", "#7c3aed", "#059669"];
                       return (
@@ -287,8 +292,13 @@ export default function AnalyticsPage() {
                             <span style={{ fontWeight: 700, color: "#1a1a2e" }}>
                               {i + 1}. {step.step}
                             </span>
-                            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                              {i > 0 && step.count < funnel.funnel[i-1]?.count && (
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              {isAbove && (
+                                <span style={{ fontSize: 11, color: "#92400e", background: "#fef3c7", padding: "2px 8px", borderRadius: 12, fontWeight: 600 }}>
+                                  ⚠️ بيانات قديمة
+                                </span>
+                              )}
+                              {!isAbove && i > 0 && dropPct > 0 && (
                                 <span style={{ fontSize: 12, color: "#dc2626", background: "#fee2e2", padding: "2px 8px", borderRadius: 12, fontWeight: 600 }}>
                                   ↓ {dropPct}% تركوا
                                 </span>
@@ -296,14 +306,14 @@ export default function AnalyticsPage() {
                               <span style={{ fontWeight: 800, color: colors[i] }}>{fmt(step.count)}</span>
                             </div>
                           </div>
-                          <div style={{ height: 20, background: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}>
+                          <div style={{ height: 22, background: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}>
                             <div style={{
                               height: "100%",
-                              width: `${Math.max(pct, step.count > 0 ? 2 : 0)}%`,
-                              background: colors[i],
+                              width: `${Math.max(barPct, step.count > 0 ? 2 : 0)}%`,
+                              background: isAbove ? "#d1d5db" : colors[i],
                               borderRadius: 6,
                               display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 8,
-                              fontSize: 11, color: "#fff", fontWeight: 700,
+                              fontSize: 11, color: isAbove ? "#555" : "#fff", fontWeight: 700,
                               transition: "width 0.8s ease"
                             }}>
                               {step.count > 0 ? `${pct}%` : ""}
@@ -312,6 +322,9 @@ export default function AnalyticsPage() {
                         </div>
                       );
                     })}
+                  </div>
+                  <div style={{ marginTop: 12, fontSize: 12, color: "#aaa", textAlign: "center" }}>
+                    ⚠️ الطلبات المكتملة تشمل بيانات قديمة قبل بدء التتبع — ستتحسن الدقة مع الوقت
                   </div>
 
                   {funnel.topViewed?.length > 0 && (

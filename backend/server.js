@@ -51,9 +51,32 @@ app.use((req, res, next) => { req.user = { id: 'admin', role: 'admin' }; next();
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const _STATIC_UPLOADS = fs.existsSync('/data') ? '/data/uploads' : path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(_STATIC_UPLOADS));
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Separate disk-based uploader for videos — avoids loading large files into RAM
+const videoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      // UPLOADS_DIR is defined below but we reference it via closure after init
+      const dir = fs.existsSync('/data') ? '/data/uploads' : path.join(__dirname, 'uploads');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = (file.originalname.split('.').pop() || 'mp4').toLowerCase();
+      cb(null, `video-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`);
+    },
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+  fileFilter: (req, file, cb) => {
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)) cb(null, true);
+    else cb(new Error('Invalid video format'));
+  },
+});
 
 const server = http.createServer(app);
 const io = initSocket(server);
@@ -72,48 +95,53 @@ app.use('/api/analytics', require('./routes/analytics'));
 const bulkUploadRoutes = require('./routes/admin/bulkUpload');
 app.use('/api/admin/products/bulk-upload', upload.single('csv'), bulkUploadRoutes);
 
+// On Render.com, use the persistent disk at /data; fall back to local uploads/
+const UPLOADS_DIR = fs.existsSync('/data') ? '/data/uploads' : path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+function getPublicUrl(req, filename) {
+  const base = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
+  return `${base}/uploads/${filename}`;
+}
+
 app.get('/api/upload', (req, res) => {
-  res.json({ connected: !!process.env.GITHUB_TOKEN, repo: process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive' });
+  res.json({ connected: true, storage: 'local' });
 });
 
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-    const token = process.env.GITHUB_TOKEN;
-    const repo  = process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive';
-    if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
-    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
-    const filename = `uploads/${Date.now()}.${ext}`;
-    const content  = req.file.buffer.toString('base64');
-    const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filename}`, {
-      method: 'PUT',
-      headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `upload ${filename}`, content }),
-    });
-    if (!ghRes.ok) { const e = await ghRes.json(); throw new Error(e.message || 'GitHub error'); }
-    const url = `https://raw.githubusercontent.com/${repo}/main/${filename}`;
-    res.json({ success: true, url });
+    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
+    res.json({ success: true, url: getPublicUrl(req, filename) });
   } catch (error) { console.error('Upload error:', error); res.status(500).json({ error: String(error.message) }); }
+});
+
+app.post('/api/upload/video', (req, res, next) => {
+  videoUpload.single('video')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'الملف أكبر من 500MB' });
+      return res.status(400).json({ error: err.message || 'Upload error' });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No video uploaded' });
+    res.json({ success: true, url: getPublicUrl(req, req.file.filename) });
+  } catch (error) { res.status(500).json({ error: String(error.message) }); }
 });
 
 app.post('/api/upload/multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No images uploaded' });
-    const token = process.env.GITHUB_TOKEN;
-    const repo  = process.env.GITHUB_REPO || 'yousefelsayed836-a11y/matrouholive';
-    if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
-    const urls = await Promise.all(req.files.map(async (file) => {
-      const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase();
-      const filename = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const content  = file.buffer.toString('base64');
-      const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filename}`, {
-        method: 'PUT',
-        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `upload ${filename}`, content }),
-      });
-      if (!ghRes.ok) { const e = await ghRes.json(); throw new Error(e.message); }
-      return `https://raw.githubusercontent.com/${repo}/main/${filename}`;
-    }));
+    const urls = req.files.map((file) => {
+      const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase().replace('jpeg', 'jpg');
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
+      return getPublicUrl(req, filename);
+    });
     res.json({ success: true, urls });
   } catch (error) { res.status(500).json({ error: String(error.message) }); }
 });

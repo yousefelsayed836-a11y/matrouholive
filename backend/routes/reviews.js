@@ -21,4 +21,12 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    await runQuery('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+    const reviews = await allQuery('SELECT * FROM reviews ORDER BY created_at DESC LIMIT 50');
+    res.json({ reviews });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

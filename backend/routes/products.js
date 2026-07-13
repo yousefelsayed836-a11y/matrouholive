@@ -104,14 +104,16 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, category_ids, material, water_resistance, size_info, stock, is_active, is_featured, variants } = req.body;
+    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, category_ids, material, water_resistance, size_info, stock, is_active, is_featured, matruh_only, is_new, variants } = req.body;
     const allCatIds = Array.isArray(category_ids) && category_ids.length > 0 ? category_ids : (category_id ? [category_id] : []);
     const resolvedCategoryId = allCatIds[0] || await resolveCategoryId(category_id) || null;
     const id = uuidv4();
     const imagesArr = Array.isArray(images) ? images : (images ? [images] : []);
     const mainImg = main_image || imagesArr[0] || null;
-    await runQuery(`INSERT INTO products (id, name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, material, water_resistance, size_info, stock, is_active, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name_en, name_ar || name_en, description_en || null, description_ar || null, price, old_price || null, JSON.stringify(imagesArr), mainImg, resolvedCategoryId, material || null, water_resistance || null, size_info || null, stock || 0, is_active !== undefined ? (is_active ? 1 : 0) : 1, is_featured ? 1 : 0]);
+    await runQuery('ALTER TABLE products ADD COLUMN IF NOT EXISTS matruh_only BOOLEAN DEFAULT FALSE').catch(() => {});
+    await runQuery('ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT FALSE').catch(() => {});
+    await runQuery(`INSERT INTO products (id, name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, material, water_resistance, size_info, stock, is_active, is_featured, matruh_only, is_new) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name_en, name_ar || name_en, description_en || null, description_ar || null, price, old_price || null, JSON.stringify(imagesArr), mainImg, resolvedCategoryId, material || null, water_resistance || null, size_info || null, stock || 0, is_active !== undefined ? (is_active ? 1 : 0) : 1, is_featured ? 1 : 0, matruh_only ? true : false, is_new ? true : false]);
     if (allCatIds.length > 0) await syncProductCategories(id, allCatIds);
     if (variants && Array.isArray(variants)) await insertVariants(id, variants);
     res.json({ success: true, product: await getFullProduct(id) });
@@ -122,7 +124,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!await getQuery('SELECT id FROM products WHERE id = ?', [id])) return res.status(404).json({ error: 'Product not found' });
-    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, category_ids, material, water_resistance, size_info, stock, is_active, is_featured, variants } = req.body;
+    const { name_en, name_ar, description_en, description_ar, price, old_price, images, main_image, category_id, category_ids, material, water_resistance, size_info, stock, is_active, is_featured, matruh_only, is_new, variants } = req.body;
     const fields = []; const vals = [];
     if (name_en !== undefined) { fields.push('name_en = ?'); vals.push(name_en); }
     if (name_ar !== undefined) { fields.push('name_ar = ?'); vals.push(name_ar); }
@@ -138,6 +140,8 @@ router.put('/:id', async (req, res) => {
     if (stock !== undefined) { fields.push('stock = ?'); vals.push(Number(stock)); }
     if (is_active !== undefined) { fields.push('is_active = ?'); vals.push(is_active ? 1 : 0); }
     if (is_featured !== undefined) { fields.push('is_featured = ?'); vals.push(is_featured ? 1 : 0); }
+    if (matruh_only !== undefined) { fields.push('matruh_only = ?'); vals.push(matruh_only ? true : false); }
+    if (is_new !== undefined) { fields.push('is_new = ?'); vals.push(is_new ? true : false); }
     fields.push('updated_at = NOW()'); vals.push(id);
     await runQuery(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, vals);
     // Handle category_ids (multi) or category_id (single)
