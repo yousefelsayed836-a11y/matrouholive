@@ -131,6 +131,36 @@ app.post('/api/upload/video', (req, res, next) => {
   } catch (error) { res.status(500).json({ error: String(error.message) }); }
 });
 
+// Chunked video upload — receives 4MB pieces and assembles them on last chunk
+app.post('/api/upload/video/chunk', upload.single('chunk'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No chunk received' });
+    const { chunkIndex, totalChunks, filename } = req.body;
+    if (!filename || chunkIndex === undefined || !totalChunks)
+      return res.status(400).json({ error: 'Missing chunk metadata' });
+
+    const chunkDir = path.join(UPLOADS_DIR, '_chunks_' + filename);
+    if (!fs.existsSync(chunkDir)) fs.mkdirSync(chunkDir, { recursive: true });
+    fs.writeFileSync(path.join(chunkDir, String(chunkIndex).padStart(6, '0')), req.file.buffer);
+
+    if (Number(chunkIndex) === Number(totalChunks) - 1) {
+      // Assemble all chunks into final file
+      const finalPath = path.join(UPLOADS_DIR, filename);
+      const chunks = fs.readdirSync(chunkDir).sort();
+      const out = fs.createWriteStream(finalPath);
+      for (const c of chunks) {
+        out.write(fs.readFileSync(path.join(chunkDir, c)));
+        fs.unlinkSync(path.join(chunkDir, c));
+      }
+      out.end();
+      try { fs.rmdirSync(chunkDir); } catch {}
+      return res.json({ success: true, url: getPublicUrl(req, filename), done: true });
+    }
+
+    res.json({ success: true, done: false });
+  } catch (e) { res.status(500).json({ error: String(e.message) }); }
+});
+
 app.post('/api/upload/multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No images uploaded' });

@@ -110,33 +110,30 @@ export default function ReviewsAdminPage() {
   const uploadVideoFile = async () => {
     const file = fileRef.current?.files?.[0];
     if (!file) return;
+    const CHUNK = 4 * 1024 * 1024; // 4 MB per chunk
+    const total = Math.ceil(file.size / CHUNK);
+    const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
+    const filename = `video-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     setUploading(true);
     setUploadProgress(0);
     try {
-      const formData = new FormData();
-      formData.append("video", file);
-      const xhr = new XMLHttpRequest();
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
-      };
-      const result = await new Promise<{ url: string }>((resolve, reject) => {
-        xhr.onload = () => {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            if (xhr.status === 200 && data.url) resolve(data);
-            else reject(new Error(data.error || `خطأ ${xhr.status}`));
-          } catch { reject(new Error(`خطأ في الاستجابة (${xhr.status})`)); }
-        };
-        xhr.onerror = () => reject(new Error("خطأ في الشبكة - تحقق من الاتصال"));
-        xhr.open("POST", `${API_BASE}/upload/video`);
-        xhr.send(formData);
-      });
+      let finalUrl = "";
+      for (let i = 0; i < total; i++) {
+        const chunk = file.slice(i * CHUNK, (i + 1) * CHUNK);
+        const form = new FormData();
+        form.append("chunk", chunk, filename);
+        form.append("chunkIndex", String(i));
+        form.append("totalChunks", String(total));
+        form.append("filename", filename);
+        const res = await fetch(`${API_BASE}/upload/video/chunk`, { method: "POST", body: form });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error || `خطأ ${res.status}`); }
+        const data = await res.json();
+        setUploadProgress(Math.round(((i + 1) / total) * 100));
+        if (data.done) finalUrl = data.url;
+      }
       const newVideo: VideoReview = {
-        id: Date.now().toString(),
-        url: result.url,
-        name: uploadName.trim() || "عميل",
-        caption: uploadCaption.trim(),
-        isLocal: true,
+        id: Date.now().toString(), url: finalUrl,
+        name: uploadName.trim() || "عميل", caption: uploadCaption.trim(), isLocal: true,
       };
       const updated = [newVideo, ...videos];
       setVideos(updated);
