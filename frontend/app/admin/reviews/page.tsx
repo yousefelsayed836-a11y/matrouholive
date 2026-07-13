@@ -23,13 +23,9 @@ export default function ReviewsAdminPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [videos, setVideos] = useState<VideoReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [videoSaving, setVideoSaving] = useState(false);
-  const [videoSaved, setVideoSaved] = useState(false);
-  const [addVideoForm, setAddVideoForm] = useState({ url: "", name: "", caption: "" });
   const [addReviewForm, setAddReviewForm] = useState({ name: "", text: "", stars: 5 });
   const [addingReview, setAddingReview] = useState(false);
   const [tab, setTab] = useState<"reviews" | "videos">("reviews");
-  const [uploadMode, setUploadMode] = useState<"url" | "file">("url");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [uploadName, setUploadName] = useState("");
@@ -91,20 +87,6 @@ export default function ReviewsAdminPage() {
       setTimeout(() => setVideoSaved(false), 2000);
     } catch {}
     setVideoSaving(false);
-  };
-
-  const addVideoByUrl = async () => {
-    if (!addVideoForm.url.trim()) return;
-    const newVideo: VideoReview = {
-      id: Date.now().toString(),
-      url: addVideoForm.url.trim(),
-      name: addVideoForm.name.trim() || "عميل",
-      caption: addVideoForm.caption.trim(),
-    };
-    const updated = [newVideo, ...videos];
-    setVideos(updated);
-    await saveVideos(updated);
-    setAddVideoForm({ url: "", name: "", caption: "" });
   };
 
   const uploadVideoFile = async () => {
@@ -221,73 +203,35 @@ export default function ReviewsAdminPage() {
       {tab === "videos" && (
         <div>
           <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-
-            {/* Toggle: URL vs File */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, direction: "rtl" }}>
-              <button onClick={() => setUploadMode("url")}
-                style={{ padding: "8px 20px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit",
-                  background: uploadMode === "url" ? ACCENT : "#f3f4f6", color: uploadMode === "url" ? "#fff" : "#555" }}>
-                🔗 رابط YouTube
-              </button>
-              <button onClick={() => setUploadMode("file")}
-                style={{ padding: "8px 20px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit",
-                  background: uploadMode === "file" ? ACCENT : "#f3f4f6", color: uploadMode === "file" ? "#fff" : "#555" }}>
-                📁 رفع من الكمبيوتر
-              </button>
+            <p style={{ margin: "0 0 14px", fontWeight: 800, fontSize: 15, color: "#1a1a2e", direction: "rtl" }}>📁 رفع فيديو من جهازك</p>
+            <div style={{ border: "2px dashed #d1e7c8", borderRadius: 12, padding: "24px 20px", textAlign: "center", marginBottom: 14, background: "#f8fdf4", cursor: "pointer" }}
+              onClick={() => fileRef.current?.click()}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🎬</div>
+              <p style={{ margin: 0, fontWeight: 700, color: ACCENT, fontSize: 14 }}>اضغط لاختيار فيديو</p>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#aaa" }}>MP4, WebM, MOV — حتى 500MB</p>
+              <input ref={fileRef} type="file" accept="video/*" style={{ display: "none" }}
+                onChange={e => e.target.files?.[0] && setUploadName("")} />
             </div>
-
-            {uploadMode === "url" ? (
-              <>
-                <p style={{ margin: "0 0 14px", fontWeight: 800, fontSize: 15, color: "#1a1a2e", direction: "rtl" }}>➕ إضافة فيديو YouTube</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                  <input placeholder="رابط الفيديو (YouTube)" value={addVideoForm.url}
-                    onChange={e => setAddVideoForm(p => ({ ...p, url: e.target.value }))}
-                    style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "ltr" }} />
-                  <input placeholder="اسم العميل (اختياري)" value={addVideoForm.name}
-                    onChange={e => setAddVideoForm(p => ({ ...p, name: e.target.value }))}
-                    style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "rtl" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <input placeholder="اسم العميل (اختياري)" value={uploadName}
+                onChange={e => setUploadName(e.target.value)}
+                style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "rtl" }} />
+              <input placeholder="وصف قصير (اختياري)" value={uploadCaption}
+                onChange={e => setUploadCaption(e.target.value)}
+                style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "rtl" }} />
+            </div>
+            {uploading && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ background: "#e5e7eb", borderRadius: 20, height: 8, overflow: "hidden" }}>
+                  <div style={{ background: ACCENT, height: "100%", width: `${uploadProgress}%`, transition: "width .3s", borderRadius: 20 }} />
                 </div>
-                <input placeholder="وصف قصير (اختياري)" value={addVideoForm.caption}
-                  onChange={e => setAddVideoForm(p => ({ ...p, caption: e.target.value }))}
-                  style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "rtl", boxSizing: "border-box", marginBottom: 10 }} />
-                <button onClick={addVideoByUrl} disabled={videoSaving}
-                  style={{ padding: "10px 28px", borderRadius: 10, border: "none", background: videoSaved ? "#22c55e" : ACCENT, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                  {videoSaved ? "✅ تم الحفظ!" : videoSaving ? "جاري الحفظ..." : "➕ إضافة الفيديو"}
-                </button>
-              </>
-            ) : (
-              <>
-                <p style={{ margin: "0 0 14px", fontWeight: 800, fontSize: 15, color: "#1a1a2e", direction: "rtl" }}>📁 رفع فيديو من جهازك</p>
-                <div style={{ border: "2px dashed #d1e7c8", borderRadius: 12, padding: "24px 20px", textAlign: "center", marginBottom: 14, background: "#f8fdf4", cursor: "pointer" }}
-                  onClick={() => fileRef.current?.click()}>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>🎬</div>
-                  <p style={{ margin: 0, fontWeight: 700, color: ACCENT, fontSize: 14 }}>اضغط لاختيار فيديو</p>
-                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "#aaa" }}>MP4, WebM, MOV — حتى 500MB</p>
-                  <input ref={fileRef} type="file" accept="video/*" style={{ display: "none" }}
-                    onChange={e => e.target.files?.[0] && setUploadName("")} />
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                  <input placeholder="اسم العميل (اختياري)" value={uploadName}
-                    onChange={e => setUploadName(e.target.value)}
-                    style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "rtl" }} />
-                  <input placeholder="وصف قصير (اختياري)" value={uploadCaption}
-                    onChange={e => setUploadCaption(e.target.value)}
-                    style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #ddd", fontSize: 14, fontFamily: "inherit", direction: "rtl" }} />
-                </div>
-                {uploading && (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ background: "#e5e7eb", borderRadius: 20, height: 8, overflow: "hidden" }}>
-                      <div style={{ background: ACCENT, height: "100%", width: `${uploadProgress}%`, transition: "width .3s", borderRadius: 20 }} />
-                    </div>
-                    <p style={{ margin: "6px 0 0", fontSize: 12, color: "#888", textAlign: "center" }}>{uploadProgress}% جاري الرفع...</p>
-                  </div>
-                )}
-                <button onClick={uploadVideoFile} disabled={uploading}
-                  style={{ padding: "10px 28px", borderRadius: 10, border: "none", background: uploading ? "#888" : ACCENT, color: "#fff", fontWeight: 700, fontSize: 14, cursor: uploading ? "wait" : "pointer" }}>
-                  {uploading ? `جاري الرفع... ${uploadProgress}%` : "⬆️ رفع الفيديو"}
-                </button>
-              </>
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#888", textAlign: "center" }}>{uploadProgress}% جاري الرفع...</p>
+              </div>
             )}
+            <button onClick={uploadVideoFile} disabled={uploading}
+              style={{ padding: "10px 28px", borderRadius: 10, border: "none", background: uploading ? "#888" : ACCENT, color: "#fff", fontWeight: 700, fontSize: 14, cursor: uploading ? "wait" : "pointer" }}>
+              {uploading ? `جاري الرفع... ${uploadProgress}%` : "⬆️ رفع الفيديو"}
+            </button>
           </div>
 
           {/* Videos grid */}
