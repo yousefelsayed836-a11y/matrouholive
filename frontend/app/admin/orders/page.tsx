@@ -70,6 +70,14 @@ export default function OrdersPage() {
   const [showShipperReport, setShowShipperReport] = useState(false);
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
 
+  /* rep report — own date range + own fetched data */
+  const todayStr = () => new Date().toISOString().split("T")[0];
+  const firstOfMonth = () => { const d = new Date(); d.setDate(1); return d.toISOString().split("T")[0]; };
+  const [repFrom, setRepFrom] = useState(firstOfMonth);
+  const [repTo, setRepTo]   = useState(todayStr);
+  const [repOrders, setRepOrders] = useState<Order[]>([]);
+  const [repLoading, setRepLoading] = useState(false);
+
   useEffect(() => {
     fetchOrders();
     fetch(`${API_BASE}/settings/shipping_rates`).then(r => r.json()).then(d => {
@@ -86,6 +94,16 @@ export default function OrdersPage() {
       setOrders(Array.isArray(data) ? data : data.orders || []);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
+  };
+
+  const fetchRepReport = async (from: string, to: string) => {
+    setRepLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/orders?date_from=${from}&date_to=${to}`, { headers: { Accept: "application/json" } });
+      const data = await res.json();
+      setRepOrders(Array.isArray(data) ? data : data.orders || []);
+    } catch {}
+    setRepLoading(false);
   };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -343,41 +361,106 @@ export default function OrdersPage() {
           {/* Shipper Report */}
           {showShipperReport && (() => {
             const shippers = ["علاء", "سامح", "شخص آخر"];
-            const unassigned = orders.filter(o => !o.shipped_by && o.status !== "cancelled");
+            const src = repOrders.length > 0 ? repOrders : [];
+            const unassigned = src.filter(o => !o.shipped_by && o.status !== "cancelled");
+            const cancelled  = src.filter(o => o.status === "cancelled");
             const stats = shippers.map(name => {
-              const s = orders.filter(o => o.shipped_by === name);
+              const s = src.filter(o => o.shipped_by === name);
+              const delivered = s.filter(o => o.status === "delivered" || o.status === "completed");
+              const pending   = s.filter(o => ["pending","processing","shipped"].includes(o.status));
+              const canc      = s.filter(o => o.status === "cancelled");
               return {
                 name,
                 total: s.length,
-                revenue: s.reduce((sum, o) => sum + (o.total_amount || 0), 0),
-                delivered: s.filter(o => o.status === "delivered" || o.status === "completed").length,
-                pending: s.filter(o => o.status === "pending" || o.status === "processing" || o.status === "shipped").length,
+                revenue: delivered.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+                delivered: delivered.length,
+                pending:   pending.length,
+                cancelled: canc.length,
               };
-            });
+            }).filter(s => s.total > 0 || repOrders.length === 0);
+
+            const totalRev = stats.reduce((s, r) => s + r.revenue, 0);
+            const totalDel = stats.reduce((s, r) => s + r.delivered, 0);
+
             return (
               <div style={{ background: "#fff", borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", direction: "rtl" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1a1a2e" }}>👥 تقرير المندوبين</h2>
-                  <span style={{ fontSize: 13, color: "#888" }}>إجمالي الطلبات: {orders.length} | غير محدد: {unassigned.length}</span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
-                  {stats.map(s => (
-                    <div key={s.name} style={{ background: s.total > 0 ? "#f5f9ee" : "#f9f9f9", borderRadius: 14, padding: "18px 20px", border: `2px solid ${s.total > 0 ? "#c8d9b0" : "#eee"}` }}>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>👤 {s.name}</div>
-                      <div style={{ fontSize: 26, fontWeight: 900, color: "#4B6741", marginBottom: 4 }}>{s.total} طلب</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#666", marginBottom: 8 }}>{s.revenue.toLocaleString()} ج.م</div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>✅ {s.delivered} تسليم</span>
-                        <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>⏳ {s.pending} معلق</span>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ background: "#fff8f0", borderRadius: 14, padding: "18px 20px", border: "2px solid #fed7aa" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>⚠️ غير محدد</div>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: "#ea580c", marginBottom: 4 }}>{unassigned.length} طلب</div>
-                    <div style={{ fontSize: 13, color: "#888" }}>لم يُحدد المندوب بعد</div>
+
+                {/* Title + date range */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 14 }}>
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1a1a2e" }}>👥 تقرير المندوبين</h2>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <label style={{ fontSize: 13, color: "#555", fontWeight: 600 }}>من</label>
+                    <input type="date" value={repFrom} onChange={e => setRepFrom(e.target.value)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1.5px solid #d1e7c8", fontSize: 13, fontFamily: "inherit" }} />
+                    <label style={{ fontSize: 13, color: "#555", fontWeight: 600 }}>إلى</label>
+                    <input type="date" value={repTo} onChange={e => setRepTo(e.target.value)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1.5px solid #d1e7c8", fontSize: 13, fontFamily: "inherit" }} />
+                    <button onClick={() => fetchRepReport(repFrom, repTo)} disabled={repLoading}
+                      style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: repLoading ? "#aaa" : "#4B6741", color: "#fff", fontWeight: 700, fontSize: 13, cursor: repLoading ? "default" : "pointer" }}>
+                      {repLoading ? "⏳ جاري..." : "🔍 عرض التقرير"}
+                    </button>
+                    {/* quick presets */}
+                    {[
+                      { label: "هذا الشهر", from: firstOfMonth(), to: todayStr() },
+                      { label: "الأسبوع", from: (() => { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().split("T")[0]; })(), to: todayStr() },
+                      { label: "آخر 30 يوم", from: (() => { const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().split("T")[0]; })(), to: todayStr() },
+                    ].map(p => (
+                      <button key={p.label} onClick={() => { setRepFrom(p.from); setRepTo(p.to); fetchRepReport(p.from, p.to); }}
+                        style={{ padding: "6px 12px", borderRadius: 8, border: "1.5px solid #4B6741", background: "#f0faf0", color: "#4B6741", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                        {p.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
+
+                {repOrders.length === 0 && !repLoading && (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: "#aaa", fontSize: 14 }}>
+                    اختر الفترة الزمنية واضغط «عرض التقرير»
+                  </div>
+                )}
+
+                {repOrders.length > 0 && (
+                  <>
+                    {/* Summary bar */}
+                    <div style={{ display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
+                      {[
+                        { label: "إجمالي الطلبات", val: src.length, bg: "#f0faf0", clr: "#4B6741" },
+                        { label: "مسلّمة", val: totalDel, bg: "#dcfce7", clr: "#166534" },
+                        { label: "إيراد المُسلَّم", val: totalRev.toLocaleString() + " ج.م", bg: "#fef9c3", clr: "#854d0e" },
+                        { label: "غير محدد مندوب", val: unassigned.length, bg: "#fff7ed", clr: "#c2410c" },
+                        { label: "ملغية", val: cancelled.length, bg: "#fef2f2", clr: "#b91c1c" },
+                      ].map(s => (
+                        <div key={s.label} style={{ background: s.bg, borderRadius: 10, padding: "10px 18px", minWidth: 110, flex: 1 }}>
+                          <div style={{ fontSize: 11, color: s.clr, fontWeight: 700, marginBottom: 3 }}>{s.label}</div>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: s.clr }}>{s.val}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Per-rep cards */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+                      {stats.map(s => (
+                        <div key={s.name} style={{ background: "#f5f9ee", borderRadius: 14, padding: "18px 20px", border: "2px solid #c8d9b0" }}>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a2e", marginBottom: 10 }}>👤 {s.name}</div>
+                          <div style={{ fontSize: 28, fontWeight: 900, color: "#4B6741", marginBottom: 4 }}>{s.total} طلب</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#555", marginBottom: 10 }}>💰 {s.revenue.toLocaleString()} ج.م (مسلّم)</div>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>✅ {s.delivered} تسليم</span>
+                            <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>⏳ {s.pending} معلق</span>
+                            {s.cancelled > 0 && <span style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>❌ {s.cancelled} ملغي</span>}
+                          </div>
+                        </div>
+                      ))}
+                      {unassigned.length > 0 && (
+                        <div style={{ background: "#fff8f0", borderRadius: 14, padding: "18px 20px", border: "2px solid #fed7aa" }}>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a2e", marginBottom: 10 }}>⚠️ غير محدد</div>
+                          <div style={{ fontSize: 28, fontWeight: 900, color: "#ea580c", marginBottom: 4 }}>{unassigned.length} طلب</div>
+                          <div style={{ fontSize: 12, color: "#888" }}>لم يُحدد لهم مندوب</div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             );
           })()}
