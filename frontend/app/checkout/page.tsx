@@ -191,17 +191,29 @@ export default function CheckoutPage() {
     <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f7c9", direction: "rtl" }}>
       <div style={{ background: "#f1f7c9", borderRadius: 24, padding: 48, textAlign: "center", maxWidth: 480, boxShadow: "0 8px 40px rgba(75,103,65,0.15)", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
         <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
-        <h2 style={{ color: "#2a3a20", fontSize: 26, fontWeight: 800, margin: "0 0 12px" }}>تم الطلب بنجاح!</h2>
-        {orderId && <p style={{ color: "#888", margin: "0 0 8px" }}>رقم الطلب: #{orderId.slice(-6)}</p>}
-        <p style={{ color: "#555", fontSize: 15, margin: "0 0 24px" }}>شكراً {form.fullName}! سنتواصل معك على {form.phone} لتأكيد الطلب.</p>
+        <h2 style={{ color: "#2a3a20", fontSize: 26, fontWeight: 800, margin: "0 0 12px" }}>تم تأكيد طلبك! 🎉</h2>
+        {orderId && <p style={{ color: "#4f7032", fontWeight: 700, fontSize: 15, margin: "0 0 6px" }}>رقم الطلب: #{orderId.slice(-6)}</p>}
+        <p style={{ color: "#555", fontSize: 15, margin: "0 0 8px" }}>شكراً <strong>{form.fullName}</strong>!</p>
+        <div style={{ background: "#e8f5d9", border: "1.5px solid #b2d88a", borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "right" }}>
+          <p style={{ margin: 0, color: "#2a3a20", fontSize: 14, fontWeight: 600, lineHeight: 1.8 }}>
+            ✅ تم تأكيد طلبك وسيصلك مكالمة قبل تحرك مندوب الشحن والتوصيل خلال <strong>5 أيام</strong>
+          </p>
+        </div>
         <div style={{ background: "#f1f7c9", borderRadius: 12, padding: "14px 20px", marginBottom: 24, textAlign: "right" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#888", fontSize: 13 }}>المجموع الفرعي</span><span style={{ fontWeight: 600 }}>{subtotal} ج.م</span></div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#888", fontSize: 13 }}>الشحن إلى {form.governorate}</span><span style={{ fontWeight: 700, color: shippingCost === 0 ? "#166534" : "#333" }}>{shippingCost === 0 ? "مجاني 🎉" : `${shippingCost} ج.م`}</span></div>
           <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #eee", paddingTop: 8, marginTop: 8 }}><span style={{ fontWeight: 700 }}>الإجمالي</span><span style={{ fontWeight: 800, color: "#4f7032", fontSize: 18 }}>{finalTotal} ج.م</span></div>
         </div>
-        <Link href="/" style={{ display: "block", padding: "14px 32px", borderRadius: 12, background: "#4f7032", color: "#fff", fontWeight: 700, textDecoration: "none", fontSize: 15 }}>
-          متابعة التسوق ←
-        </Link>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Link href={`/my-orders?phone=${encodeURIComponent(form.phone)}`}
+            style={{ display: "block", padding: "14px 32px", borderRadius: 12, background: "#4f7032", color: "#fff", fontWeight: 700, textDecoration: "none", fontSize: 15, textAlign: "center" }}>
+            📦 تتبع طلبي
+          </Link>
+          <Link href="/"
+            style={{ display: "block", padding: "12px 32px", borderRadius: 12, border: "2px solid #4f7032", color: "#4f7032", fontWeight: 700, textDecoration: "none", fontSize: 15, textAlign: "center" }}>
+            متابعة التسوق ←
+          </Link>
+        </div>
       </div>
     </div>
   );

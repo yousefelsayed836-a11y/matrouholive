@@ -94,6 +94,33 @@ router.get('/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+router.put('/:id/items', async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ error: 'يجب أن يحتوي الطلب على منتج واحد على الأقل' });
+    const order = await getQuery('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+    if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+    if (!['pending', 'processing'].includes(order.status))
+      return res.status(400).json({ error: 'لا يمكن تعديل الطلب بعد شحنه' });
+    await runQuery('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
+    let itemsTotal = 0;
+    for (const item of items) {
+      const lineTotal = item.price * item.quantity;
+      itemsTotal += lineTotal;
+      await runQuery(
+        'INSERT INTO order_items (id, order_id, product_id, product_name, quantity, price, size, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [uuidv4(), req.params.id, item.product_id, item.product_name || null, item.quantity, item.price, item.size || null, lineTotal]
+      );
+    }
+    const newTotal = itemsTotal + (order.shipping_cost || 0);
+    await runQuery('UPDATE orders SET total_amount = ? WHERE id = ?', [newTotal, req.params.id]);
+    const updated = await getQuery('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+    const updatedItems = await allQuery('SELECT * FROM order_items WHERE order_id = ?', [req.params.id]);
+    res.json({ ...updated, items: updatedItems });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 router.put('/:id/shipped-by', async (req, res) => {
   try {
     const { shipped_by } = req.body;
