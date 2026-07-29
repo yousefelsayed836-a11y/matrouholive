@@ -17,9 +17,10 @@ const CB = "#f1f7c9"; const AU = "#bd9a52"; const DK = "#2d2b27";
 const BORDER = "#c8e6a0";
 
 const NAV = [
-  { label: "الرئيسية", href: "/" },
-  { label: "المنتجات", href: "/shop" },
-  { label: "تواصل معنا", href: "/contact" },
+  { label: "الرئيسية",   href: "/",          icon: "fa-home" },
+  { label: "المنتجات",   href: "/shop",       icon: "fa-store" },
+  { label: "طلباتي",    href: "/my-orders",  icon: "fa-box" },
+  { label: "تواصل معنا", href: "/contact",    icon: "fa-envelope" },
 ];
 
 const TICKER = ["🌿 نخلق لك من الطبيعة حياة أفضل", "🫒 زيت زيتون بكر ممتاز من مطروح",
@@ -174,8 +175,9 @@ export default function Header() {
                     <Link key={item.href} href={item.href} style={{
                       padding: '6px 14px', borderRadius: 20, textDecoration: 'none',
                       fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'Cairo, sans-serif',
-                      color: pathname === item.href ? '#fff' : G,
-                      background: pathname === item.href ? G : 'transparent',
+                      color: pathname === item.href ? '#fff' : item.href === '/my-orders' ? AU : G,
+                      background: pathname === item.href ? (item.href === '/my-orders' ? AU : G) : item.href === '/my-orders' ? `${AU}18` : 'transparent',
+                      border: item.href === '/my-orders' && pathname !== item.href ? `1.5px solid ${AU}` : '1.5px solid transparent',
                       transition: 'all 0.2s',
                     }}>{item.label}</Link>
                   ))}
@@ -295,13 +297,17 @@ export default function Header() {
             </div>
             {/* nav links */}
             <div style={{ padding: '12px 0', flex: 1 }}>
-              {NAV.map(item => (
-                <Link key={item.href} href={item.href}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', borderBottom: `1px solid ${CB}`, color: pathname === item.href ? G : DK, fontWeight: pathname === item.href ? 700 : 600, fontSize: 15, fontFamily: 'Cairo, sans-serif', background: pathname === item.href ? `${GL}88` : 'transparent' }}>
-                  <i className={`fas ${item.href === '/' ? 'fa-home' : item.href === '/shop' ? 'fa-store' : 'fa-envelope'}`} style={{ fontSize: 16, color: G, width: 20, textAlign: 'center' }} />
-                  {item.label}
-                </Link>
-              ))}
+              {NAV.map(item => {
+                const isOrders = item.href === '/my-orders';
+                return (
+                  <Link key={item.href} href={item.href}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', borderBottom: `1px solid ${CB}`, color: pathname === item.href ? (isOrders ? AU : G) : DK, fontWeight: pathname === item.href ? 700 : 600, fontSize: 15, fontFamily: 'Cairo, sans-serif', background: pathname === item.href ? (isOrders ? `${AU}18` : `${GL}88`) : 'transparent' }}>
+                    <i className={`fas ${item.icon}`} style={{ fontSize: 16, color: isOrders ? AU : G, width: 20, textAlign: 'center' }} />
+                    {item.label}
+                    {isOrders && <span style={{ background: AU, color: '#fff', borderRadius: 10, padding: '1px 8px', fontSize: 10, fontWeight: 800 }}>جديد</span>}
+                  </Link>
+                );
+              })}
               <Link href="/cart" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textDecoration: 'none', color: DK, fontWeight: 600, fontSize: 15, fontFamily: 'Cairo, sans-serif' }}>
                 <i className="fas fa-bag-shopping" style={{ fontSize: 16, color: G, width: 20, textAlign: 'center' }} />
                 سلة التسوق

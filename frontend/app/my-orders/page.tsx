@@ -67,7 +67,8 @@ function getImg(p: Product): string {
 
 function MyOrdersContent() {
   const params = useSearchParams();
-  const [phone, setPhone] = useState(params.get("phone") || "");
+  const initQ = params.get("phone") || params.get("q") || "";
+  const [query, setQuery] = useState(initQ);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -84,24 +85,24 @@ function MyOrdersContent() {
   const [prodSearch, setProdSearch] = useState("");
   const [showProdPicker, setShowProdPicker] = useState(false);
 
-  const fetchOrders = useCallback(async (ph: string) => {
-    if (!ph.trim()) return;
+  const doSearch = useCallback(async (q: string) => {
+    const term = q.trim();
+    if (!term) return;
     setLoading(true); setError(""); setSearched(true);
     try {
-      const res = await fetch(`${API_BASE}/orders/customer/${encodeURIComponent(ph.trim())}`);
+      const res = await fetch(`${API_BASE}/orders/search?q=${encodeURIComponent(term)}`);
       if (!res.ok) throw new Error("خطأ في الاتصال");
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch {
-      setError("تعذّر جلب الطلبات، تأكد من رقم الموبايل أو حاول مرة أخرى");
+      setError("تعذّر جلب الطلبات، تحقق من الاتصال وحاول مرة أخرى");
     }
     setLoading(false);
   }, []);
 
-  /* auto-search if phone came from URL */
+  /* auto-search if query came from URL */
   useEffect(() => {
-    const ph = params.get("phone");
-    if (ph) fetchOrders(ph);
+    if (initQ) doSearch(initQ);
   }, []);
 
   const fetchProducts = async () => {
@@ -213,24 +214,29 @@ function MyOrdersContent() {
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 56, marginBottom: 8 }}>📦</div>
           <h1 style={{ margin: "0 0 8px", fontSize: 26, fontWeight: 900, color: DK }}>طلباتي</h1>
-          <p style={{ margin: 0, color: "#777", fontSize: 14 }}>أدخل رقم موبايلك لعرض طلباتك وتعديلها</p>
+          <p style={{ margin: 0, color: "#777", fontSize: 14 }}>ابحث بالاسم أو رقم الموبايل أو رقم الطلب</p>
         </div>
 
-        {/* Phone search */}
+        {/* Search */}
         <div style={{ background: "#fff", borderRadius: 20, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,.06)", marginBottom: 24 }}>
           <div style={{ display: "flex", gap: 10 }}>
             <input
-              type="tel"
-              placeholder="رقم الموبايل (مثال: 01012345678)"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && fetchOrders(phone)}
-              style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: `1.5px solid ${GL}`, fontSize: 15, fontFamily: "inherit", outline: "none", background: CB }}
+              type="text"
+              placeholder="مثال: أحمد علي  أو  01012345678  أو  ABC123"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && doSearch(query)}
+              style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: `1.5px solid ${GL}`, fontSize: 15, fontFamily: "inherit", outline: "none", background: CB, direction: "rtl" }}
             />
-            <button onClick={() => fetchOrders(phone)} disabled={loading || !phone.trim()}
+            <button onClick={() => doSearch(query)} disabled={loading || !query.trim()}
               style={{ padding: "12px 24px", borderRadius: 12, border: "none", background: loading ? "#aaa" : G, color: "#fff", fontWeight: 700, fontSize: 15, cursor: loading ? "default" : "pointer", flexShrink: 0 }}>
               {loading ? "⏳" : "🔍 بحث"}
             </button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            {["بالاسم", "بالموبايل", "برقم الطلب"].map(hint => (
+              <span key={hint} style={{ fontSize: 11, background: GL, color: G, borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>✓ {hint}</span>
+            ))}
           </div>
         </div>
 

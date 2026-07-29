@@ -38,6 +38,22 @@ router.post('/', async (req, res) => {
   } catch (error) { console.error('Order creation error:', error); res.status(500).json({ error: error.message }); }
 });
 
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) return res.status(400).json({ error: 'يجب إدخال حرفين على الأقل' });
+    const term = q.trim();
+    const orders = await allQuery(
+      `SELECT * FROM orders WHERE customer_phone LIKE ? OR customer_name LIKE ? OR id LIKE ? ORDER BY created_at DESC LIMIT 30`,
+      [`%${term}%`, `%${term}%`, `%${term}%`]
+    );
+    const result = await Promise.all(orders.map(async o => ({
+      ...o, items: await allQuery('SELECT * FROM order_items WHERE order_id = ?', [o.id])
+    })));
+    res.json(result);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 router.get('/customers', async (req, res) => {
   try {
     const customers = await allQuery(`
