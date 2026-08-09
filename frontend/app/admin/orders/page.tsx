@@ -77,6 +77,9 @@ export default function OrdersPage() {
   const [repTo, setRepTo]   = useState(todayStr);
   const [repOrders, setRepOrders] = useState<Order[]>([]);
   const [repLoading, setRepLoading] = useState(false);
+  /* "all" = كل الطلبات ما عدا الملغية | "delivered" = المُسلَّمة فقط */
+  const [repScope, setRepScope] = useState<"all" | "delivered">("all");
+  const [expandedRep, setExpandedRep] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -364,11 +367,31 @@ export default function OrdersPage() {
             const src = repOrders.length > 0 ? repOrders : [];
             const unassigned = src.filter(o => !o.shipped_by && o.status !== "cancelled");
             const cancelled  = src.filter(o => o.status === "cancelled");
+
+            /* الطلبات اللي بتتحسب كـ "مبيعات" حسب النطاق المختار */
+            const inScope = (o: Order) => repScope === "delivered"
+              ? (o.status === "delivered" || o.status === "completed")
+              : o.status !== "cancelled";
+
+            /* تجميع المنتجات المُباعة: اسم المنتج → الكمية + قيمتها */
+            const productsOf = (list: Order[]) => {
+              const m = new Map<string, { qty: number; revenue: number }>();
+              list.filter(inScope).forEach(o => (o.items || []).forEach(i => {
+                const key = (i.product_name || "").trim() || "منتج غير معروف";
+                const prev = m.get(key) || { qty: 0, revenue: 0 };
+                prev.qty     += i.quantity || 0;
+                prev.revenue += i.total ?? (i.price || 0) * (i.quantity || 0);
+                m.set(key, prev);
+              }));
+              return m;
+            };
+
             const stats = shippers.map(name => {
               const s = src.filter(o => o.shipped_by === name);
               const delivered = s.filter(o => o.status === "delivered" || o.status === "completed");
               const pending   = s.filter(o => ["pending","processing","shipped"].includes(o.status));
               const canc      = s.filter(o => o.status === "cancelled");
+              const products  = productsOf(s);
               return {
                 name,
                 total: s.length,
@@ -376,8 +399,25 @@ export default function OrdersPage() {
                 delivered: delivered.length,
                 pending:   pending.length,
                 cancelled: canc.length,
+                products,
+                units: [...products.values()].reduce((sum, p) => sum + p.qty, 0),
               };
             }).filter(s => s.total > 0 || repOrders.length === 0);
+
+            const unassignedProducts = productsOf(unassigned);
+
+            /* مصفوفة: صف لكل منتج، عمود لكل مندوب */
+            const columns = [
+              ...stats.map(s => ({ name: s.name, products: s.products })),
+              ...(unassigned.length > 0 ? [{ name: "غير محدد", products: unassignedProducts }] : []),
+            ];
+            const productTotals = new Map<string, number>();
+            columns.forEach(c => c.products.forEach((v, k) =>
+              productTotals.set(k, (productTotals.get(k) || 0) + v.qty)));
+            const productRows = [...productTotals.entries()]
+              .filter(([, qty]) => qty > 0)
+              .sort((a, b) => b[1] - a[1]);
+            const grandUnits = productRows.reduce((sum, [, qty]) => sum + qty, 0);
 
             const totalRev = stats.reduce((s, r) => s + r.revenue, 0);
             const totalDel = stats.reduce((s, r) => s + r.delivered, 0);
@@ -410,6 +450,19 @@ export default function OrdersPage() {
                         {p.label}
                       </button>
                     ))}
+                    {/* نطاق احتساب المنتجات المُباعة */}
+                    <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1.5px solid #4B6741" }}>
+                      {([
+                        { key: "all", label: "كل الطلبات" },
+                        { key: "delivered", label: "المُسلَّم فقط" },
+                      ] as const).map(o => (
+                        <button key={o.key} onClick={() => setRepScope(o.key)}
+                          style={{ padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit",
+                            background: repScope === o.key ? "#4B6741" : "#f0faf0", color: repScope === o.key ? "#fff" : "#4B6741" }}>
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -427,6 +480,7 @@ export default function OrdersPage() {
                         { label: "إجمالي الطلبات", val: src.length, bg: "#f0faf0", clr: "#4B6741" },
                         { label: "مسلّمة", val: totalDel, bg: "#dcfce7", clr: "#166534" },
                         { label: "إيراد المُسلَّم", val: totalRev.toLocaleString() + " ج.م", bg: "#fef9c3", clr: "#854d0e" },
+                        { label: "قطع مُباعة", val: grandUnits, bg: "#eef2ff", clr: "#3730a3" },
                         { label: "غير محدد مندوب", val: unassigned.length, bg: "#fff7ed", clr: "#c2410c" },
                         { label: "ملغية", val: cancelled.length, bg: "#fef2f2", clr: "#b91c1c" },
                       ].map(s => (
@@ -443,12 +497,33 @@ export default function OrdersPage() {
                         <div key={s.name} style={{ background: "#f5f9ee", borderRadius: 14, padding: "18px 20px", border: "2px solid #c8d9b0" }}>
                           <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a2e", marginBottom: 10 }}>👤 {s.name}</div>
                           <div style={{ fontSize: 28, fontWeight: 900, color: "#4B6741", marginBottom: 4 }}>{s.total} طلب</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#555", marginBottom: 10 }}>💰 {s.revenue.toLocaleString()} ج.م (مسلّم)</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#555", marginBottom: 4 }}>💰 {s.revenue.toLocaleString()} ج.م (مسلّم)</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#3730a3", marginBottom: 10 }}>🛍️ {s.units} قطعة من {s.products.size} منتج</div>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>✅ {s.delivered} تسليم</span>
                             <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>⏳ {s.pending} معلق</span>
                             {s.cancelled > 0 && <span style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>❌ {s.cancelled} ملغي</span>}
                           </div>
+
+                          {s.products.size > 0 && (
+                            <>
+                              <button onClick={() => setExpandedRep(expandedRep === s.name ? null : s.name)}
+                                style={{ marginTop: 12, width: "100%", padding: "7px 10px", borderRadius: 8, border: "1.5px solid #c8d9b0", background: "#fff", color: "#4B6741", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                                {expandedRep === s.name ? "▲ إخفاء المنتجات" : "▼ عرض المنتجات المُباعة"}
+                              </button>
+                              {expandedRep === s.name && (
+                                <div style={{ marginTop: 10, background: "#fff", borderRadius: 10, padding: "8px 10px", maxHeight: 260, overflowY: "auto" }}>
+                                  {[...s.products.entries()].sort((a, b) => b[1].qty - a[1].qty).map(([pname, p]) => (
+                                    <div key={pname} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f0f0f0" }}>
+                                      <span style={{ fontSize: 12, color: "#333", flex: 1 }}>{pname}</span>
+                                      <span style={{ fontSize: 12, color: "#888", whiteSpace: "nowrap" }}>{fmt(p.revenue)} ج.م</span>
+                                      <span style={{ background: "#eef2ff", color: "#3730a3", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>× {p.qty}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       ))}
                       {unassigned.length > 0 && (
@@ -456,6 +531,59 @@ export default function OrdersPage() {
                           <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a2e", marginBottom: 10 }}>⚠️ غير محدد</div>
                           <div style={{ fontSize: 28, fontWeight: 900, color: "#ea580c", marginBottom: 4 }}>{unassigned.length} طلب</div>
                           <div style={{ fontSize: 12, color: "#888" }}>لم يُحدد لهم مندوب</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* جدول: كل منتج × كل مندوب */}
+                    <div style={{ marginTop: 24 }}>
+                      <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: "#1a1a2e" }}>🛍️ المنتجات المُباعة لكل مندوب</h3>
+                      <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>
+                        الكميات محسوبة من {repScope === "delivered" ? "الطلبات المُسلَّمة فقط" : "كل الطلبات ما عدا الملغية"}
+                      </div>
+
+                      {productRows.length === 0 ? (
+                        <div style={{ textAlign: "center", padding: "24px 0", color: "#aaa", fontSize: 13 }}>
+                          لا توجد منتجات مُباعة في هذه الفترة
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420, fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ background: "#f5f9ee" }}>
+                                <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 800, color: "#1a1a2e", whiteSpace: "nowrap" }}>المنتج</th>
+                                {columns.map(c => (
+                                  <th key={c.name} style={{ textAlign: "center", padding: "10px 12px", fontWeight: 800, color: "#4B6741", whiteSpace: "nowrap" }}>{c.name}</th>
+                                ))}
+                                <th style={{ textAlign: "center", padding: "10px 12px", fontWeight: 800, color: "#3730a3", whiteSpace: "nowrap" }}>الإجمالي</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {productRows.map(([pname, total], idx) => (
+                                <tr key={pname} style={{ background: idx % 2 ? "#fafafa" : "#fff", borderTop: "1px solid #f0f0f0" }}>
+                                  <td style={{ padding: "9px 12px", color: "#333" }}>{pname}</td>
+                                  {columns.map(c => {
+                                    const qty = c.products.get(pname)?.qty || 0;
+                                    return (
+                                      <td key={c.name} style={{ padding: "9px 12px", textAlign: "center", fontWeight: qty ? 800 : 400, color: qty ? "#4B6741" : "#ccc" }}>
+                                        {qty || "—"}
+                                      </td>
+                                    );
+                                  })}
+                                  <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 900, color: "#3730a3" }}>{total}</td>
+                                </tr>
+                              ))}
+                              <tr style={{ background: "#f5f9ee", borderTop: "2px solid #c8d9b0" }}>
+                                <td style={{ padding: "10px 12px", fontWeight: 800, color: "#1a1a2e" }}>الإجمالي</td>
+                                {columns.map(c => (
+                                  <td key={c.name} style={{ padding: "10px 12px", textAlign: "center", fontWeight: 900, color: "#4B6741" }}>
+                                    {[...c.products.values()].reduce((sum, p) => sum + p.qty, 0)}
+                                  </td>
+                                ))}
+                                <td style={{ padding: "10px 12px", textAlign: "center", fontWeight: 900, color: "#3730a3" }}>{grandUnits}</td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
