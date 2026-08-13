@@ -57,6 +57,9 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [hasMatruhOnly, setHasMatruhOnly] = useState(false);
+  /* منتجات اتمسحت أو اتوقفت وهي لسه في سلة العميل */
+  const [unavailableIds, setUnavailableIds] = useState<string[]>([]);
+  const [unavailableNames, setUnavailableNames] = useState<string[]>([]);
   // govName -> { cost, cities: [{name, cost}] }
   const [govData, setGovData] = useState<Record<string, { cost: number; cities: { name: string; cost: number }[] }>>({});
   const [freeThreshold, setFreeThreshold] = useState(900);
@@ -76,11 +79,27 @@ export default function CheckoutPage() {
           body: JSON.stringify({ event_type: "checkout_start", session_id: sid, metadata: { items: items.length, total } }) }).catch(() => {});
         // Check if any product in cart is matruh_only
         const ids = [...new Set<string>(items.map((i: any) => String(i.product.id)))];
-        Promise.all(ids.map(id => fetch(`${API_BASE}/products/${id}`).then(r => r.json()).catch(() => null)))
-          .then(results => {
-            const anyMatruhOnly = results.some(r => r && (r.product || r)?.matruh_only);
-            setHasMatruhOnly(anyMatruhOnly);
-          });
+        Promise.all(ids.map(id =>
+          fetch(`${API_BASE}/products/${id}`)
+            .then(async r => ({ id, found: r.ok, data: await r.json().catch(() => null) }))
+            .catch(() => ({ id, found: true, data: null }))  // خطأ شبكة: مانحكمش على المنتج
+        )).then(results => {
+          const anyMatruhOnly = results.some(r => r.data && (r.data.product || r.data)?.matruh_only);
+          setHasMatruhOnly(anyMatruhOnly);
+
+          // المنتج يبقى غير متاح لو اتمسح (404) أو اتوقف (is_active = 0)
+          const goneIds = results.filter(r => {
+            if (!r.found) return true;
+            const p = r.data && (r.data.product || r.data);
+            return p ? p.is_active === 0 || p.is_active === false : false;
+          }).map(r => r.id);
+
+          setUnavailableIds(goneIds);
+          setUnavailableNames(
+            items.filter((i: any) => goneIds.includes(String(i.product.id)))
+                 .map((i: any) => i.product.name_en)
+          );
+        });
       }
     } catch {}
 
@@ -108,6 +127,19 @@ export default function CheckoutPage() {
       .catch(() => {});
   }, []);
 
+  /* شيل المنتجات غير المتاحة من السلة */
+  const removeUnavailable = () => {
+    const cleaned = cart.filter(i => !unavailableIds.includes(String(i.product.id)));
+    setCart(cleaned);
+    try {
+      localStorage.setItem("cart", JSON.stringify(cleaned));
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch {}
+    setUnavailableIds([]);
+    setUnavailableNames([]);
+    setErrorMsg("");
+  };
+
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
   const selectedGov = form.governorate ? govData[form.governorate] : null;
   const selectedCityObj = selectedGov?.cities.find(c => c.name === form.city);
@@ -124,6 +156,10 @@ export default function CheckoutPage() {
     e.preventDefault();
     setErrorMsg("");
     if (cart.length === 0) { setErrorMsg("Your cart is empty!"); return; }
+    if (unavailableIds.length > 0) {
+      setErrorMsg(`⚠️ المنتجات دي مبقتش متاحة: ${unavailableNames.join("، ")}. امسحهم من السلة عشان تكمّل الطلب.`);
+      return;
+    }
     if (!form.fullName.trim()) { setErrorMsg("Please enter your full name"); return; }
     if (!form.phone.trim() || form.phone.length < 10) { setErrorMsg("Please enter a valid phone number (10+ digits)"); return; }
     if (!form.phone2.trim() || form.phone2.length < 10) { setErrorMsg("Please enter WhatsApp number for deposit confirmation"); return; }
@@ -178,6 +214,12 @@ export default function CheckoutPage() {
         setSuccess(true);
       } else {
         const err = await res.json().catch(() => ({}));
+        // السيرفر رفض الطلب لأن فيه منتج اتمسح أو اتوقف
+        if (res.status === 409 && Array.isArray(err.unavailable)) {
+          setUnavailableNames(err.unavailable);
+          setUnavailableIds(cart.filter(i => err.unavailable.includes(i.product.name_en))
+                                .map(i => String(i.product.id)));
+        }
         setErrorMsg(err.error || err.message || "Failed to place order");
       }
     } catch (err: any) {
@@ -248,6 +290,19 @@ export default function CheckoutPage() {
                 </div>
               </div>
             )}
+            {unavailableNames.length > 0 && (
+              <div style={{ background: "#fff7ed", border: "1.5px solid #ea580c", borderRadius: 10, padding: 14, marginBottom: 16, direction: "rtl", fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>
+                <div style={{ color: "#c2410c", fontWeight: 800, marginBottom: 6 }}>⚠️ منتجات مبقتش متاحة</div>
+                <div style={{ color: "#7c2d12", fontSize: 14, marginBottom: 10 }}>
+                  {unavailableNames.join("، ")} — اتشالت من الموقع ومش هينفع تتطلب.
+                </div>
+                <button type="button" onClick={removeUnavailable}
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#ea580c", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                  🗑️ امسحهم من السلة وكمّل
+                </button>
+              </div>
+            )}
+
             {errorMsg && <div style={{ background: "#ef444418", border: "1px solid #ef4444", borderRadius: 10, padding: 12, marginBottom: 16, color: "#ef4444", fontWeight: 600, fontFamily: "'Readex Pro', 'Cairo', sans-serif" }}>⚠️ {errorMsg}</div>}
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>

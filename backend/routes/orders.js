@@ -13,6 +13,24 @@ router.post('/', async (req, res) => {
     const finalCity = customer_city || city || '';
     if (!finalName) return res.status(400).json({ error: 'customer_name is required' });
     if (!finalPhone) return res.status(400).json({ error: 'customer_phone is required' });
+
+    // امنع الطلب لو فيه منتج اتمسح أو اتوقف — حتى لو العميل كان حاطه في السلة من قبل
+    if (items && Array.isArray(items) && items.length > 0) {
+      const unavailable = [];
+      for (const item of items) {
+        if (!item.product_id) continue;
+        const p = await getQuery('SELECT id, name_ar, name_en, is_active FROM products WHERE id = ?', [item.product_id]);
+        if (!p) unavailable.push(item.product_name || 'منتج محذوف');
+        else if (!p.is_active || p.is_active === '0') unavailable.push(p.name_ar || p.name_en);
+      }
+      if (unavailable.length > 0) {
+        return res.status(409).json({
+          error: `المنتجات دي مبقتش متاحة: ${unavailable.join('، ')}. من فضلك امسحها من السلة وكمّل الطلب.`,
+          unavailable,
+        });
+      }
+    }
+
     let itemsTotal = 0;
     if (items && Array.isArray(items)) { for (const item of items) itemsTotal += item.price * item.quantity; }
     const shipping_cost = reqShipping !== undefined ? reqShipping : (itemsTotal >= 900 ? 0 : 100);
