@@ -137,6 +137,13 @@ async function initDb() {
       status TEXT DEFAULT 'pending',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS olive_order_expenses (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL,
+      description TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
   console.log('✅ Neon PostgreSQL schema ready');
   return pool;

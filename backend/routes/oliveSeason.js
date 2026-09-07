@@ -190,14 +190,68 @@ router.patch('/orders/:id', async (req, res) => {
   try {
     const order = await getQuery('SELECT * FROM olive_orders WHERE id=?', [req.params.id]);
     if (!order) return res.status(404).json({ error: 'الأوردر غير موجود' });
-    const paid = parseFloat(req.body.paid_amount ?? order.paid_amount);
-    const remaining = Math.round((parseFloat(order.total_cost) - paid) * 100) / 100;
-    const status = req.body.status || order.status;
-    await runQuery(
-      'UPDATE olive_orders SET paid_amount=?, remaining_amount=?, status=? WHERE id=?',
-      [paid, remaining, status, req.params.id]
-    );
+
+    // Full edit mode when tons or price fields are provided
+    if (req.body.tons !== undefined || req.body.pressing_cost_per_ton !== undefined) {
+      const tons = parseFloat(req.body.tons ?? order.tons);
+      const price = parseFloat(req.body.pressing_cost_per_ton ?? order.pressing_cost_per_ton);
+      const total = Math.round(tons * price * 100) / 100;
+      const paid = parseFloat(req.body.paid_amount ?? order.paid_amount);
+      const remaining = Math.round((total - paid) * 100) / 100;
+      await runQuery(
+        `UPDATE olive_orders SET customer_name=?, customer_phone=?, car_number=?, car_weight=?,
+         olive_weight=?, tons=?, notes=?, order_sequence=?, pressing_cost_per_ton=?,
+         total_cost=?, paid_amount=?, remaining_amount=?, status=? WHERE id=?`,
+        [
+          req.body.customer_name ?? order.customer_name,
+          req.body.customer_phone ?? order.customer_phone,
+          req.body.car_number ?? order.car_number,
+          req.body.car_weight !== undefined ? (req.body.car_weight || null) : order.car_weight,
+          req.body.olive_weight !== undefined ? (req.body.olive_weight || null) : order.olive_weight,
+          tons, req.body.notes ?? order.notes,
+          req.body.order_sequence ? parseInt(req.body.order_sequence) : order.order_sequence,
+          price, total, paid, remaining,
+          req.body.status ?? order.status, req.params.id,
+        ]
+      );
+    } else {
+      // Payment-only update
+      const paid = parseFloat(req.body.paid_amount ?? order.paid_amount);
+      const remaining = Math.round((parseFloat(order.total_cost) - paid) * 100) / 100;
+      await runQuery(
+        'UPDATE olive_orders SET paid_amount=?, remaining_amount=?, status=? WHERE id=?',
+        [paid, remaining, req.body.status ?? order.status, req.params.id]
+      );
+    }
     res.json(await getQuery('SELECT * FROM olive_orders WHERE id=?', [req.params.id]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Order expenses
+router.get('/orders/:id/expenses', async (req, res) => {
+  try {
+    res.json(await allQuery('SELECT * FROM olive_order_expenses WHERE order_id=? ORDER BY created_at ASC', [req.params.id]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/orders/:id/expenses', async (req, res) => {
+  try {
+    const { description, amount } = req.body;
+    if (!description) return res.status(400).json({ error: 'وصف المصروف مطلوب' });
+    if (!amount || isNaN(amount)) return res.status(400).json({ error: 'المبلغ مطلوب' });
+    const id = uuidv4();
+    await runQuery(
+      'INSERT INTO olive_order_expenses (id, order_id, description, amount) VALUES (?, ?, ?, ?)',
+      [id, req.params.id, description.trim(), parseFloat(amount)]
+    );
+    res.json(await getQuery('SELECT * FROM olive_order_expenses WHERE id=?', [id]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/orders/:id/expenses/:expId', async (req, res) => {
+  try {
+    await runQuery('DELETE FROM olive_order_expenses WHERE id=? AND order_id=?', [req.params.expId, req.params.id]);
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

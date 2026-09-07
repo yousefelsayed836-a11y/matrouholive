@@ -519,6 +519,72 @@ input:checked+.toggle-slider:before{right:auto;left:3px}
   </div>
 </div>
 
+<!-- ======= MODAL: Edit Order ======= -->
+<div class="modal-overlay" id="modal-edit-order">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">✏️ تعديل الأوردر</span>
+      <button class="modal-close" onclick="closeModal('modal-edit-order')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-edit-order" onsubmit="submitEditOrder(event)">
+        <input type="hidden" id="edit-order-id">
+        <input type="hidden" id="edit-order-total-orig">
+        <div class="form-group">
+          <label class="form-label"><span class="req">*</span>اسم العميل</label>
+          <input class="form-input" type="text" id="edit-cname" name="customer_name" required autocomplete="off">
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">رقم العربية</label>
+            <input class="form-input" type="text" id="edit-carnum" name="car_number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">وزن العربية (كجم)</label>
+            <input class="form-input" type="number" id="edit-carwt" name="car_weight" min="0" step="0.1">
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">وزن الزيتون (كجم)</label>
+            <input class="form-input" type="number" id="edit-olivewt" name="olive_weight" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span class="req">*</span>عدد الأطنان</label>
+            <input class="form-input" type="number" id="edit-tons" name="tons" required min="0.1" step="0.1" oninput="calcEditCost()">
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">سعر الطن (جنيه)</label>
+            <input class="form-input" type="number" id="edit-price" name="pressing_cost_per_ton" min="1" step="1" oninput="calcEditCost()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">رقم الموبايل</label>
+            <input class="form-input" type="tel" id="edit-phone" name="customer_phone">
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">الترتيب في العصر</label>
+            <input class="form-input" type="number" id="edit-seq" name="order_sequence" min="1" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">المبلغ المدفوع (جنيه)</label>
+            <input class="form-input" type="number" id="edit-paid" name="paid_amount" min="0" step="0.5">
+          </div>
+        </div>
+        <div id="edit-cost-display" style="background:var(--grnl);border-radius:10px;padding:10px;text-align:center;margin-bottom:12px;font-weight:700;color:var(--pr)"></div>
+        <div class="form-group">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-input" id="edit-notes" name="notes" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn-submit">💾 حفظ التعديلات</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- ======= MODAL: Customer Detail ======= -->
 <div class="modal-overlay" id="modal-cust-detail">
   <div class="modal">
@@ -766,10 +832,22 @@ function showOrderDetail(id) {
     </div>
 
     <div style="margin-top:16px;display:flex;gap:10px">
-      <button class="btn-danger btn-sm" onclick="deleteOrder('${o.id}')" style="flex:1">🗑️ حذف الأوردر</button>
+      <button class="btn-submit btn-sm" onclick="openEditOrder('${o.id}')" style="flex:1;background:linear-gradient(135deg,#1565c0,#1976d2)">✏️ تعديل</button>
+      <button class="btn-danger btn-sm" onclick="deleteOrder('${o.id}')" style="flex:1">🗑️ حذف</button>
+    </div>
+
+    <div style="margin-top:20px;border-top:1px solid var(--bdr);padding-top:16px">
+      <p style="font-size:14px;font-weight:700;color:var(--pr);margin-bottom:10px">➕ مصاريف إضافية</p>
+      <div id="expenses-list-${o.id}"><div class="loading"><div class="spinner"></div></div></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="form-input" type="text" id="exp-desc-${o.id}" placeholder="وصف المصروف" style="flex:2">
+        <input class="form-input" type="number" id="exp-amt-${o.id}" placeholder="المبلغ" min="0" step="0.5" style="flex:1">
+        <button class="btn-submit btn-sm" onclick="addExpense('${o.id}')" style="width:auto;padding:8px 14px">➕</button>
+      </div>
     </div>
   `;
   openModal('modal-order-detail');
+  loadExpenses('${o.id}');
 }
 async function updateOrderPayment(id) {
   const paid = parseFloat(document.getElementById('od-paid').value) || 0;
@@ -1263,6 +1341,90 @@ function initSocket() {
       else if (S.tab === 'accounts') await loadAccounts();
     });
   } catch (e) { console.warn('Socket.io not available'); }
+}
+
+// ——— Edit Order ———
+function openEditOrder(id) {
+  const o = S.orders.find(x => x.id === id);
+  if (!o) return;
+  closeModal('modal-order-detail');
+  document.getElementById('edit-order-id').value = id;
+  document.getElementById('edit-cname').value = o.customer_name;
+  document.getElementById('edit-phone').value = o.customer_phone || '';
+  document.getElementById('edit-carnum').value = o.car_number || '';
+  document.getElementById('edit-carwt').value = o.car_weight || '';
+  document.getElementById('edit-olivewt').value = o.olive_weight || '';
+  document.getElementById('edit-tons').value = o.tons;
+  document.getElementById('edit-price').value = o.pressing_cost_per_ton;
+  document.getElementById('edit-paid').value = o.paid_amount;
+  document.getElementById('edit-seq').value = o.order_sequence || '';
+  document.getElementById('edit-notes').value = o.notes || '';
+  calcEditCost();
+  setTimeout(() => openModal('modal-edit-order'), 200);
+}
+function calcEditCost() {
+  const tons = parseFloat(document.getElementById('edit-tons')?.value) || 0;
+  const price = parseFloat(document.getElementById('edit-price')?.value) || 0;
+  const total = tons * price;
+  const paid = parseFloat(document.getElementById('edit-paid')?.value) || 0;
+  const rem = total - paid;
+  const el = document.getElementById('edit-cost-display');
+  if (el) el.textContent = `الإجمالي: ${fmt(total)} ج • المتبقي: ${fmt(rem)} ج`;
+}
+async function submitEditOrder(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-order-id').value;
+  const btn = e.target.querySelector('[type=submit]');
+  btn.disabled = true; btn.textContent = '⏳ جاري الحفظ...';
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+    await api('PATCH', '/orders/' + id, data);
+    toast('تم تعديل الأوردر ✅', 'success');
+    closeModal('modal-edit-order');
+    await loadOrders();
+    if (S.tab === 'accounts') await loadAccounts();
+  } catch (err) { toast(err.error || 'خطأ في التعديل', 'error'); }
+  finally { btn.disabled = false; btn.textContent = '💾 حفظ التعديلات'; }
+}
+
+// ——— Order Expenses ———
+async function loadExpenses(orderId) {
+  const el = document.getElementById('expenses-list-' + orderId);
+  if (!el) return;
+  try {
+    const exps = await api('GET', '/orders/' + orderId + '/expenses');
+    if (!exps.length) { el.innerHTML = '<p style="font-size:12px;color:var(--tx3);text-align:center">لا توجد مصاريف إضافية</p>'; return; }
+    const total = exps.reduce((s, x) => s + parseFloat(x.amount), 0);
+    el.innerHTML = exps.map(x => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px">
+        <span>${esc(x.description)}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <b style="color:var(--org)">${fmt(x.amount)} ج</b>
+          <button onclick="delExpense('${orderId}','${x.id}')" style="background:none;color:var(--red);font-size:16px;padding:0 4px">✕</button>
+        </span>
+      </div>
+    `).join('') + `<div style="text-align:left;font-size:13px;font-weight:700;color:var(--org);margin-top:6px">الإجمالي: ${fmt(total)} ج</div>`;
+  } catch (e) { if (el) el.innerHTML = ''; }
+}
+async function addExpense(orderId) {
+  const desc = document.getElementById('exp-desc-' + orderId).value.trim();
+  const amt = document.getElementById('exp-amt-' + orderId).value;
+  if (!desc || !amt) { toast('ادخل الوصف والمبلغ', 'error'); return; }
+  try {
+    await api('POST', '/orders/' + orderId + '/expenses', { description: desc, amount: amt });
+    document.getElementById('exp-desc-' + orderId).value = '';
+    document.getElementById('exp-amt-' + orderId).value = '';
+    await loadExpenses(orderId);
+    toast('تم إضافة المصروف ✅');
+  } catch (err) { toast(err.error || 'خطأ', 'error'); }
+}
+async function delExpense(orderId, expId) {
+  if (!confirm('تحذف المصروف ده؟')) return;
+  try {
+    await api('DELETE', '/orders/' + orderId + '/expenses/' + expId);
+    await loadExpenses(orderId);
+    toast('تم الحذف');
+  } catch (e) { toast('خطأ في الحذف', 'error'); }
 }
 
 // ——— Customer Autocomplete ———
