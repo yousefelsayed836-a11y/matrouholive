@@ -25,6 +25,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ta
 button{border:none;cursor:pointer;font-family:inherit;font-size:inherit}
 input,select,textarea{font-family:inherit;font-size:inherit;color:var(--tx)}
 
+/* Toggle tabs */
+.btn-toggle{padding:10px 0;border-radius:10px;background:var(--bg);border:1.5px solid var(--bdr);color:var(--tx2);font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
+.btn-toggle.active{background:var(--pr);border-color:var(--pr);color:#fff}
+
+/* Customer suggest */
+#cust-suggest div:hover{background:var(--bg)}
+
 /* Header */
 .hdr{position:fixed;top:0;left:0;right:0;height:var(--hdr);background:linear-gradient(135deg,var(--prd),var(--pr));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .hdr-brand{display:flex;align-items:center;gap:10px}
@@ -310,9 +317,35 @@ input:checked+.toggle-slider:before{right:auto;left:3px}
 
   <!-- Accounts Tab -->
   <div class="tab" id="tab-accounts">
-    <div id="accounts-summary"></div>
-    <p class="section-title">💰 تفاصيل العملاء</p>
-    <div id="accounts-customers"><div class="loading"><div class="spinner"></div></div></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="acct-btn-main" class="btn-toggle active" onclick="switchAcctView('main')" style="flex:1">💰 الحسابات</button>
+      <button id="acct-btn-stats" class="btn-toggle" onclick="switchAcctView('stats')" style="flex:1">📊 إحصائيات</button>
+    </div>
+    <!-- Main accounts view -->
+    <div id="acct-main-view">
+      <div id="accounts-summary"></div>
+      <p class="section-title">💰 تفاصيل العملاء</p>
+      <div id="accounts-customers"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <!-- Stats by date range -->
+    <div id="acct-stats-view" style="display:none">
+      <div class="card">
+        <div class="card-body">
+          <div class="row-2" style="margin-bottom:10px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">من</label>
+              <input type="date" class="form-input" id="stats-from">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">إلى</label>
+              <input type="date" class="form-input" id="stats-to">
+            </div>
+          </div>
+          <button class="btn-submit" onclick="loadDateStats()">🔍 عرض الإحصائيات</button>
+        </div>
+      </div>
+      <div id="date-stats-result"></div>
+    </div>
   </div>
 </main>
 
@@ -356,9 +389,11 @@ input:checked+.toggle-slider:before{right:auto;left:3px}
           <input class="pr-edit" type="number" id="pr-edit-input" min="1" step="1" placeholder="السعر" oninput="onPriceInput()">
           <button type="button" class="btn-lock" id="btn-price-lock" onclick="promptPriceEdit()">🔒 تعديل</button>
         </div>
-        <div class="form-group">
+        <div class="form-group" style="position:relative">
           <label class="form-label"><span class="req">*</span>اسم العميل</label>
-          <input class="form-input" type="text" name="customer_name" id="f-cname" required placeholder="ادخل اسم العميل" autocomplete="off">
+          <input class="form-input" type="text" name="customer_name" id="f-cname" required placeholder="ادخل أو اختار اسم العميل" autocomplete="off"
+            oninput="filterCustSuggest(this.value)" onblur="setTimeout(hideCustSuggest,200)">
+          <div id="cust-suggest" style="display:none;position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid var(--bdr);border-radius:10px;z-index:300;max-height:180px;overflow-y:auto;box-shadow:var(--sh)"></div>
         </div>
         <div class="row-2">
           <div class="form-group">
@@ -653,7 +688,7 @@ async function loadTab(tab) {
   if (tab === 'orders') { await loadOrders(); loadTodayStats(); }
   else if (tab === 'customers') await loadCustomers();
   else if (tab === 'workers') await loadWorkers();
-  else if (tab === 'accounts') await loadAccounts();
+  else if (tab === 'accounts') { switchAcctView('main'); await loadAccounts(); }
 }
 
 // ——— Orders ———
@@ -1230,6 +1265,88 @@ function initSocket() {
   } catch (e) { console.warn('Socket.io not available'); }
 }
 
+// ——— Customer Autocomplete ———
+function filterCustSuggest(q) {
+  const box = document.getElementById('cust-suggest');
+  if (!q || !S.customers.length) { box.style.display = 'none'; return; }
+  const matches = S.customers.filter(c => c.name.includes(q)).slice(0, 8);
+  if (!matches.length) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.map(c =>
+    `<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--bdr);font-size:14px"
+      onmousedown="selectCust('${esc(c.name)}','${esc(c.phone||'')}')">${esc(c.name)}${c.phone ? ' — ' + esc(c.phone) : ''}</div>`
+  ).join('');
+  box.style.display = 'block';
+}
+function hideCustSuggest() { document.getElementById('cust-suggest').style.display = 'none'; }
+function selectCust(name, phone) {
+  document.getElementById('f-cname').value = name;
+  const ph = document.querySelector('[name="customer_phone"]');
+  if (phone && ph) ph.value = phone;
+  hideCustSuggest();
+}
+
+// ——— Accounts / Stats Toggle ———
+function switchAcctView(view) {
+  const isStats = view === 'stats';
+  document.getElementById('acct-main-view').style.display = isStats ? 'none' : '';
+  document.getElementById('acct-stats-view').style.display = isStats ? '' : 'none';
+  document.getElementById('acct-btn-main').classList.toggle('active', !isStats);
+  document.getElementById('acct-btn-stats').classList.toggle('active', isStats);
+  if (isStats && !document.getElementById('stats-from').value) {
+    const today = new Date().toLocaleDateString('en-CA');
+    document.getElementById('stats-from').value = today;
+    document.getElementById('stats-to').value = today;
+  }
+}
+
+async function loadDateStats() {
+  const from = document.getElementById('stats-from').value;
+  const to = document.getElementById('stats-to').value;
+  if (!from || !to) { toast('اختار الفترة الزمنية', 'error'); return; }
+  const result = document.getElementById('date-stats-result');
+  result.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const data = await api('GET', `/stats/range?from=${from}&to=${to}`);
+    const { summary, customers, byDay } = data;
+    const fmtD = d => new Date(d + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'short', day: 'numeric', month: 'short' });
+    result.innerHTML = `
+      <div class="summary-grid" style="margin:14px 0 10px">
+        <div class="sum-card accent"><div class="sum-val">${summary.totalOrders}</div><div class="sum-lbl">أوردر</div></div>
+        <div class="sum-card" style="background:linear-gradient(135deg,var(--gold),var(--goldl));color:var(--prd)">
+          <div class="sum-val">${fmt(summary.totalTons)} طن</div><div class="sum-lbl">أطنان</div></div>
+        <div class="sum-card accent"><div class="sum-val" style="font-size:16px">${fmt(summary.totalRevenue)} ج</div><div class="sum-lbl">إجمالي الإيرادات</div></div>
+        <div class="sum-card" style="background:var(--grnl)"><div class="sum-val" style="color:var(--grn);font-size:16px">${fmt(summary.totalCollected)} ج</div><div class="sum-lbl">المحصل</div></div>
+      </div>
+      ${summary.totalRemaining > 0 ? `<div class="sum-card warn" style="margin-bottom:14px"><div class="sum-val">${fmt(summary.totalRemaining)} ج</div><div class="sum-lbl">متبقي غير محصل</div></div>` : ''}
+      ${byDay.length > 1 ? `
+        <p class="section-title">📅 تفاصيل أيوميه</p>
+        ${byDay.map(d => `
+          <div class="card" style="margin-bottom:8px"><div class="card-body" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;font-size:13px">${fmtD(d.date)}</span>
+            <span style="font-size:12px;color:var(--tx2)">${d.count} أوردر • ${fmt(d.tons)} طن • ${fmt(d.revenue)} ج</span>
+          </div></div>
+        `).join('')}
+      ` : ''}
+      ${customers.length ? `
+        <p class="section-title" style="margin-top:14px">👥 تفاصيل العملاء</p>
+        ${customers.map(c => `
+          <div class="acc-row ${c.remaining > 0 ? 'has-debt' : 'no-debt'}" onclick="showCustDetail('${esc(c.name)}')">
+            <div class="acc-row-top">
+              <span class="acc-cname">${esc(c.name)}</span>
+              <span class="acc-remaining ${c.remaining > 0 ? 'debt' : 'clear'}">${c.remaining > 0 ? fmt(c.remaining) + ' ج' : '✅'}</span>
+            </div>
+            <div class="acc-details">
+              <span>📦 ${c.count} أوردر</span>
+              <span>⚖️ ${fmt(c.tons)} طن</span>
+              <span>💰 ${fmt(c.total_cost)} ج</span>
+            </div>
+          </div>
+        `).join('')}
+      ` : '<div class="empty"><p>لا توجد أوردرات في هذه الفترة</p></div>'}
+    `;
+  } catch (e) { result.innerHTML = '<p style="color:red;text-align:center">خطأ في التحميل</p>'; }
+}
+
 // ——— Security: escape HTML ———
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1269,9 +1386,10 @@ async function init() {
   } catch (e) {}
 
   await loadOrders();
-  loadTodayStats();       // load without awaiting to not block orders
+  loadTodayStats();
+  loadCustomers();        // preload for autocomplete
   initSocket();
-  setTimeout(checkDebtReminder, 1500); // slight delay so UI is ready
+  setTimeout(checkDebtReminder, 1500);
 }
 init();
 </script>

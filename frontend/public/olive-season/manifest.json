@@ -2,7 +2,7 @@
   "name": "موسم العصر | Olive Season",
   "short_name": "موسم العصر",
   "description": "نظام إدارة معصرة الزيتون",
-  "start_url": "/olive-season/",
+  "start_url": "/olive-season/index.html",
   "display": "standalone",
   "background_color": "#eef5ec",
   "theme_color": "#2e7d32",

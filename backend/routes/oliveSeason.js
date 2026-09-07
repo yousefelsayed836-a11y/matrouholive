@@ -147,6 +147,16 @@ router.post('/orders', async (req, res) => {
       remaining = Math.round((total - paid) * 100) / 100;
     }
 
+    // Auto-assign daily sequence if not provided
+    let seq = order_sequence ? parseInt(order_sequence) : null;
+    if (!seq) {
+      const today = new Date().toISOString().split('T')[0];
+      const cnt = await getQuery(
+        "SELECT COUNT(*) AS cnt FROM olive_orders WHERE created_at::date = ?::date", [today]
+      );
+      seq = (parseInt(cnt?.cnt || 0)) + 1;
+    }
+
     const id = uuidv4();
     await runQuery(`
       INSERT INTO olive_orders
@@ -155,9 +165,19 @@ router.post('/orders', async (req, res) => {
     `, [id, customer_name.trim(), customer_phone || null, car_number || null,
       car_weight ? parseFloat(car_weight) : null,
       olive_weight ? parseFloat(olive_weight) : null,
-      parseFloat(tons), notes || null,
-      order_sequence ? parseInt(order_sequence) : null,
+      parseFloat(tons), notes || null, seq,
       price, total, payment_method || 'vodafone_cash', paid, remaining]);
+
+    // Auto-create customer if not exists
+    const existing = await getQuery(
+      "SELECT id FROM olive_customers WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))", [customer_name.trim()]
+    );
+    if (!existing) {
+      await runQuery(
+        'INSERT INTO olive_customers (id, name, phone, notes) VALUES (?, ?, ?, ?)',
+        [uuidv4(), customer_name.trim(), customer_phone || null, null]
+      ).catch(() => {});
+    }
 
     const order = await getQuery('SELECT * FROM olive_orders WHERE id=?', [id]);
     const io = req.app.get('io');
@@ -248,6 +268,49 @@ router.get('/debts', async (req, res) => {
     const debtors = Object.values(byCustomer).sort((a, b) => b.remaining - a.remaining);
     const totalDebt = debtors.reduce((s, d) => s + d.remaining, 0);
     res.json({ debtors, totalDebt, count: debtors.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Stats by date range
+router.get('/stats/range', async (req, res) => {
+  try {
+    const from = req.query.from || new Date().toISOString().split('T')[0];
+    const to = req.query.to || from;
+    const orders = await allQuery(
+      "SELECT * FROM olive_orders WHERE created_at::date >= ?::date AND created_at::date <= ?::date ORDER BY created_at DESC",
+      [from, to]
+    );
+    const totalTons = orders.reduce((s, o) => s + parseFloat(o.tons || 0), 0);
+    const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_cost || 0), 0);
+    const totalCollected = orders.reduce((s, o) => s + parseFloat(o.paid_amount || 0), 0);
+    const totalRemaining = orders.reduce((s, o) => s + parseFloat(o.remaining_amount || 0), 0);
+
+    const byCustomer = {};
+    for (const o of orders) {
+      const k = o.customer_name.trim().toLowerCase();
+      if (!byCustomer[k]) byCustomer[k] = { name: o.customer_name, tons: 0, total_cost: 0, paid: 0, remaining: 0, count: 0 };
+      byCustomer[k].tons += parseFloat(o.tons || 0);
+      byCustomer[k].total_cost += parseFloat(o.total_cost || 0);
+      byCustomer[k].paid += parseFloat(o.paid_amount || 0);
+      byCustomer[k].remaining += parseFloat(o.remaining_amount || 0);
+      byCustomer[k].count++;
+    }
+
+    const byDay = {};
+    for (const o of orders) {
+      const day = String(o.created_at).split('T')[0];
+      if (!byDay[day]) byDay[day] = { date: day, tons: 0, revenue: 0, count: 0 };
+      byDay[day].tons += parseFloat(o.tons || 0);
+      byDay[day].revenue += parseFloat(o.total_cost || 0);
+      byDay[day].count++;
+    }
+
+    res.json({
+      from, to,
+      summary: { totalOrders: orders.length, totalTons, totalRevenue, totalCollected, totalRemaining },
+      customers: Object.values(byCustomer).sort((a, b) => b.total_cost - a.total_cost),
+      byDay: Object.values(byDay).sort((a, b) => b.date.localeCompare(a.date)),
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
