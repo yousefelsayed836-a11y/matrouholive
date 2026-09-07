@@ -198,6 +198,33 @@ textarea.form-input{resize:vertical;min-height:80px}
 /* Phone rtl fix */
 [type=tel],[type=number]{direction:ltr;text-align:right}
 
+/* Toggle switch */
+.toggle{position:relative;display:inline-block;width:50px;height:27px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:27px;transition:.3s}
+.toggle-slider:before{position:absolute;content:"";height:21px;width:21px;right:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+input:checked+.toggle-slider{background:var(--prl)}
+input:checked+.toggle-slider:before{right:auto;left:3px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.toggle-row:last-child{border-bottom:none;padding-bottom:0}
+.toggle-row span{font-size:13px;color:var(--tx);flex:1;line-height:1.4}
+
+/* Daily stats card */
+.ds-card{background:linear-gradient(135deg,var(--prd) 0%,var(--pr) 100%);border-radius:var(--rad);padding:14px 16px;margin-bottom:14px;color:#fff;box-shadow:0 4px 16px rgba(27,94,32,.3)}
+.ds-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ds-date-txt{font-size:13px;opacity:.9;font-weight:600}
+.ds-refresh{background:rgba(255,255,255,.2);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.3)}
+.ds-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ds-item{background:rgba(255,255,255,.13);border-radius:10px;padding:10px 4px;text-align:center}
+.ds-item.red{background:rgba(220,50,50,.35)}
+.ds-item.gold{background:rgba(192,144,0,.35)}
+.ds-val{font-size:15px;font-weight:800;line-height:1.2}
+.ds-lbl{font-size:9px;opacity:.8;margin-top:4px;text-transform:uppercase;letter-spacing:.3px}
+
+/* Debt reminder modal header */
+.modal-hdr-danger{background:linear-gradient(135deg,#c62828,#e53935);color:#fff;border-radius:0}
+.modal-hdr-danger .modal-title,.modal-hdr-danger .modal-close{color:#fff}
+
 /* Price row in order form */
 .price-row{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--bdr);border-radius:10px;padding:10px 14px;margin-bottom:14px}
 .price-row .pr-lbl{font-size:12px;color:var(--tx3);white-space:nowrap}
@@ -229,6 +256,31 @@ textarea.form-input{resize:vertical;min-height:80px}
 <main>
   <!-- Orders Tab -->
   <div class="tab active" id="tab-orders">
+    <!-- Daily Stats Card -->
+    <div class="ds-card" id="today-stats">
+      <div class="ds-top">
+        <span class="ds-date-txt" id="ds-date-txt">📅 إحصائيات اليوم</span>
+        <button class="ds-refresh" onclick="loadTodayStats()">🔄 تحديث</button>
+      </div>
+      <div class="ds-grid">
+        <div class="ds-item">
+          <div class="ds-val" id="ds-orders">—</div>
+          <div class="ds-lbl">أوردر</div>
+        </div>
+        <div class="ds-item gold">
+          <div class="ds-val" id="ds-tons">—</div>
+          <div class="ds-lbl">طن</div>
+        </div>
+        <div class="ds-item">
+          <div class="ds-val" id="ds-revenue">—</div>
+          <div class="ds-lbl">إيراد</div>
+        </div>
+        <div class="ds-item red">
+          <div class="ds-val" id="ds-debt-today">—</div>
+          <div class="ds-lbl">ديون اليوم</div>
+        </div>
+      </div>
+    </div>
     <div class="search-box">
       <span class="search-ico">🔍</span>
       <input type="search" id="orders-search" placeholder="بحث باسم العميل..." oninput="filterOrders(this.value)">
@@ -443,6 +495,19 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- ======= MODAL: Debt Reminder ======= -->
+<div class="modal-overlay" id="modal-debt-reminder">
+  <div class="modal">
+    <div class="modal-hdr modal-hdr-danger">
+      <span class="modal-title">⚠️ تذكير الديون اليومي</span>
+      <button class="modal-close" onclick="dismissDebtReminder()">✕</button>
+    </div>
+    <div class="modal-body" id="debt-reminder-body">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- ======= MODAL: Price Password ======= -->
 <div class="modal-overlay" id="modal-price-pass">
   <div class="modal" style="border-radius:20px 20px 0 0">
@@ -486,8 +551,19 @@ textarea.form-input{resize:vertical;min-height:80px}
       </div>
       <div class="settings-section">
         <div class="settings-title">🔔 الإشعارات</div>
-        <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">تلقى إشعاراً عند كل أوردر عصر جديد على جميع الأجهزة المفتوحة</p>
-        <button class="btn-submit" id="settings-notify-btn" onclick="toggleNotify()" style="background:linear-gradient(135deg,var(--gold),var(--goldl));color:var(--prd)">🔔 تفعيل الإشعارات</button>
+        <div class="toggle-row" style="margin-bottom:12px">
+          <span>إشعار عند كل أوردر جديد على جميع الأجهزة</span>
+          <button class="btn-submit" id="settings-notify-btn" onclick="toggleNotify()" style="width:auto;padding:8px 16px;font-size:13px;background:linear-gradient(135deg,var(--gold),var(--goldl));color:var(--prd)">🔔 تفعيل</button>
+        </div>
+        <div class="toggle-row">
+          <span>⚠️ تذكير الديون عند فتح التطبيق يومياً</span>
+          <label class="toggle">
+            <input type="checkbox" id="settings-debt-reminder" onchange="saveDebtReminderSetting(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size:11px;color:var(--tx3);margin-top:8px">بيظهر قائمة العملاء اللي عليهم ديون مرة كل يوم أول ما تفتح التطبيق</p>
+        <button class="btn-outline btn-sm" style="margin-top:12px;width:100%;text-align:center" onclick="closeModal('modal-settings');setTimeout(checkDebtNow,300)">👀 عرض الديون الآن</button>
       </div>
       <div class="settings-section">
         <div class="settings-title">📱 تثبيت التطبيق</div>
@@ -574,7 +650,7 @@ function switchTab(tab) {
   loadTab(tab);
 }
 async function loadTab(tab) {
-  if (tab === 'orders') await loadOrders();
+  if (tab === 'orders') { await loadOrders(); loadTodayStats(); }
   else if (tab === 'customers') await loadCustomers();
   else if (tab === 'workers') await loadWorkers();
   else if (tab === 'accounts') await loadAccounts();
@@ -1018,6 +1094,84 @@ async function saveSettings() {
   } catch (e) { toast('خطأ في الحفظ', 'error'); }
 }
 
+// ——— Daily Stats ———
+async function loadTodayStats() {
+  try {
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const s = await api('GET', '/stats/today?date=' + today);
+    document.getElementById('ds-date-txt').textContent =
+      '📅 ' + new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('ds-orders').textContent = s.totalOrders;
+    document.getElementById('ds-tons').textContent = fmt(s.totalTons) + ' طن';
+    document.getElementById('ds-revenue').textContent = fmt(s.totalRevenue) + ' ج';
+    document.getElementById('ds-debt-today').textContent = fmt(s.totalRemaining) + ' ج';
+  } catch (e) {}
+}
+
+// ——— Debt Reminder ———
+async function checkDebtReminder() {
+  const disabled = localStorage.getItem('debtReminderEnabled') === 'false';
+  if (disabled) return;
+  const lastCheck = localStorage.getItem('lastDebtCheck');
+  const today = new Date().toLocaleDateString('en-CA');
+  if (lastCheck === today) return; // already shown today
+  await checkDebtNow(true);
+}
+
+async function checkDebtNow(autoCheck = false) {
+  try {
+    const data = await api('GET', '/debts');
+    if (data.count === 0) {
+      if (!autoCheck) toast('🎉 مفيش ديون — كل العملاء مسددين!', 'success');
+      return;
+    }
+    renderDebtReminder(data);
+    openModal('modal-debt-reminder');
+    if (autoCheck) localStorage.setItem('lastDebtCheck', new Date().toLocaleDateString('en-CA'));
+    // Browser notification if permission granted
+    if (notifyEnabled || Notification.permission === 'granted') {
+      new Notification('موسم العصر ⚠️ تذكير الديون', {
+        body: `${data.count} عميل عليهم ${fmt(data.totalDebt)} جنيه`,
+        icon: '/olive-season/manifest.json',
+        dir: 'rtl', lang: 'ar', tag: 'olive-debts',
+      });
+    }
+  } catch (e) { if (!autoCheck) toast('خطأ في تحميل الديون', 'error'); }
+}
+
+function renderDebtReminder(data) {
+  document.getElementById('debt-reminder-body').innerHTML = `
+    <div class="sum-card warn" style="margin-bottom:16px">
+      <div class="sum-val">${fmt(data.totalDebt)} جنيه</div>
+      <div class="sum-lbl">إجمالي الديون المتبقية</div>
+    </div>
+    <p style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px">👤 ${data.count} عميل عليهم ديون:</p>
+    ${data.debtors.map(d => `
+      <div class="acc-row has-debt" style="margin-bottom:8px;cursor:pointer"
+           onclick="closeModal('modal-debt-reminder');setTimeout(()=>{switchTab('accounts')},200)">
+        <div class="acc-row-top">
+          <span class="acc-cname">${esc(d.name)}</span>
+          <span class="acc-remaining debt">${fmt(d.remaining)} ج</span>
+        </div>
+        <div class="acc-details">
+          <span>⚖️ ${fmt(d.tons)} طن</span>
+          <span>📦 ${d.order_count} أوردر</span>
+        </div>
+      </div>
+    `).join('')}
+    <button class="btn-submit" style="margin-top:16px" onclick="dismissDebtReminder()">✅ تمام، شفتهم</button>
+  `;
+}
+
+function dismissDebtReminder() {
+  closeModal('modal-debt-reminder');
+}
+
+function saveDebtReminderSetting(enabled) {
+  localStorage.setItem('debtReminderEnabled', String(enabled));
+  toast(enabled ? '✅ تم تفعيل تذكير الديون اليومي' : 'تم إيقاف تذكير الديون', enabled ? 'success' : 'info');
+}
+
 // ——— Notifications ———
 let notifyEnabled = false;
 function toggleNotify() {
@@ -1099,18 +1253,25 @@ if ('serviceWorker' in navigator) {
 
 // ——— Init ———
 async function init() {
+  // Restore debt reminder toggle from localStorage
+  const debtEnabled = localStorage.getItem('debtReminderEnabled');
+  const toggle = document.getElementById('settings-debt-reminder');
+  if (toggle) toggle.checked = debtEnabled !== 'false'; // default ON
+
   try {
     S.settings = await api('GET', '/settings');
     document.getElementById('settings-price').value = S.settings.price_per_ton;
     document.getElementById('pr-val').textContent = fmt(S.settings.price_per_ton) + ' جنيه';
-    // Show password status hint
     const hint = document.getElementById('settings-pass-hint');
     if (hint) hint.textContent = S.settings.has_price_password
-      ? '🔐 كلمة السر محددة — اتركه فارغ عشان متغيرهاش، او اكتب جديد عشان تغيرها'
+      ? '🔐 كلمة السر محددة — اتركه فارغ عشان متغيرهاش'
       : '🔓 مفيش باسورد — أي حد يقدر يعدل السعر';
   } catch (e) {}
+
   await loadOrders();
+  loadTodayStats();       // load without awaiting to not block orders
   initSocket();
+  setTimeout(checkDebtReminder, 1500); // slight delay so UI is ready
 }
 init();
 </script>

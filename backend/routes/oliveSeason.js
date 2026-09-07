@@ -215,6 +215,42 @@ router.get('/accounts', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Today's stats (client sends its local date YYYY-MM-DD)
+router.get('/stats/today', async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const orders = await allQuery(
+      "SELECT * FROM olive_orders WHERE created_at::date = ?::date",
+      [date]
+    );
+    const totalTons = orders.reduce((s, o) => s + parseFloat(o.tons || 0), 0);
+    const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_cost || 0), 0);
+    const totalCollected = orders.reduce((s, o) => s + parseFloat(o.paid_amount || 0), 0);
+    const totalRemaining = orders.reduce((s, o) => s + parseFloat(o.remaining_amount || 0), 0);
+    res.json({ date, totalOrders: orders.length, totalTons, totalRevenue, totalCollected, totalRemaining });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Debt summary — all customers with remaining_amount > 0
+router.get('/debts', async (req, res) => {
+  try {
+    const orders = await allQuery(
+      'SELECT * FROM olive_orders WHERE remaining_amount > 0.01 ORDER BY customer_name, created_at DESC'
+    );
+    const byCustomer = {};
+    for (const o of orders) {
+      const k = o.customer_name.trim().toLowerCase();
+      if (!byCustomer[k]) byCustomer[k] = { name: o.customer_name, remaining: 0, tons: 0, order_count: 0 };
+      byCustomer[k].remaining += parseFloat(o.remaining_amount || 0);
+      byCustomer[k].tons += parseFloat(o.tons || 0);
+      byCustomer[k].order_count++;
+    }
+    const debtors = Object.values(byCustomer).sort((a, b) => b.remaining - a.remaining);
+    const totalDebt = debtors.reduce((s, d) => s + d.remaining, 0);
+    res.json({ debtors, totalDebt, count: debtors.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Customer orders
 router.get('/customers/:name/orders', async (req, res) => {
   try {
