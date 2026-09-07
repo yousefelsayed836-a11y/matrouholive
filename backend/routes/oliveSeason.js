@@ -7,9 +7,22 @@ const { v4: uuidv4 } = require('uuid');
 router.get('/settings', async (req, res) => {
   try {
     const rows = await allQuery('SELECT key, value FROM olive_settings');
-    const s = { price_per_ton: '500' };
-    rows.forEach(r => { s[r.key] = r.value; });
+    const s = { price_per_ton: '500', has_price_password: false };
+    rows.forEach(r => {
+      if (r.key === 'price_edit_password') s.has_price_password = !!r.value;
+      else s[r.key] = r.value; // never expose the password itself
+    });
     res.json(s);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Verify price-edit password (password never leaves the server)
+router.post('/verify-price-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const setting = await getQuery("SELECT value FROM olive_settings WHERE key='price_edit_password'");
+    if (!setting || !setting.value) return res.json({ valid: true }); // no password set
+    res.json({ valid: setting.value === password });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -115,8 +128,15 @@ router.post('/orders', async (req, res) => {
     if (!customer_name) return res.status(400).json({ error: 'اسم العميل مطلوب' });
     if (!tons || isNaN(tons) || parseFloat(tons) <= 0) return res.status(400).json({ error: 'عدد الأطنان مطلوب' });
 
-    const setting = await getQuery("SELECT value FROM olive_settings WHERE key='price_per_ton'");
-    const price = parseFloat(setting?.value || 500);
+    // Allow a per-order custom price (requires password verification on the client)
+    let price;
+    const customPrice = parseFloat(req.body.custom_price);
+    if (customPrice > 0 && !isNaN(customPrice)) {
+      price = customPrice;
+    } else {
+      const setting = await getQuery("SELECT value FROM olive_settings WHERE key='price_per_ton'");
+      price = parseFloat(setting?.value || 500);
+    }
     const total = Math.round(parseFloat(tons) * price * 100) / 100;
 
     let paid = 0, remaining = total;

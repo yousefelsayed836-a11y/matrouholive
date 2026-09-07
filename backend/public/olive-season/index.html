@@ -197,6 +197,15 @@ textarea.form-input{resize:vertical;min-height:80px}
 
 /* Phone rtl fix */
 [type=tel],[type=number]{direction:ltr;text-align:right}
+
+/* Price row in order form */
+.price-row{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--bdr);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.price-row .pr-lbl{font-size:12px;color:var(--tx3);white-space:nowrap}
+.price-row .pr-val{font-size:15px;font-weight:700;color:var(--pr);flex:1}
+.price-row .pr-edit{width:90px;padding:4px 8px;border:1.5px solid var(--prl);border-radius:8px;font-size:15px;font-weight:700;color:var(--pr);background:#fff;text-align:center;direction:ltr;display:none}
+.price-row .pr-edit.show{display:block}
+.btn-lock{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;background:var(--grnl);color:var(--pr);border:1.5px solid var(--prl);white-space:nowrap;transition:background .2s}
+.btn-lock.unlocked{background:var(--orgl);color:var(--org);border-color:var(--org)}
 </style>
 </head>
 <body>
@@ -288,6 +297,13 @@ textarea.form-input{resize:vertical;min-height:80px}
         <div class="cost-lbl" id="cost-detail"></div>
       </div>
       <form id="form-new-order" onsubmit="submitNewOrder(event)">
+        <input type="hidden" name="custom_price" id="f-custom-price" value="">
+        <div class="price-row">
+          <span class="pr-lbl">💰 سعر الطن:</span>
+          <span class="pr-val" id="pr-val">500 جنيه</span>
+          <input class="pr-edit" type="number" id="pr-edit-input" min="1" step="1" placeholder="السعر" oninput="onPriceInput()">
+          <button type="button" class="btn-lock" id="btn-price-lock" onclick="promptPriceEdit()">🔒 تعديل</button>
+        </div>
         <div class="form-group">
           <label class="form-label"><span class="req">*</span>اسم العميل</label>
           <input class="form-input" type="text" name="customer_name" id="f-cname" required placeholder="ادخل اسم العميل" autocomplete="off">
@@ -427,6 +443,26 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- ======= MODAL: Price Password ======= -->
+<div class="modal-overlay" id="modal-price-pass">
+  <div class="modal" style="border-radius:20px 20px 0 0">
+    <div class="modal-hdr">
+      <span class="modal-title">🔐 تعديل سعر الطن</span>
+      <button class="modal-close" onclick="closeModal('modal-price-pass')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:14px">ادخل كلمة السر عشان تقدر تعدل سعر الطن لهذا الأوردر</p>
+      <div class="form-group">
+        <label class="form-label">كلمة السر</label>
+        <input class="form-input" type="password" id="f-price-pass" placeholder="••••••" autocomplete="off"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();verifyPricePass()}">
+      </div>
+      <p id="price-pass-err" style="color:var(--red);font-size:13px;margin-bottom:12px;display:none">❌ كلمة السر غلط</p>
+      <button class="btn-submit" onclick="verifyPricePass()">✅ تأكيد</button>
+    </div>
+  </div>
+</div>
+
 <!-- ======= MODAL: Settings ======= -->
 <div class="modal-overlay" id="modal-settings">
   <div class="modal">
@@ -439,7 +475,12 @@ textarea.form-input{resize:vertical;min-height:80px}
         <div class="settings-title">💰 سعر العصر</div>
         <div class="form-group">
           <label class="form-label">سعر عصر الطن الواحد (جنيه)</label>
-          <input class="form-input" type="number" id="settings-price" placeholder="500" min="0" step="10">
+          <input class="form-input" type="number" id="settings-price" placeholder="500" min="1" step="10">
+        </div>
+        <div class="form-group" style="margin-top:6px">
+          <label class="form-label">🔐 كلمة سر تعديل السعر في الأوردر</label>
+          <input class="form-input" type="password" id="settings-pass" placeholder="اتركه فارغ = بدون باسورد" autocomplete="new-password">
+          <p id="settings-pass-hint" style="font-size:11px;color:var(--tx3);margin-top:5px"></p>
         </div>
         <button class="btn-submit" onclick="saveSettings()">💾 حفظ الإعدادات</button>
       </div>
@@ -639,10 +680,87 @@ async function deleteOrder(id) {
   } catch (e) { toast('خطأ في الحذف', 'error'); }
 }
 
+// ——— Price Lock ———
+let priceUnlocked = false;
+
+function getActivePrice() {
+  const custom = parseFloat(document.getElementById('f-custom-price')?.value);
+  return (custom > 0 && !isNaN(custom)) ? custom : (parseFloat(S.settings.price_per_ton) || 500);
+}
+
+function promptPriceEdit() {
+  if (priceUnlocked) { lockPrice(); return; }
+  if (!S.settings.has_price_password) { unlockPrice(); return; }
+  document.getElementById('f-price-pass').value = '';
+  document.getElementById('price-pass-err').style.display = 'none';
+  openModal('modal-price-pass');
+  setTimeout(() => document.getElementById('f-price-pass').focus(), 300);
+}
+
+async function verifyPricePass() {
+  const pass = document.getElementById('f-price-pass').value;
+  if (!pass) { document.getElementById('price-pass-err').style.display = 'block'; return; }
+  try {
+    const res = await api('POST', '/verify-price-password', { password: pass });
+    if (res.valid) {
+      closeModal('modal-price-pass');
+      unlockPrice();
+    } else {
+      document.getElementById('price-pass-err').style.display = 'block';
+      document.getElementById('f-price-pass').select();
+    }
+  } catch (e) { toast('خطأ في التحقق', 'error'); }
+}
+
+function unlockPrice() {
+  priceUnlocked = true;
+  const current = getActivePrice();
+  const prVal = document.getElementById('pr-val');
+  const prInput = document.getElementById('pr-edit-input');
+  const btn = document.getElementById('btn-price-lock');
+  prVal.style.display = 'none';
+  prInput.classList.add('show');
+  prInput.value = current;
+  btn.textContent = '✅ تأكيد';
+  btn.classList.add('unlocked');
+  btn.onclick = confirmCustomPrice;
+  prInput.focus();
+}
+
+function confirmCustomPrice() {
+  const prInput = document.getElementById('pr-edit-input');
+  const newPrice = parseFloat(prInput.value);
+  if (!newPrice || newPrice <= 0 || isNaN(newPrice)) { toast('ادخل سعر صحيح', 'error'); return; }
+  document.getElementById('f-custom-price').value = newPrice;
+  document.getElementById('pr-val').textContent = fmt(newPrice) + ' جنيه ✏️';
+  document.getElementById('pr-val').style.display = '';
+  prInput.classList.remove('show');
+  const btn = document.getElementById('btn-price-lock');
+  btn.textContent = '🔓 تعديل';
+  btn.classList.add('unlocked');
+  btn.onclick = unlockPrice;
+  calcCost();
+}
+
+function lockPrice() {
+  priceUnlocked = false;
+  document.getElementById('f-custom-price').value = '';
+  document.getElementById('pr-val').textContent = fmt(S.settings.price_per_ton) + ' جنيه';
+  document.getElementById('pr-val').style.display = '';
+  document.getElementById('pr-edit-input').classList.remove('show');
+  const btn = document.getElementById('btn-price-lock');
+  btn.textContent = '🔒 تعديل';
+  btn.classList.remove('unlocked');
+  btn.onclick = promptPriceEdit;
+  calcCost();
+}
+
+function onPriceInput() { calcCost(); }
+
 // ——— New Order Form ———
 function calcCost() {
   const tons = parseFloat(document.getElementById('f-tons').value) || 0;
-  const price = parseFloat(S.settings.price_per_ton) || 500;
+  const price = getActivePrice();
   const total = tons * price;
   document.getElementById('cost-display').textContent = fmt(total) + ' جنيه';
   document.getElementById('cost-detail').textContent = tons > 0 ? `${fmt(tons)} طن × ${fmt(price)} جنيه/طن` : '';
@@ -650,7 +768,7 @@ function calcCost() {
 }
 function calcRemaining() {
   const tons = parseFloat(document.getElementById('f-tons').value) || 0;
-  const price = parseFloat(S.settings.price_per_ton) || 500;
+  const price = getActivePrice();
   const total = tons * price;
   const paid = parseFloat(document.getElementById('f-paid')?.value) || 0;
   const rem = total - paid;
@@ -667,6 +785,11 @@ async function submitNewOrder(e) {
   btn.disabled = true; btn.textContent = '⏳ جاري التسجيل...';
   try {
     const data = Object.fromEntries(new FormData(e.target));
+    // If price input is showing but not confirmed yet, confirm it automatically
+    if (priceUnlocked && document.getElementById('pr-edit-input').classList.contains('show')) {
+      confirmCustomPrice();
+      data.custom_price = document.getElementById('f-custom-price').value;
+    }
     await api('POST', '/orders', data);
     toast('تم تسجيل الأوردر ✅', 'success');
     closeModal('modal-new-order');
@@ -674,6 +797,7 @@ async function submitNewOrder(e) {
     document.getElementById('cost-display').textContent = '0 جنيه';
     document.getElementById('cost-detail').textContent = '';
     document.getElementById('partial-group').style.display = 'none';
+    lockPrice();
     await loadOrders();
   } catch (err) {
     toast(err.error || 'حصل خطأ', 'error');
@@ -876,12 +1000,20 @@ function renderAccounts(data) {
 // ——— Settings ———
 async function saveSettings() {
   const price = document.getElementById('settings-price').value;
+  const passInput = document.getElementById('settings-pass').value;
   if (!price || isNaN(price) || parseFloat(price) <= 0) { toast('ادخل سعر صحيح', 'error'); return; }
   try {
-    await api('PUT', '/settings', { price_per_ton: price });
+    const payload = { price_per_ton: price };
+    // Only update password field if user typed something (empty = keep existing)
+    if (passInput !== '') payload.price_edit_password = passInput;
+    await api('PUT', '/settings', payload);
     S.settings.price_per_ton = price;
+    if (passInput !== '') S.settings.has_price_password = passInput.length > 0;
+    // Update price display in order form
+    if (!priceUnlocked) document.getElementById('pr-val').textContent = fmt(price) + ' جنيه';
     toast('تم حفظ الإعدادات ✅');
     closeModal('modal-settings');
+    document.getElementById('settings-pass').value = '';
     calcCost();
   } catch (e) { toast('خطأ في الحفظ', 'error'); }
 }
@@ -970,6 +1102,12 @@ async function init() {
   try {
     S.settings = await api('GET', '/settings');
     document.getElementById('settings-price').value = S.settings.price_per_ton;
+    document.getElementById('pr-val').textContent = fmt(S.settings.price_per_ton) + ' جنيه';
+    // Show password status hint
+    const hint = document.getElementById('settings-pass-hint');
+    if (hint) hint.textContent = S.settings.has_price_password
+      ? '🔐 كلمة السر محددة — اتركه فارغ عشان متغيرهاش، او اكتب جديد عشان تغيرها'
+      : '🔓 مفيش باسورد — أي حد يقدر يعدل السعر';
   } catch (e) {}
   await loadOrders();
   initSocket();
