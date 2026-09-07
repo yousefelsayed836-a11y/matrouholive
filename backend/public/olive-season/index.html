@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2e7d32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>موسم العصر | Olive Season</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --pr:#2e7d32;--prl:#43a047;--prd:#1b5e20;
+  --gold:#c09000;--goldl:#f0c030;
+  --bg:#eef5ec;--card:#fff;--bdr:#c8e6c9;
+  --tx:#1a2c1a;--tx2:#4a6a4a;--tx3:#8aa88a;
+  --red:#c62828;--rdl:#ffebee;
+  --org:#e65100;--orgl:#fff3e0;
+  --grn:#1b5e20;--grnl:#e8f5e9;
+  --nav:64px;--hdr:60px;--rad:14px;
+  --sh:0 2px 12px rgba(0,60,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden}
+button{border:none;cursor:pointer;font-family:inherit;font-size:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--tx)}
+
+/* Header */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--hdr);background:linear-gradient(135deg,var(--prd),var(--pr));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr-brand{display:flex;align-items:center;gap:10px}
+.hdr-logo{font-size:28px;line-height:1}
+.hdr-title h1{font-size:18px;font-weight:700;line-height:1.2}
+.hdr-title span{font-size:11px;opacity:.8;font-weight:400}
+.hdr-actions{display:flex;gap:8px}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .2s}
+.icon-btn:hover{background:rgba(255,255,255,.25)}
+.icon-btn.notify-on{background:var(--goldl);color:var(--prd)}
+
+/* Main */
+main{padding-top:var(--hdr);padding-bottom:var(--nav);min-height:100vh}
+.tab{display:none;padding:16px 14px;animation:fadein .2s}
+.tab.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Bottom Nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:var(--card);border-top:1px solid var(--bdr);display:flex;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.08)}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--tx3);font-size:10px;font-weight:500;background:none;transition:color .2s;padding:6px 0}
+.bnav-btn .ico{font-size:22px;line-height:1}
+.bnav-btn.active{color:var(--pr)}
+.bnav-btn.active .ico{filter:drop-shadow(0 0 4px rgba(46,125,50,.4))}
+.bnav-center{flex:1;display:flex;align-items:center;justify-content:center}
+.fab{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--pr),var(--prl));color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(46,125,50,.5);margin-top:-18px;transition:transform .2s}
+.fab:hover{transform:scale(1.08)}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);overflow:hidden;margin-bottom:12px}
+.card-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center}
+.card-body{padding:14px 16px}
+.section-title{font-size:15px;font-weight:700;color:var(--pr);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* Order Card */
+.order-card{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px;cursor:pointer;border-right:4px solid var(--pr);transition:transform .15s,box-shadow .15s}
+.order-card:active{transform:scale(.98);box-shadow:0 1px 6px rgba(0,0,0,.1)}
+.order-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.order-cname{font-size:16px;font-weight:700;color:var(--tx)}
+.order-seq{background:var(--prl);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600}
+.order-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.stat-box{background:var(--bg);border-radius:10px;padding:8px 10px;text-align:center}
+.stat-lbl{font-size:10px;color:var(--tx3);margin-bottom:2px}
+.stat-val{font-size:14px;font-weight:700;color:var(--tx)}
+.stat-val.danger{color:var(--red)}
+.stat-val.safe{color:var(--grn)}
+.order-footer{display:flex;justify-content:space-between;align-items:center}
+.order-date{font-size:11px;color:var(--tx3)}
+
+/* Customer Card */
+.cust-card{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px;cursor:pointer;transition:transform .15s}
+.cust-card:active{transform:scale(.98)}
+.cust-name{font-size:16px;font-weight:700;margin-bottom:6px}
+.cust-meta{display:flex;gap:12px;flex-wrap:wrap}
+.cust-badge{font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px}
+.cust-row{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)}
+.cust-stat{text-align:center}
+.cust-stat-lbl{font-size:10px;color:var(--tx3)}
+.cust-stat-val{font-size:14px;font-weight:700;margin-top:2px}
+
+/* Worker Card */
+.worker-card{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.worker-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--pr),var(--prl));color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.worker-info{flex:1}
+.worker-name{font-size:15px;font-weight:700}
+.worker-role{font-size:12px;color:var(--tx2);margin-top:2px}
+.worker-phone{font-size:12px;color:var(--tx3);margin-top:2px;direction:ltr;text-align:right}
+.worker-del{width:36px;height:36px;border-radius:50%;background:var(--rdl);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px}
+
+/* Summary Cards */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.sum-card{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:14px;text-align:center}
+.sum-card.accent{background:linear-gradient(135deg,var(--pr),var(--prl));color:#fff}
+.sum-card.warn{background:linear-gradient(135deg,#bf360c,#e64a19);color:#fff}
+.sum-val{font-size:22px;font-weight:800;line-height:1.2}
+.sum-lbl{font-size:11px;opacity:.75;margin-top:4px}
+
+/* Acc customer row */
+.acc-row{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:14px 16px;margin-bottom:10px;border-right:4px solid}
+.acc-row.has-debt{border-color:var(--red)}
+.acc-row.no-debt{border-color:var(--grn)}
+.acc-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.acc-cname{font-size:15px;font-weight:700}
+.acc-remaining{font-size:15px;font-weight:700}
+.acc-remaining.debt{color:var(--red)}
+.acc-remaining.clear{color:var(--grn)}
+.acc-details{display:flex;gap:16px;font-size:12px;color:var(--tx2)}
+
+/* Badge */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-voda{background:#e0f4e0;color:#1b5e20}
+.badge-insta{background:#e3f2fd;color:#0d47a1}
+.badge-defer{background:#fff3e0;color:#bf360c}
+.badge-partial{background:#fce4ec;color:#880e4f}
+.badge-paid{background:#e8f5e9;color:#1b5e20}
+.badge-unpaid{background:#ffebee;color:#c62828}
+
+/* Forms */
+.form-group{margin-bottom:14px}
+.form-label{font-size:13px;font-weight:600;color:var(--tx2);margin-bottom:6px;display:block}
+.form-label .req{color:var(--red);margin-right:2px}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--bdr);border-radius:10px;background:#fff;font-size:15px;outline:none;transition:border .2s}
+.form-input:focus{border-color:var(--prl)}
+.form-input.err{border-color:var(--red)}
+select.form-input{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6a4a' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 14px center;padding-left:38px}
+textarea.form-input{resize:vertical;min-height:80px}
+.cost-display{background:linear-gradient(135deg,var(--pr),var(--prl));color:#fff;border-radius:10px;padding:14px;text-align:center;margin-bottom:14px}
+.cost-display .cost-lbl{font-size:12px;opacity:.8;margin-bottom:4px}
+.cost-display .cost-val{font-size:24px;font-weight:800}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,var(--pr),var(--prl));color:#fff;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:.5px;box-shadow:0 4px 12px rgba(46,125,50,.4);transition:transform .15s,box-shadow .15s}
+.btn-submit:active{transform:scale(.97);box-shadow:0 2px 6px rgba(46,125,50,.3)}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed}
+.btn-danger{padding:10px 20px;background:var(--red);color:#fff;border-radius:10px;font-size:14px;font-weight:600}
+.btn-outline{padding:10px 20px;border:2px solid var(--pr);color:var(--pr);border-radius:10px;font-size:14px;font-weight:600;background:none}
+.btn-sm{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600}
+.btn-add{display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--grnl);color:var(--pr);border-radius:10px;font-size:14px;font-weight:600;border:1.5px dashed var(--prl);width:100%;justify-content:center;margin-bottom:16px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom,16px);animation:slideup .3s ease}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 20px 14px;border-bottom:1px solid var(--bdr);position:sticky;top:0;background:var(--card);z-index:1}
+.modal-title{font-size:17px;font-weight:700;color:var(--tx)}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--bg);color:var(--tx2);font-size:18px;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:20px}
+
+/* Toast */
+.toast{position:fixed;top:calc(var(--hdr) + 8px);left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.success{background:var(--pr)}
+.toast.error{background:var(--red)}
+.toast.info{background:#1565c0}
+.toast.hidden{opacity:0;pointer-events:none}
+
+/* Search */
+.search-box{position:relative;margin-bottom:14px}
+.search-box input{width:100%;padding:11px 14px 11px 42px;border:1.5px solid var(--bdr);border-radius:12px;background:#fff;font-size:14px;outline:none}
+.search-box input:focus{border-color:var(--prl)}
+.search-ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--tx3)}
+
+/* Empty */
+.empty{text-align:center;padding:40px 20px;color:var(--tx3)}
+.empty .empty-ico{font-size:48px;margin-bottom:12px}
+.empty p{font-size:14px}
+
+/* Loading */
+.loading{text-align:center;padding:30px;color:var(--tx3)}
+.spinner{display:inline-block;width:32px;height:32px;border:3px solid var(--bdr);border-top-color:var(--pr);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Detail section */
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.detail-row:last-child{border-bottom:none}
+.detail-lbl{font-size:13px;color:var(--tx2)}
+.detail-val{font-size:14px;font-weight:600;color:var(--tx)}
+
+/* Payment update form */
+.pay-update{background:var(--bg);border-radius:12px;padding:14px;margin-top:12px}
+
+/* Settings form */
+.settings-section{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:16px;margin-bottom:14px}
+.settings-title{font-size:15px;font-weight:700;color:var(--pr);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+/* Divider */
+.divider{height:1px;background:var(--bdr);margin:16px 0}
+
+/* Tab scroll */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+
+/* Phone rtl fix */
+[type=tel],[type=number]{direction:ltr;text-align:right}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">🫒</div>
+    <div class="hdr-title">
+      <h1>Olive Season</h1>
+      <span>موسم العصر</span>
+    </div>
+  </div>
+  <div class="hdr-actions">
+    <button class="icon-btn" id="btn-notify" onclick="toggleNotify()" title="تفعيل الإشعارات">🔔</button>
+    <button class="icon-btn" onclick="openModal('modal-settings')" title="الإعدادات">⚙️</button>
+  </div>
+</header>
+
+<!-- Main -->
+<main>
+  <!-- Orders Tab -->
+  <div class="tab active" id="tab-orders">
+    <div class="search-box">
+      <span class="search-ico">🔍</span>
+      <input type="search" id="orders-search" placeholder="بحث باسم العميل..." oninput="filterOrders(this.value)">
+    </div>
+    <div id="orders-list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- Customers Tab -->
+  <div class="tab" id="tab-customers">
+    <button class="btn-add" onclick="openModal('modal-add-customer')">
+      <span>➕</span> إضافة عميل جديد
+    </button>
+    <div class="search-box">
+      <span class="search-ico">🔍</span>
+      <input type="search" id="cust-search" placeholder="بحث باسم العميل..." oninput="filterCustomers(this.value)">
+    </div>
+    <div id="customers-list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- Workers Tab -->
+  <div class="tab" id="tab-workers">
+    <button class="btn-add" onclick="openModal('modal-add-worker')">
+      <span>➕</span> إضافة عامل جديد
+    </button>
+    <div id="workers-list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- Accounts Tab -->
+  <div class="tab" id="tab-accounts">
+    <div id="accounts-summary"></div>
+    <p class="section-title">💰 تفاصيل العملاء</p>
+    <div id="accounts-customers"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</main>
+
+<!-- Bottom Navigation -->
+<nav class="bnav">
+  <button class="bnav-btn active" data-tab="orders" onclick="switchTab('orders')">
+    <span class="ico">📋</span>الأوردرات
+  </button>
+  <button class="bnav-btn" data-tab="customers" onclick="switchTab('customers')">
+    <span class="ico">👥</span>العملاء
+  </button>
+  <div class="bnav-center">
+    <button class="fab" onclick="openModal('modal-new-order')" title="طلب عصر جديد">+</button>
+  </div>
+  <button class="bnav-btn" data-tab="workers" onclick="switchTab('workers')">
+    <span class="ico">👷</span>العمال
+  </button>
+  <button class="bnav-btn" data-tab="accounts" onclick="switchTab('accounts')">
+    <span class="ico">💰</span>الحسابات
+  </button>
+</nav>
+
+<!-- ======= MODAL: New Order ======= -->
+<div class="modal-overlay" id="modal-new-order">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">🫒 طلب عصر جديد</span>
+      <button class="modal-close" onclick="closeModal('modal-new-order')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cost-display" id="cost-display-box">
+        <div class="cost-lbl">تكلفة العصر</div>
+        <div class="cost-val" id="cost-display">0 جنيه</div>
+        <div class="cost-lbl" id="cost-detail"></div>
+      </div>
+      <form id="form-new-order" onsubmit="submitNewOrder(event)">
+        <div class="form-group">
+          <label class="form-label"><span class="req">*</span>اسم العميل</label>
+          <input class="form-input" type="text" name="customer_name" id="f-cname" required placeholder="ادخل اسم العميل" autocomplete="off">
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">رقم العربية</label>
+            <input class="form-input" type="text" name="car_number" placeholder="مثال: أ ب ج 1234">
+          </div>
+          <div class="form-group">
+            <label class="form-label">وزن العربية (كجم)</label>
+            <input class="form-input" type="number" name="car_weight" id="f-car-wt" placeholder="0" min="0" step="0.1">
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">وزن الزيتون (كجم)</label>
+            <input class="form-input" type="number" name="olive_weight" id="f-olive-wt" placeholder="0" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span class="req">*</span>عدد الأطنان</label>
+            <input class="form-input" type="number" name="tons" id="f-tons" required placeholder="0" min="0.1" step="0.1" oninput="calcCost()">
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label class="form-label">الترتيب في العصر</label>
+            <input class="form-input" type="number" name="order_sequence" placeholder="رقم الترتيب" min="1" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">رقم الموبايل</label>
+            <input class="form-input" type="tel" name="customer_phone" placeholder="01xxxxxxxxx">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span class="req">*</span>طريقة الدفع</label>
+          <select class="form-input" name="payment_method" id="f-payment" onchange="onPaymentChange(this.value)" required>
+            <option value="">-- اختر طريقة الدفع --</option>
+            <option value="vodafone_cash">📱 فودافون كاش (دفع كامل)</option>
+            <option value="instapay">💳 انستا باي (دفع كامل)</option>
+            <option value="deferred">⏳ دفع اجل (الكل لاحقاً)</option>
+            <option value="partial">💵 دفع جزء وبقا جزء</option>
+          </select>
+        </div>
+        <div class="form-group" id="partial-group" style="display:none">
+          <label class="form-label">المبلغ المدفوع الآن (جنيه)</label>
+          <input class="form-input" type="number" name="paid_amount" id="f-paid" placeholder="0" min="0" step="0.5" oninput="calcRemaining()">
+          <div id="remaining-display" style="margin-top:8px;font-size:13px;color:var(--red);font-weight:600;text-align:center"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-input" name="notes" placeholder="أي ملاحظات إضافية..." rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn-submit" id="btn-submit-order">✅ تسجيل الأوردر</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL: Add Customer ======= -->
+<div class="modal-overlay" id="modal-add-customer">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">👤 إضافة عميل جديد</span>
+      <button class="modal-close" onclick="closeModal('modal-add-customer')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-add-customer" onsubmit="submitAddCustomer(event)">
+        <div class="form-group">
+          <label class="form-label"><span class="req">*</span>اسم العميل</label>
+          <input class="form-input" type="text" name="name" required placeholder="الاسم الكامل">
+        </div>
+        <div class="form-group">
+          <label class="form-label">رقم الموبايل</label>
+          <input class="form-input" type="tel" name="phone" placeholder="01xxxxxxxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-input" name="notes" placeholder="ملاحظات..." rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn-submit">✅ حفظ العميل</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL: Add Worker ======= -->
+<div class="modal-overlay" id="modal-add-worker">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">👷 إضافة عامل جديد</span>
+      <button class="modal-close" onclick="closeModal('modal-add-worker')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-add-worker" onsubmit="submitAddWorker(event)">
+        <div class="form-group">
+          <label class="form-label"><span class="req">*</span>اسم العامل</label>
+          <input class="form-input" type="text" name="name" required placeholder="الاسم الكامل">
+        </div>
+        <div class="form-group">
+          <label class="form-label">رقم الموبايل</label>
+          <input class="form-input" type="tel" name="phone" placeholder="01xxxxxxxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label">الوظيفة / الدور</label>
+          <input class="form-input" type="text" name="role" placeholder="مثال: عامل عصر، مشرف، سائق...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-input" name="notes" placeholder="ملاحظات..." rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn-submit">✅ حفظ العامل</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL: Order Detail ======= -->
+<div class="modal-overlay" id="modal-order-detail">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title" id="od-title">تفاصيل الأوردر</span>
+      <button class="modal-close" onclick="closeModal('modal-order-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="od-body"></div>
+  </div>
+</div>
+
+<!-- ======= MODAL: Customer Detail ======= -->
+<div class="modal-overlay" id="modal-cust-detail">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title" id="cd-title">تفاصيل العميل</span>
+      <button class="modal-close" onclick="closeModal('modal-cust-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="cd-body"></div>
+  </div>
+</div>
+
+<!-- ======= MODAL: Settings ======= -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">⚙️ الإعدادات</span>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <div class="settings-title">💰 سعر العصر</div>
+        <div class="form-group">
+          <label class="form-label">سعر عصر الطن الواحد (جنيه)</label>
+          <input class="form-input" type="number" id="settings-price" placeholder="500" min="0" step="10">
+        </div>
+        <button class="btn-submit" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">🔔 الإشعارات</div>
+        <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">تلقى إشعاراً عند كل أوردر عصر جديد على جميع الأجهزة المفتوحة</p>
+        <button class="btn-submit" id="settings-notify-btn" onclick="toggleNotify()" style="background:linear-gradient(135deg,var(--gold),var(--goldl));color:var(--prd)">🔔 تفعيل الإشعارات</button>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">📱 تثبيت التطبيق</div>
+        <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">يمكنك تثبيت التطبيق على شاشة الهاتف للوصول السريع</p>
+        <button class="btn-submit" id="btn-install" style="display:none;background:linear-gradient(135deg,#1565c0,#1976d2)" onclick="installApp()">📲 تثبيت التطبيق</button>
+        <p id="install-hint" style="font-size:12px;color:var(--tx3)">افتح في المتصفح واختر "إضافة إلى الشاشة الرئيسية"</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+
+<!-- Scripts -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+'use strict';
+
+// ——— State ———
+const S = {
+  orders: [], customers: [], workers: [],
+  settings: { price_per_ton: '500' },
+  tab: 'orders',
+  notifyEnabled: false,
+  socket: null,
+  deferredInstall: null,
+};
+
+// ——— API ———
+const API = '/api/olive-season';
+async function api(method, path, body) {
+  const r = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body != null ? JSON.stringify(body) : undefined,
+  });
+  const data = await r.json();
+  if (!r.ok) throw data;
+  return data;
+}
+
+// ——— Utils ———
+function fmt(n) { return Number(n || 0).toLocaleString('ar-EG', { maximumFractionDigits: 2 }); }
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+const PAYMENT_LABELS = { vodafone_cash: 'فودافون كاش', instapay: 'انستا باي', deferred: 'دفع اجل', partial: 'دفع جزئي' };
+const PAYMENT_CLASSES = { vodafone_cash: 'badge-voda', instapay: 'badge-insta', deferred: 'badge-defer', partial: 'badge-partial' };
+function payBadge(m) {
+  return `<span class="badge ${PAYMENT_CLASSES[m]||''}">${PAYMENT_LABELS[m]||m}</span>`;
+}
+
+// ——— Toast ———
+let toastTimer;
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 4000);
+}
+
+// ——— Modal ———
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+
+// ——— Tabs ———
+function switchTab(tab) {
+  S.tab = tab;
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+  loadTab(tab);
+}
+async function loadTab(tab) {
+  if (tab === 'orders') await loadOrders();
+  else if (tab === 'customers') await loadCustomers();
+  else if (tab === 'workers') await loadWorkers();
+  else if (tab === 'accounts') await loadAccounts();
+}
+
+// ——— Orders ———
+async function loadOrders() {
+  try {
+    S.orders = await api('GET', '/orders');
+    renderOrders(S.orders);
+  } catch (e) { toast('خطأ في تحميل الأوردرات', 'error'); }
+}
+function filterOrders(q) {
+  const filtered = q ? S.orders.filter(o => o.customer_name.includes(q)) : S.orders;
+  renderOrders(filtered);
+}
+function renderOrders(orders) {
+  const el = document.getElementById('orders-list');
+  if (!orders.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">📋</div><p>لا توجد أوردرات بعد<br>اضغط + لإضافة أوردر جديد</p></div>';
+    return;
+  }
+  el.innerHTML = orders.map(o => `
+    <div class="order-card" onclick="showOrderDetail('${o.id}')">
+      <div class="order-card-top">
+        <span class="order-cname">${esc(o.customer_name)}</span>
+        ${o.order_sequence ? `<span class="order-seq">#${o.order_sequence}</span>` : ''}
+      </div>
+      <div class="order-stats">
+        <div class="stat-box">
+          <div class="stat-lbl">الأطنان</div>
+          <div class="stat-val">${fmt(o.tons)} طن</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-lbl">التكلفة</div>
+          <div class="stat-val">${fmt(o.total_cost)} ج</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-lbl">المتبقي</div>
+          <div class="stat-val ${parseFloat(o.remaining_amount) > 0 ? 'danger' : 'safe'}">${fmt(o.remaining_amount)} ج</div>
+        </div>
+      </div>
+      <div class="order-footer">
+        ${payBadge(o.payment_method)}
+        <span class="order-date">${fmtDate(o.created_at)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+function showOrderDetail(id) {
+  const o = S.orders.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('od-title').textContent = `🫒 ${o.customer_name}`;
+  const body = document.getElementById('od-body');
+  body.innerHTML = `
+    <div class="detail-row"><span class="detail-lbl">اسم العميل</span><span class="detail-val">${esc(o.customer_name)}</span></div>
+    ${o.customer_phone ? `<div class="detail-row"><span class="detail-lbl">الموبايل</span><span class="detail-val" style="direction:ltr">${esc(o.customer_phone)}</span></div>` : ''}
+    ${o.car_number ? `<div class="detail-row"><span class="detail-lbl">رقم العربية</span><span class="detail-val">${esc(o.car_number)}</span></div>` : ''}
+    ${o.car_weight ? `<div class="detail-row"><span class="detail-lbl">وزن العربية</span><span class="detail-val">${fmt(o.car_weight)} كجم</span></div>` : ''}
+    ${o.olive_weight ? `<div class="detail-row"><span class="detail-lbl">وزن الزيتون</span><span class="detail-val">${fmt(o.olive_weight)} كجم</span></div>` : ''}
+    <div class="detail-row"><span class="detail-lbl">الأطنان</span><span class="detail-val">${fmt(o.tons)} طن</span></div>
+    ${o.order_sequence ? `<div class="detail-row"><span class="detail-lbl">الترتيب في العصر</span><span class="detail-val">#${o.order_sequence}</span></div>` : ''}
+    <div class="detail-row"><span class="detail-lbl">سعر الطن</span><span class="detail-val">${fmt(o.pressing_cost_per_ton)} ج</span></div>
+    <div class="detail-row"><span class="detail-lbl">إجمالي التكلفة</span><span class="detail-val" style="font-size:17px;color:var(--pr)">${fmt(o.total_cost)} جنيه</span></div>
+    <div class="detail-row"><span class="detail-lbl">طريقة الدفع</span><span class="detail-val">${payBadge(o.payment_method)}</span></div>
+    <div class="detail-row"><span class="detail-lbl">المدفوع</span><span class="detail-val" style="color:var(--grn)">${fmt(o.paid_amount)} ج</span></div>
+    <div class="detail-row"><span class="detail-lbl">المتبقي</span><span class="detail-val" style="color:${parseFloat(o.remaining_amount) > 0 ? 'var(--red)' : 'var(--grn)'}">${fmt(o.remaining_amount)} ج</span></div>
+    ${o.notes ? `<div class="detail-row"><span class="detail-lbl">ملاحظات</span><span class="detail-val">${esc(o.notes)}</span></div>` : ''}
+    <div class="detail-row"><span class="detail-lbl">التاريخ</span><span class="detail-val" style="font-size:12px">${fmtDate(o.created_at)}</span></div>
+
+    <div class="pay-update">
+      <p style="font-size:13px;font-weight:700;color:var(--pr);margin-bottom:10px">💵 تحديث الدفع</p>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">المبلغ المدفوع (جنيه)</label>
+        <input class="form-input" type="number" id="od-paid" value="${o.paid_amount}" min="0" step="0.5" max="${o.total_cost}">
+      </div>
+      <button class="btn-submit btn-sm" onclick="updateOrderPayment('${o.id}')">💾 تحديث</button>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button class="btn-danger btn-sm" onclick="deleteOrder('${o.id}')" style="flex:1">🗑️ حذف الأوردر</button>
+    </div>
+  `;
+  openModal('modal-order-detail');
+}
+async function updateOrderPayment(id) {
+  const paid = parseFloat(document.getElementById('od-paid').value) || 0;
+  try {
+    await api('PATCH', '/orders/' + id, { paid_amount: paid });
+    toast('تم تحديث الدفع ✅');
+    closeModal('modal-order-detail');
+    await loadOrders();
+    if (S.tab === 'accounts') await loadAccounts();
+  } catch (e) { toast(e.error || 'خطأ', 'error'); }
+}
+async function deleteOrder(id) {
+  if (!confirm('هتحذف الأوردر ده؟')) return;
+  try {
+    await api('DELETE', '/orders/' + id);
+    toast('تم الحذف');
+    closeModal('modal-order-detail');
+    await loadOrders();
+  } catch (e) { toast('خطأ في الحذف', 'error'); }
+}
+
+// ——— New Order Form ———
+function calcCost() {
+  const tons = parseFloat(document.getElementById('f-tons').value) || 0;
+  const price = parseFloat(S.settings.price_per_ton) || 500;
+  const total = tons * price;
+  document.getElementById('cost-display').textContent = fmt(total) + ' جنيه';
+  document.getElementById('cost-detail').textContent = tons > 0 ? `${fmt(tons)} طن × ${fmt(price)} جنيه/طن` : '';
+  calcRemaining();
+}
+function calcRemaining() {
+  const tons = parseFloat(document.getElementById('f-tons').value) || 0;
+  const price = parseFloat(S.settings.price_per_ton) || 500;
+  const total = tons * price;
+  const paid = parseFloat(document.getElementById('f-paid')?.value) || 0;
+  const rem = total - paid;
+  const el = document.getElementById('remaining-display');
+  if (el) el.textContent = rem > 0 ? `المتبقي: ${fmt(rem)} جنيه` : rem < 0 ? '⚠️ المبلغ أكبر من التكلفة' : '✅ تم الدفع كامل';
+}
+function onPaymentChange(val) {
+  const pg = document.getElementById('partial-group');
+  pg.style.display = val === 'partial' ? 'block' : 'none';
+}
+async function submitNewOrder(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-submit-order');
+  btn.disabled = true; btn.textContent = '⏳ جاري التسجيل...';
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+    await api('POST', '/orders', data);
+    toast('تم تسجيل الأوردر ✅', 'success');
+    closeModal('modal-new-order');
+    e.target.reset();
+    document.getElementById('cost-display').textContent = '0 جنيه';
+    document.getElementById('cost-detail').textContent = '';
+    document.getElementById('partial-group').style.display = 'none';
+    await loadOrders();
+  } catch (err) {
+    toast(err.error || 'حصل خطأ', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ تسجيل الأوردر';
+  }
+}
+
+// ——— Customers ———
+async function loadCustomers() {
+  try {
+    S.customers = await api('GET', '/customers');
+    renderCustomers(S.customers);
+  } catch (e) { toast('خطأ في تحميل العملاء', 'error'); }
+}
+function filterCustomers(q) {
+  const filtered = q ? S.customers.filter(c => c.name.includes(q)) : S.customers;
+  renderCustomers(filtered);
+}
+function renderCustomers(list) {
+  const el = document.getElementById('customers-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">👥</div><p>لا يوجد عملاء مسجلين</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(c => `
+    <div class="cust-card" onclick="showCustDetail('${esc(c.name)}')">
+      <div class="cust-name">${esc(c.name)}</div>
+      <div class="cust-meta">
+        ${c.phone ? `<span class="cust-badge">📱 ${esc(c.phone)}</span>` : ''}
+        <span class="cust-badge">📦 ${c.order_count || 0} أوردر</span>
+      </div>
+      <div class="cust-row">
+        <div class="cust-stat">
+          <div class="cust-stat-lbl">الأطنان</div>
+          <div class="cust-stat-val">${fmt(c.total_tons)} طن</div>
+        </div>
+        <div class="cust-stat">
+          <div class="cust-stat-lbl">إجمالي التكلفة</div>
+          <div class="cust-stat-val">${fmt(c.total_cost)} ج</div>
+        </div>
+        <div class="cust-stat">
+          <div class="cust-stat-lbl">المتبقي</div>
+          <div class="cust-stat-val" style="color:${parseFloat(c.total_remaining) > 0 ? 'var(--red)' : 'var(--grn)'}">${fmt(c.total_remaining)} ج</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+async function showCustDetail(name) {
+  document.getElementById('cd-title').textContent = '👤 ' + name;
+  document.getElementById('cd-body').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  openModal('modal-cust-detail');
+  try {
+    const orders = await api('GET', '/customers/' + encodeURIComponent(name) + '/orders');
+    const totTons = orders.reduce((s, o) => s + parseFloat(o.tons || 0), 0);
+    const totCost = orders.reduce((s, o) => s + parseFloat(o.total_cost || 0), 0);
+    const totPaid = orders.reduce((s, o) => s + parseFloat(o.paid_amount || 0), 0);
+    const totRem = orders.reduce((s, o) => s + parseFloat(o.remaining_amount || 0), 0);
+    document.getElementById('cd-body').innerHTML = `
+      <div class="summary-grid" style="margin-bottom:16px">
+        <div class="sum-card"><div class="sum-val">${fmt(totTons)} طن</div><div class="sum-lbl">إجمالي الأطنان</div></div>
+        <div class="sum-card accent"><div class="sum-val">${fmt(totCost)} ج</div><div class="sum-lbl">إجمالي التكلفة</div></div>
+        <div class="sum-card" style="background:var(--grnl)"><div class="sum-val" style="color:var(--grn)">${fmt(totPaid)} ج</div><div class="sum-lbl">إجمالي المدفوع</div></div>
+        <div class="sum-card ${totRem > 0 ? 'warn' : ''}" style="${totRem <= 0 ? 'background:var(--grnl)' : ''}"><div class="sum-val ${totRem <= 0 ? '' : ''}">${fmt(totRem)} ج</div><div class="sum-lbl">إجمالي المتبقي</div></div>
+      </div>
+      <p class="section-title">📋 الأوردرات (${orders.length})</p>
+      ${orders.length ? orders.map(o => `
+        <div class="card" style="margin-bottom:10px;cursor:pointer" onclick="closeModal('modal-cust-detail');setTimeout(()=>showOrderDetail('${o.id}'),200)">
+          <div class="card-body" style="padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-weight:700">${fmt(o.tons)} طن</span>
+              ${payBadge(o.payment_method)}
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--tx2)">
+              <span>التكلفة: ${fmt(o.total_cost)} ج</span>
+              <span style="color:${parseFloat(o.remaining_amount) > 0 ? 'var(--red)' : 'var(--grn)'}">متبقي: ${fmt(o.remaining_amount)} ج</span>
+            </div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:6px">${fmtDate(o.created_at)}</div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty"><p>لا يوجد أوردرات</p></div>'}
+    `;
+  } catch (e) { document.getElementById('cd-body').innerHTML = '<p style="color:red">خطأ في التحميل</p>'; }
+}
+async function submitAddCustomer(e) {
+  e.preventDefault();
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+    await api('POST', '/customers', data);
+    toast('تم إضافة العميل ✅');
+    closeModal('modal-add-customer');
+    e.target.reset();
+    await loadCustomers();
+  } catch (err) { toast(err.error || 'خطأ', 'error'); }
+}
+
+// ——— Workers ———
+async function loadWorkers() {
+  try {
+    S.workers = await api('GET', '/workers');
+    renderWorkers(S.workers);
+  } catch (e) { toast('خطأ في تحميل العمال', 'error'); }
+}
+function renderWorkers(list) {
+  const el = document.getElementById('workers-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">👷</div><p>لا يوجد عمال مسجلين</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(w => `
+    <div class="worker-card">
+      <div class="worker-avatar">👷</div>
+      <div class="worker-info">
+        <div class="worker-name">${esc(w.name)}</div>
+        ${w.role ? `<div class="worker-role">💼 ${esc(w.role)}</div>` : ''}
+        ${w.phone ? `<div class="worker-phone">📱 ${esc(w.phone)}</div>` : ''}
+        ${w.notes ? `<div style="font-size:11px;color:var(--tx3);margin-top:3px">${esc(w.notes)}</div>` : ''}
+      </div>
+      <button class="worker-del" onclick="deleteWorker('${w.id}')" title="حذف">🗑️</button>
+    </div>
+  `).join('');
+}
+async function submitAddWorker(e) {
+  e.preventDefault();
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+    await api('POST', '/workers', data);
+    toast('تم إضافة العامل ✅');
+    closeModal('modal-add-worker');
+    e.target.reset();
+    await loadWorkers();
+  } catch (err) { toast(err.error || 'خطأ', 'error'); }
+}
+async function deleteWorker(id) {
+  if (!confirm('هتحذف العامل ده؟')) return;
+  try {
+    await api('DELETE', '/workers/' + id);
+    toast('تم الحذف');
+    await loadWorkers();
+  } catch (e) { toast('خطأ في الحذف', 'error'); }
+}
+
+// ——— Accounts ———
+async function loadAccounts() {
+  try {
+    const data = await api('GET', '/accounts');
+    renderAccounts(data);
+  } catch (e) { toast('خطأ في تحميل الحسابات', 'error'); }
+}
+function renderAccounts(data) {
+  const { summary, customers } = data;
+  document.getElementById('accounts-summary').innerHTML = `
+    <div class="summary-grid">
+      <div class="sum-card accent">
+        <div class="sum-val">${summary.totalOrders}</div>
+        <div class="sum-lbl">إجمالي الأوردرات</div>
+      </div>
+      <div class="sum-card" style="background:linear-gradient(135deg,var(--gold),var(--goldl));color:var(--prd)">
+        <div class="sum-val">${fmt(summary.totalTons)} طن</div>
+        <div class="sum-lbl">إجمالي الأطنان</div>
+      </div>
+      <div class="sum-card accent">
+        <div class="sum-val" style="font-size:18px">${fmt(summary.totalRevenue)} ج</div>
+        <div class="sum-lbl">إجمالي الإيرادات</div>
+      </div>
+      <div class="sum-card" style="background:var(--grnl)">
+        <div class="sum-val" style="color:var(--grn);font-size:18px">${fmt(summary.totalCollected)} ج</div>
+        <div class="sum-lbl">إجمالي المحصل</div>
+      </div>
+    </div>
+    <div class="sum-card warn" style="margin-bottom:16px">
+      <div class="sum-val">${fmt(summary.totalRemaining)} جنيه</div>
+      <div class="sum-lbl">إجمالي المتبقي (الديون)</div>
+    </div>
+  `;
+  const el = document.getElementById('accounts-customers');
+  if (!customers.length) {
+    el.innerHTML = '<div class="empty"><p>لا توجد بيانات</p></div>';
+    return;
+  }
+  el.innerHTML = customers.map(c => `
+    <div class="acc-row ${parseFloat(c.remaining) > 0 ? 'has-debt' : 'no-debt'}" onclick="showCustDetail('${esc(c.name)}')">
+      <div class="acc-row-top">
+        <span class="acc-cname">${esc(c.name)}</span>
+        <span class="acc-remaining ${parseFloat(c.remaining) > 0 ? 'debt' : 'clear'}">
+          ${parseFloat(c.remaining) > 0 ? fmt(c.remaining) + ' ج' : '✅ مسدد'}
+        </span>
+      </div>
+      <div class="acc-details">
+        <span>📦 ${c.count} أوردر</span>
+        <span>⚖️ ${fmt(c.tons)} طن</span>
+        <span>💰 ${fmt(c.total_cost)} ج</span>
+        <span style="color:var(--grn)">✅ ${fmt(c.paid)} ج</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ——— Settings ———
+async function saveSettings() {
+  const price = document.getElementById('settings-price').value;
+  if (!price || isNaN(price) || parseFloat(price) <= 0) { toast('ادخل سعر صحيح', 'error'); return; }
+  try {
+    await api('PUT', '/settings', { price_per_ton: price });
+    S.settings.price_per_ton = price;
+    toast('تم حفظ الإعدادات ✅');
+    closeModal('modal-settings');
+    calcCost();
+  } catch (e) { toast('خطأ في الحفظ', 'error'); }
+}
+
+// ——— Notifications ———
+let notifyEnabled = false;
+function toggleNotify() {
+  if (notifyEnabled) {
+    notifyEnabled = false;
+    updateNotifyUI(false);
+    toast('تم إيقاف الإشعارات', 'info');
+    return;
+  }
+  if (!('Notification' in window)) { toast('المتصفح لا يدعم الإشعارات', 'error'); return; }
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') {
+      notifyEnabled = true;
+      updateNotifyUI(true);
+      initSocket();
+      toast('تم تفعيل الإشعارات 🔔', 'success');
+    } else {
+      toast('رُفض إذن الإشعارات — فعّله من إعدادات المتصفح', 'error');
+    }
+  });
+}
+function updateNotifyUI(on) {
+  const h = document.getElementById('btn-notify');
+  const s = document.getElementById('settings-notify-btn');
+  if (on) {
+    h.textContent = '🔔'; h.classList.add('notify-on');
+    if (s) { s.textContent = '🔕 إيقاف الإشعارات'; s.style.background = 'linear-gradient(135deg,var(--red),#e53935)'; }
+  } else {
+    h.textContent = '🔔'; h.classList.remove('notify-on');
+    if (s) { s.textContent = '🔔 تفعيل الإشعارات'; s.style.background = 'linear-gradient(135deg,var(--gold),var(--goldl))'; }
+  }
+}
+
+// ——— Socket.io ———
+function initSocket() {
+  if (S.socket) return;
+  try {
+    S.socket = io({ transports: ['websocket', 'polling'] });
+    S.socket.on('connect', () => console.log('Socket connected'));
+    S.socket.on('olive_new_order', async (data) => {
+      const o = data.order;
+      const msg = `🫒 طلب جديد: ${o.customer_name} — ${fmt(o.tons)} طن`;
+      toast(msg, 'success');
+      if (notifyEnabled && document.hidden) {
+        new Notification('موسم العصر — طلب عصر جديد', {
+          body: `${o.customer_name} — ${fmt(o.tons)} طن — ${fmt(o.total_cost)} جنيه`,
+          icon: '/olive-season/manifest.json',
+          dir: 'rtl',
+          lang: 'ar',
+          tag: 'olive-order-' + o.id,
+        });
+      }
+      if (S.tab === 'orders') await loadOrders();
+      else if (S.tab === 'accounts') await loadAccounts();
+    });
+  } catch (e) { console.warn('Socket.io not available'); }
+}
+
+// ——— Security: escape HTML ———
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ——— PWA Install ———
+function installApp() {
+  if (S.deferredInstall) { S.deferredInstall.prompt(); }
+}
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  S.deferredInstall = e;
+  document.getElementById('btn-install').style.display = 'block';
+  document.getElementById('install-hint').style.display = 'none';
+});
+
+// ——— Service Worker ———
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/olive-season/sw.js').catch(() => {});
+}
+
+// ——— Init ———
+async function init() {
+  try {
+    S.settings = await api('GET', '/settings');
+    document.getElementById('settings-price').value = S.settings.price_per_ton;
+  } catch (e) {}
+  await loadOrders();
+  initSocket();
+}
+init();
+</script>
+</body>
+</html>

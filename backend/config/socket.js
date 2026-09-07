@@ -3,10 +3,19 @@ const { Server } = require('socket.io');
 let io = null;
 
 function initSocket(server) {
+  const allowedWsOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://matrouholive.com', 'https://www.matrouholive.com',
+    'https://api.matrouholive.com',
+  ];
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      methods: ['GET', 'POST']
+      origin: (origin, cb) => {
+        if (!origin || allowedWsOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) return cb(null, true);
+        cb(new Error('Socket.io CORS: ' + origin));
+      },
+      methods: ['GET', 'POST'],
+      credentials: true,
     }
   });
 

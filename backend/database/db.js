@@ -100,6 +100,43 @@ async function initDb() {
       stars INTEGER DEFAULT 5,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS olive_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS olive_customers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS olive_workers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT,
+      role TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS olive_orders (
+      id TEXT PRIMARY KEY,
+      customer_name TEXT NOT NULL,
+      customer_phone TEXT,
+      car_number TEXT,
+      car_weight REAL,
+      olive_weight REAL,
+      tons REAL NOT NULL,
+      notes TEXT,
+      order_sequence INTEGER,
+      pressing_cost_per_ton REAL NOT NULL DEFAULT 500,
+      total_cost REAL NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'vodafone_cash',
+      paid_amount REAL DEFAULT 0,
+      remaining_amount REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
   console.log('✅ Neon PostgreSQL schema ready');
   return pool;

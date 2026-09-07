@@ -81,6 +81,11 @@ const server = http.createServer(app);
 const io = initSocket(server);
 app.set('io', io);
 
+app.use('/api/olive-season', require('./routes/oliveSeason'));
+const olivePath = path.join(__dirname, 'public', 'olive-season');
+if (!fs.existsSync(olivePath)) fs.mkdirSync(olivePath, { recursive: true });
+app.use('/olive-season', express.static(olivePath));
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/categories', require('./routes/categories'));
