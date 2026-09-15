@@ -119,6 +119,10 @@ export default function ProductFormFields({
             fontWeight: 700, fontSize: 14, cursor: "pointer",
           }}>❌ نفذ المخزون</button>
         </div>
+        <input type="number" min={0} step={0.1} inputMode="decimal" value={form.stock}
+          onChange={e => onChange("stock", e.target.value)} placeholder="مثال: 0.1"
+          style={{ ...inputStyle, marginTop: 10 }} />
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "#888" }}>اكتب الكمية بالطن، ويمكن استخدام الكسور العشرية مثل 0.1</p>
       </div>
 
       <div>
