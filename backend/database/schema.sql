@@ -38,7 +38,7 @@ CREATE TABLE products (
     category_id UUID REFERENCES categories(id),
     images TEXT[],
     main_image VARCHAR(255),
-    stock INTEGER DEFAULT 0,
+    stock DECIMAL(10,2) DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
