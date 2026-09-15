@@ -119,7 +119,7 @@ export default function ProductFormFields({
             fontWeight: 700, fontSize: 14, cursor: "pointer",
           }}>❌ نفذ المخزون</button>
         </div>
-        <input type="number" min={0} step={0.1} inputMode="decimal" value={form.stock}
+        <input type="number" min={0} step="any" inputMode="decimal" value={form.stock}
           onChange={e => onChange("stock", e.target.value)} placeholder="مثال: 0.1"
           style={{ ...inputStyle, marginTop: 10 }} />
         <p style={{ margin: "4px 0 0", fontSize: 11, color: "#888" }}>اكتب الكمية بالطن، ويمكن استخدام الكسور العشرية مثل 0.1</p>
@@ -286,7 +286,7 @@ export default function ProductFormFields({
                     onChange={e => { const u = [...form.variants]; u[i] = { ...u[i], [f.key]: e.target.value }; onChange("variants", u); }}
                     style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }} />
                 ))}
-                <input type="number" value={v.quantity} min={0} step={0.1}
+                <input type="number" value={v.quantity} min={0} step="any"
                   onChange={e => { const u = [...form.variants]; u[i] = { ...u[i], quantity: Number(e.target.value) }; onChange("variants", u); }}
                   style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }} />
                 <input type="number" value={v.price_override ?? ""} min={0} placeholder="اختياري"
