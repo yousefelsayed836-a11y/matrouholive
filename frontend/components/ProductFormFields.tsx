@@ -102,7 +102,7 @@ export default function ProductFormFields({
       </div>
 
       <div>
-        <label style={labelStyle}>توفر المنتج *</label>
+        <label style={labelStyle}>المخزون بالطن *</label>
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <button type="button" onClick={() => onChange("stock", "100")} style={{
             flex: 1, padding: "11px 0", borderRadius: 10, border: "2px solid",
@@ -282,7 +282,7 @@ export default function ProductFormFields({
                     onChange={e => { const u = [...form.variants]; u[i] = { ...u[i], [f.key]: e.target.value }; onChange("variants", u); }}
                     style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }} />
                 ))}
-                <input type="number" value={v.quantity} min={0}
+                <input type="number" value={v.quantity} min={0} step={0.1}
                   onChange={e => { const u = [...form.variants]; u[i] = { ...u[i], quantity: Number(e.target.value) }; onChange("variants", u); }}
                   style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", boxSizing: "border-box" }} />
                 <input type="number" value={v.price_override ?? ""} min={0} placeholder="اختياري"
