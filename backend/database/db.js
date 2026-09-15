@@ -63,7 +63,7 @@ async function initDb() {
       id TEXT PRIMARY KEY, name_en TEXT NOT NULL, name_ar TEXT,
       description_en TEXT, description_ar TEXT, price REAL NOT NULL, old_price REAL,
       material TEXT, water_resistance TEXT, size_info TEXT, category_id TEXT,
-      images TEXT DEFAULT '[]', main_image TEXT, stock INTEGER DEFAULT 0,
+      images TEXT DEFAULT '[]', main_image TEXT, stock REAL DEFAULT 0,
       is_active INTEGER DEFAULT 1, is_featured INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -101,7 +101,7 @@ async function initDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
-  console.log('✅ Neon PostgreSQL schema ready');
+  await pool.query('ALTER TABLE products ALTER COLUMN stock TYPE REAL USING stock::REAL').catch(() => {});\n  console.log('✅ Neon PostgreSQL schema ready');
   return pool;
 }
 
